@@ -1,0 +1,149 @@
+from conexion import get_connection
+
+class controlEvidencias:
+
+    @staticmethod
+    def insertar(id_incidente, nombre, url_archivo, nota):
+        """
+        Inserta una nueva evidencia asociada a un incidente.
+        """
+        try:
+            sql = """
+                INSERT INTO evidencias (id_incidente, nombre, url_archivo, nota, fecha_subida)
+                VALUES (%s, %s, %s, %s, now())
+            """
+            
+            conexion = get_connection()
+            if not conexion:
+                print("No se pudo conectar a la base de datos.")
+                return False
+            
+            with conexion.cursor() as cursor:
+                cursor.execute(sql, (id_incidente, nombre, url_archivo, nota))
+                conexion.commit()
+            
+            conexion.close()
+            print(f"Evidencia '{nombre}' registrada correctamente para el incidente {id_incidente}.")
+            return True
+        
+        except Exception as e:
+            print(f"Error al insertar evidencia => {e}")
+            return False
+
+
+    @staticmethod
+    def buscar_por_ID(id_evidencias):
+        """
+        Busca una evidencia por su ID.
+        """
+        try:
+            sql = """
+                SELECT * FROM evidencias WHERE id_evidencias = %s
+            """
+            atributos = ['id_evidencias', 'id_incidente', 'nombre', 'url_archivo', 'nota', 'fecha_subida']
+            
+            conexion = get_connection()
+            if not conexion:
+                print("No se pudo conectar a la base de datos.")
+                return None
+
+            evidencia = None
+            with conexion.cursor() as cursor:
+                cursor.execute(sql, (id_evidencias,))
+                evidencia = cursor.fetchone()
+
+            conexion.close()
+            evidencia_dict = dict(zip(atributos, evidencia)) if evidencia else None
+            return evidencia_dict
+
+        except Exception as e:
+            print(f"Error al buscar_por_ID => {e}")
+            return None
+
+
+    @staticmethod
+    def buscar_todos():
+        """
+        Retorna todas las evidencias registradas en la base de datos.
+        """
+        try:
+            sql = """
+                SELECT * FROM evidencias ORDER BY fecha_subida DESC
+            """
+            atributos = ['id_evidencias', 'id_incidente', 'nombre', 'url_archivo', 'nota', 'fecha_subida']
+            
+            conexion = get_connection()
+            if not conexion:
+                print("No se pudo conectar a la base de datos.")
+                return None
+
+            evidencias = []
+            with conexion.cursor() as cursor:
+                cursor.execute(sql)
+                evidencias = cursor.fetchall()
+
+            conexion.close()
+            evidencias_list = [dict(zip(atributos, e)) for e in evidencias] if evidencias else []
+            return evidencias_list
+
+        except Exception as e:
+            print(f"Error al buscar_todos => {e}")
+            return None
+
+
+    @staticmethod
+    def editar(id_evidencias, nombre, url_archivo, nota):
+        """
+        Actualiza el nombre, URL o nota de una evidencia.
+        """
+        try:
+            sql = """
+                UPDATE evidencias
+                SET nombre = %s, url_archivo = %s, nota = %s
+                WHERE id_evidencias = %s
+            """
+            
+            conexion = get_connection()
+            if not conexion:
+                print("No se pudo conectar a la base de datos.")
+                return False
+            
+            with conexion.cursor() as cursor:
+                cursor.execute(sql, (nombre, url_archivo, nota, id_evidencias))
+                conexion.commit()
+            
+            conexion.close()
+            print(f"Evidencia con ID {id_evidencias} actualizada correctamente.")
+            return True
+        
+        except Exception as e:
+            print(f"Error al editar evidencia => {e}")
+            return False
+
+
+    @staticmethod
+    def eliminar(id_evidencias):
+        """
+        Elimina una evidencia por su ID.
+        """
+        try:
+            sql = """
+                DELETE FROM evidencias WHERE id_evidencias = %s
+            """
+            
+            conexion = get_connection()
+            if not conexion:
+                print("No se pudo conectar a la base de datos.")
+                return False
+            
+            with conexion.cursor() as cursor:
+                cursor.execute(sql, (id_evidencias,))
+                conexion.commit()
+            
+            conexion.close()
+            print(f"Evidencia con ID {id_evidencias} eliminada correctamente.")
+            return True
+        
+        except Exception as e:
+            print(f"Error al eliminar evidencia => {e}")
+            return False

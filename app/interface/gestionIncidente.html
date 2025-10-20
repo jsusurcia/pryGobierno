@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,6 +8,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.css" rel="stylesheet" />
 </head>
+
 <body>
     <button data-drawer-target="logo-sidebar" data-drawer-toggle="logo-sidebar" aria-controls="logo-sidebar"
         type="button"
@@ -30,8 +32,7 @@
             </a>
             <ul class="space-y-2 font-medium">
                 <li>
-                    <a href="#"
-                        class="flex items-center p-2 text-gray-900 rounded-lg hover:bg-gray-100 group">
+                    <a href="#" class="flex items-center p-2 text-gray-900 rounded-lg hover:bg-gray-100 group">
                         <svg class="w-5 h-5 text-gray-500 transition duration-75 group-hover:text-gray-900"
                             aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor"
                             viewBox="0 0 22 21">
@@ -44,8 +45,7 @@
                     </a>
                 </li>
                 <li>
-                    <a href="#"
-                        class="flex items-center p-2 text-gray-900 rounded-lg hover:bg-gray-100 group">
+                    <a href="#" class="flex items-center p-2 text-gray-900 rounded-lg hover:bg-gray-100 group">
                         <svg class="shrink-0 w-5 h-5 text-gray-500 transition duration-75 group-hover:text-gray-900"
                             aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor"
                             viewBox="0 0 18 18">
@@ -56,8 +56,7 @@
                     </a>
                 </li>
                 <li>
-                    <a href="#"
-                        class="flex items-center p-2 text-gray-900 rounded-lg hover:bg-gray-100 group">
+                    <a href="#" class="flex items-center p-2 text-gray-900 rounded-lg hover:bg-gray-100 group">
                         <svg class="shrink-0 w-5 h-5 text-red-500 transition duration-75 group-hover:text-red-700"
                             aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 18 16">
                             <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -72,241 +71,310 @@
 
     <div class="p-4 sm:ml-64 ">
         <div class="p-4 rounded-lg ">
-    <div class="max-w-7xl mx-auto">
-        <!-- Header -->
-        <div class="mb-6">
-            <h1 class="text-3xl font-bold text-gray-900 mb-1">Gestión de Incidentes</h1>
-        </div>
+            <div class="max-w-7xl mx-auto">
+                <!-- Header -->
+                <div class="mb-6">
+                    <h1 class="text-3xl font-bold text-gray-900 mb-1">Gestión de Incidentes</h1>
+                </div>
 
-        <!-- Filtros y búsqueda -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-6 mb-6">
-            <!-- Barra de búsqueda -->
-            <div class="mb-4">
-                <div class="relative">
-                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                        </svg>
-                    </span>
-                    <input 
-                        type="text" 
-                        placeholder="Buscar por ID o título..."
-                        class="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-                    >
+                <!-- Filtros y búsqueda -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-6 mb-6">
+                    <!-- Barra de búsqueda -->
+                    <div class="mb-4">
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                            </span>
+                            <input type="text" placeholder="Buscar por ID o título..."
+                                class="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
+                        </div>
+                    </div>
+
+                    <!-- Filtros de fecha y categorías -->
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Desde</label>
+                            <input type="date" value="2025-10-16"
+                                class="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Hasta</label>
+                            <input type="date" value="2025-10-19"
+                                class="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
+                            <select
+                                class="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option>Todas las categorías</option>
+                                <option>Red</option>
+                                <option>Software</option>
+                                <option>Hardware</option>
+                                <option>Seguridad</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Estado</label>
+                            <select
+                                class="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option>Todos los estados</option>
+                                <option>En Progreso</option>
+                                <option>Abierto</option>
+                                <option>Resuelto</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Botón aplicar filtros -->
+                    <div class="mt-4 flex justify-end">
+                        <button
+                            class="px-4 py-2 text-sm text-white font-medium flex items-center gap-1 bg-gray-600 hover:bg-gray-800 rounded-lg transition">
+                            Aplicar filtros
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tabla de incidentes -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead>
+                                <tr class="bg-gray-50 border-b border-gray-200">
+                                    <th
+                                        class="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                        Título</th>
+                                    <th
+                                        class="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                        Categoría</th>
+                                    <th
+                                        class="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                        Estado</th>
+                                    <th
+                                        class="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                        Fecha de Registro</th>
+                                    <th
+                                        class="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                        Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-200">
+                                <!-- Fila 1 -->
+                                <tr class="hover:bg-gray-50 transition">
+                                    <td class="px-6 py-4">
+                                        <div>
+                                            <p class="text-sm font-medium text-gray-900">Fallo en servidor principal</p>
+                                            <p class="text-xs text-gray-500">INC-001</p>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 text-sm text-gray-600">Red</td>
+                                    <td class="px-6 py-4">
+                                        <span
+                                            class="px-3 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-700">En
+                                            Progreso</span>
+                                    </td>
+                                    <td class="px-6 py-4 text-sm text-gray-600">2025-10-19</td>
+                                    <td class="px-6 py-4">
+                                        <div class="flex items-center justify-center gap-2">
+                                            <!-- Botón ver detalles -->
+                                            <button onclick="openDetailModal('INC-001')"
+                                                class="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                                                title="Ver detalles">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor"
+                                                    viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2"
+                                                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                </svg>
+                                            </button>
+                                            <!-- Botón agregar (nuevo) -->
+                                            <button onclick="alert('Función para agregar/asignar')"
+                                                class="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition"
+                                                title="Asignar diagnóstico">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor"
+                                                    viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                                </svg>
+                                            </button>
+                                            <!-- Botón eliminar -->
+                                            <button onclick="openDeleteModal('INC-001')"
+                                                class="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
+                                                title="Eliminar">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor"
+                                                    viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2"
+                                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+
+                                <!-- Fila 2 -->
+                                <tr class="hover:bg-gray-50 transition">
+                                    <td class="px-6 py-4">
+                                        <div>
+                                            <p class="text-sm font-medium text-gray-900">Software de contabilidad no
+                                                inicia</p>
+                                            <p class="text-xs text-gray-500">INC-002</p>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 text-sm text-gray-600">Software</td>
+                                    <td class="px-6 py-4">
+                                        <span
+                                            class="px-3 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-700">Abierto</span>
+                                    </td>
+                                    <td class="px-6 py-4 text-sm text-gray-600">2025-10-18</td>
+                                    <td class="px-6 py-4">
+                                        <div class="flex items-center justify-center gap-2">
+                                            <button onclick="openDetailModal('INC-002')"
+                                                class="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                                                title="Ver detalles">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor"
+                                                    viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2"
+                                                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                </svg>
+                                            </button>
+                                            <button onclick="alert('Función para agregar/asignar')"
+                                                class="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition"
+                                                title="Asignar técnico">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor"
+                                                    viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                                </svg>
+                                            </button>
+                                            <button onclick="openDeleteModal('INC-002')"
+                                                class="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
+                                                title="Eliminar">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor"
+                                                    viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2"
+                                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+
+                                <!-- Fila 3 -->
+                                <tr class="hover:bg-gray-50 transition">
+                                    <td class="px-6 py-4">
+                                        <div>
+                                            <p class="text-sm font-medium text-gray-900">Monitor defectuoso</p>
+                                            <p class="text-xs text-gray-500">INC-003</p>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 text-sm text-gray-600">Hardware</td>
+                                    <td class="px-6 py-4">
+                                        <span
+                                            class="px-3 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-700">Resuelto</span>
+                                    </td>
+                                    <td class="px-6 py-4 text-sm text-gray-600">2025-10-17</td>
+                                    <td class="px-6 py-4">
+                                        <div class="flex items-center justify-center gap-2">
+                                            <button onclick="openDetailModal('INC-003')"
+                                                class="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                                                title="Ver detalles">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor"
+                                                    viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2"
+                                                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                </svg>
+                                            </button>
+                                            <button onclick="alert('Función para agregar/asignar')"
+                                                class="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition"
+                                                title="Asignar técnico">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor"
+                                                    viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                                </svg>
+                                            </button>
+                                            <button onclick="openDeleteModal('INC-003')"
+                                                class="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
+                                                title="Eliminar">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor"
+                                                    viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2"
+                                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+
+                                <!-- Fila 4 -->
+                                <tr class="hover:bg-gray-50 transition">
+                                    <td class="px-6 py-4">
+                                        <div>
+                                            <p class="text-sm font-medium text-gray-900">Acceso no autorizado detectado
+                                            </p>
+                                            <p class="text-xs text-gray-500">INC-004</p>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 text-sm text-gray-600">Seguridad</td>
+                                    <td class="px-6 py-4">
+                                        <span
+                                            class="px-3 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-700">Abierto</span>
+                                    </td>
+                                    <td class="px-6 py-4 text-sm text-gray-600">2025-10-16</td>
+                                    <td class="px-6 py-4">
+                                        <div class="flex items-center justify-center gap-2">
+                                            <button onclick="openDetailModal('INC-004')"
+                                                class="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                                                title="Ver detalles">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor"
+                                                    viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2"
+                                                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                </svg>
+                                            </button>
+                                            <button onclick="alert('Función para agregar/asignar')"
+                                                class="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition"
+                                                title="Asignar técnico">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor"
+                                                    viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                                </svg>
+                                            </button>
+                                            <button onclick="openDeleteModal('INC-004')"
+                                                class="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
+                                                title="Eliminar">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor"
+                                                    viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2"
+                                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
-
-            <!-- Filtros de fecha y categorías -->
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Desde</label>
-                    <input 
-                        type="date" 
-                        value="2025-10-16"
-                        class="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Hasta</label>
-                    <input 
-                        type="date" 
-                        value="2025-10-19"
-                        class="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
-                    <select class="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option>Todas las categorías</option>
-                        <option>Red</option>
-                        <option>Software</option>
-                        <option>Hardware</option>
-                        <option>Seguridad</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Estado</label>
-                    <select class="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option>Todos los estados</option>
-                        <option>En Progreso</option>
-                        <option>Abierto</option>
-                        <option>Resuelto</option>
-                    </select>
-                </div>
-            </div>
-
-            <!-- Botón limpiar filtros -->
-            <div class="mt-4 flex justify-end">
-                <button class="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 font-medium flex items-center gap-1 hover:bg-gray-100 rounded-lg transition">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                    </svg>
-                    Limpiar filtros
-                </button>
-            </div>
-        </div>
-
-        <!-- Tabla de incidentes -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-            <div class="overflow-x-auto">
-                <table class="w-full">
-                    <thead>
-                        <tr class="bg-gray-50 border-b border-gray-200">
-                            <th class="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Título</th>
-                            <th class="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Categoría</th>
-                            <th class="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Estado</th>
-                            <th class="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Fecha de Registro</th>
-                            <th class="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-200">
-                        <!-- Fila 1 -->
-                        <tr class="hover:bg-gray-50 transition">
-                            <td class="px-6 py-4">
-                                <div>
-                                    <p class="text-sm font-medium text-gray-900">Fallo en servidor principal</p>
-                                    <p class="text-xs text-gray-500">INC-001</p>
-                                </div>
-                            </td>
-                            <td class="px-6 py-4 text-sm text-gray-600">Red</td>
-                            <td class="px-6 py-4">
-                                <span class="px-3 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-700">En Progreso</span>
-                            </td>
-                            <td class="px-6 py-4 text-sm text-gray-600">2025-10-19</td>
-                            <td class="px-6 py-4">
-                                <div class="flex items-center justify-center gap-2">
-                                    <!-- Botón ver detalles -->
-                                    <button onclick="openDetailModal('INC-001')" class="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition" title="Ver detalles">
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                                        </svg>
-                                    </button>
-                                    <!-- Botón agregar (nuevo) -->
-                                    <button onclick="alert('Función para agregar/asignar')" class="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition" title="Asignar diagnóstico">
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-                                        </svg>
-                                    </button>
-                                    <!-- Botón eliminar -->
-                                    <button onclick="openDeleteModal('INC-001')" class="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition" title="Eliminar">
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                                        </svg>
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-
-                        <!-- Fila 2 -->
-                        <tr class="hover:bg-gray-50 transition">
-                            <td class="px-6 py-4">
-                                <div>
-                                    <p class="text-sm font-medium text-gray-900">Software de contabilidad no inicia</p>
-                                    <p class="text-xs text-gray-500">INC-002</p>
-                                </div>
-                            </td>
-                            <td class="px-6 py-4 text-sm text-gray-600">Software</td>
-                            <td class="px-6 py-4">
-                                <span class="px-3 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-700">Abierto</span>
-                            </td>
-                            <td class="px-6 py-4 text-sm text-gray-600">2025-10-18</td>
-                            <td class="px-6 py-4">
-                                <div class="flex items-center justify-center gap-2">
-                                    <button onclick="openDetailModal('INC-002')" class="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition" title="Ver detalles">
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                                        </svg>
-                                    </button>
-                                    <button onclick="alert('Función para agregar/asignar')" class="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition" title="Asignar técnico">
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-                                        </svg>
-                                    </button>
-                                    <button onclick="openDeleteModal('INC-002')" class="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition" title="Eliminar">
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                                        </svg>
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-
-                        <!-- Fila 3 -->
-                        <tr class="hover:bg-gray-50 transition">
-                            <td class="px-6 py-4">
-                                <div>
-                                    <p class="text-sm font-medium text-gray-900">Monitor defectuoso</p>
-                                    <p class="text-xs text-gray-500">INC-003</p>
-                                </div>
-                            </td>
-                            <td class="px-6 py-4 text-sm text-gray-600">Hardware</td>
-                            <td class="px-6 py-4">
-                                <span class="px-3 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-700">Resuelto</span>
-                            </td>
-                            <td class="px-6 py-4 text-sm text-gray-600">2025-10-17</td>
-                            <td class="px-6 py-4">
-                                <div class="flex items-center justify-center gap-2">
-                                    <button onclick="openDetailModal('INC-003')" class="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition" title="Ver detalles">
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                                        </svg>
-                                    </button>
-                                    <button onclick="alert('Función para agregar/asignar')" class="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition" title="Asignar técnico">
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-                                        </svg>
-                                    </button>
-                                    <button onclick="openDeleteModal('INC-003')" class="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition" title="Eliminar">
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                                        </svg>
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-
-                        <!-- Fila 4 -->
-                        <tr class="hover:bg-gray-50 transition">
-                            <td class="px-6 py-4">
-                                <div>
-                                    <p class="text-sm font-medium text-gray-900">Acceso no autorizado detectado</p>
-                                    <p class="text-xs text-gray-500">INC-004</p>
-                                </div>
-                            </td>
-                            <td class="px-6 py-4 text-sm text-gray-600">Seguridad</td>
-                            <td class="px-6 py-4">
-                                <span class="px-3 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-700">Abierto</span>
-                            </td>
-                            <td class="px-6 py-4 text-sm text-gray-600">2025-10-16</td>
-                            <td class="px-6 py-4">
-                                <div class="flex items-center justify-center gap-2">
-                                    <button onclick="openDetailModal('INC-004')" class="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition" title="Ver detalles">
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                                        </svg>
-                                    </button>
-                                    <button onclick="alert('Función para agregar/asignar')" class="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition" title="Asignar técnico">
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-                                        </svg>
-                                    </button>
-                                    <button onclick="openDeleteModal('INC-004')" class="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition" title="Eliminar">
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                                        </svg>
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>            
         </div>
     </div>
 
@@ -319,7 +387,8 @@
                 <h3 class="text-xl font-bold text-gray-900">Detalle del Incidente</h3>
                 <button onclick="closeDetailModal()" class="text-gray-400 hover:text-gray-600 transition">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M6 18L18 6M6 6l12 12" />
                     </svg>
                 </button>
             </div>
@@ -338,7 +407,8 @@
 
                 <div>
                     <label class="text-sm font-semibold text-gray-700">Descripción</label>
-                    <p id="modal-description" class="text-gray-600">El servidor principal no responde desde las 10:30 AM</p>
+                    <p id="modal-description" class="text-gray-600">El servidor principal no responde desde las 10:30 AM
+                    </p>
                 </div>
 
                 <div class="grid grid-cols-2 gap-4">
@@ -349,7 +419,9 @@
                     <div>
                         <label class="text-sm font-semibold text-gray-700">Estado</label>
                         <p id="modal-status" class="mt-1">
-                            <span class="px-3 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-700 inline-block">En Progreso</span>
+                            <span
+                                class="px-3 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-700 inline-block">En
+                                Progreso</span>
                         </p>
                     </div>
                 </div>
@@ -362,10 +434,12 @@
 
             <!-- Footer del modal -->
             <div class="flex gap-3 p-6 border-t border-gray-200 justify-end">
-                <button onclick="alert('Asignar diagnóstico')" class="px-6 py-3 border-2 border-gray-300 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition">
+                <button onclick="alert('Asignar diagnóstico')"
+                    class="px-6 py-3 border-2 border-gray-300 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition">
                     Asignar Diagnóstico
                 </button>
-                <button onclick="closeDetailModal()" class="px-6 py-3 border-2 border-gray-300 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition">
+                <button onclick="closeDetailModal()"
+                    class="px-6 py-3 border-2 border-gray-300 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition">
                     Cerrar
                 </button>
             </div>
@@ -380,13 +454,14 @@
                 <!-- Icono de advertencia -->
                 <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
                     <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                     </svg>
                 </div>
 
                 <h3 class="text-xl font-bold text-gray-900 mb-2">Confirmar eliminación</h3>
                 <p class="text-gray-600 mb-1">
-                    ¿Estás seguro de que deseas eliminar el incidente 
+                    ¿Estás seguro de que deseas eliminar el incidente
                     <span id="delete-incident-id" class="font-bold text-gray-900">INC-001</span>?
                 </p>
                 <p class="text-sm text-gray-500">Esta acción no se puede deshacer.</p>
@@ -394,10 +469,12 @@
 
             <!-- Botones de acción -->
             <div class="flex gap-3 p-6 border-t border-gray-200">
-                <button onclick="closeDeleteModal()" class="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition">
+                <button onclick="closeDeleteModal()"
+                    class="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition">
                     Cancelar
                 </button>
-                <button onclick="confirmDelete()" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold py-3 rounded-xl transition-all duration-200">
+                <button onclick="confirmDelete()"
+                    class="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold py-3 rounded-xl transition-all duration-200">
                     Eliminar
                 </button>
             </div>
@@ -409,7 +486,7 @@
         function openDetailModal(incidentId) {
             document.getElementById('detailModal').classList.remove('hidden');
             document.body.style.overflow = 'hidden';
-            
+
             // Aquí puedes cargar los datos específicos del incidente
             // Este es un ejemplo estático
             document.getElementById('modal-id').textContent = incidentId;
@@ -440,16 +517,16 @@
         }
 
         // Cerrar modales al hacer clic fuera de ellos
-        document.getElementById('detailModal').addEventListener('click', function(e) {
+        document.getElementById('detailModal').addEventListener('click', function (e) {
             if (e.target === this) closeDetailModal();
         });
 
-        document.getElementById('deleteModal').addEventListener('click', function(e) {
+        document.getElementById('deleteModal').addEventListener('click', function (e) {
             if (e.target === this) closeDeleteModal();
         });
 
         // Cerrar modales con la tecla ESC
-        document.addEventListener('keydown', function(e) {
+        document.addEventListener('keydown', function (e) {
             if (e.key === 'Escape') {
                 closeDetailModal();
                 closeDeleteModal();
@@ -458,4 +535,5 @@
     </script>
 </body>
 <script src="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.js"></script>
+
 </html>

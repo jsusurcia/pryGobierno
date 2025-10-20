@@ -3,7 +3,7 @@ from app.database.db import get_connection
 class ControlRol:
     @staticmethod
 
-    def buscar_por_IDROL(id_rol):
+    def buscar_por_IDRol(id_rol):
         try:
             sql = """
                 SELECT * FROM roles WHERE id_rol = %s

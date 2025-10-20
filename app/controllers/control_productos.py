@@ -1,5 +1,4 @@
-from app.database.db import get_connection
-
+from ConexionBD import get_connection
 class ControlProducto:
     @staticmethod
     def buscar_por_ID(id_producto):

@@ -19,6 +19,31 @@
             </p>
         </div>
 
+        <!-- Mensajes Flash -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="mb-6 max-w-2xl mx-auto">
+                        {% if category == 'success' %}
+                            <div class="bg-green-50 border border-green-200 rounded-xl p-4 flex items-center">
+                                <svg class="w-5 h-5 text-green-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                <span class="text-green-800">{{ message }}</span>
+                            </div>
+                        {% else %}
+                            <div class="bg-red-50 border border-red-200 rounded-xl p-4 flex items-center">
+                                <svg class="w-5 h-5 text-red-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                <span class="text-red-800">{{ message }}</span>
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
         <!-- Formulario Principal -->
         <div class="bg-white rounded-2xl shadow-xl border border-gray-100 p-6 md:p-8 hover:shadow-2xl transition-shadow duration-300">
             <!-- SVG centrado -->
@@ -32,7 +57,7 @@
             <!-- Título centrado debajo del SVG -->
             <h2 class="text-2xl font-bold text-gray-800 text-center mb-8">Nuevo Incidente</h2>
 
-            <form class="space-y-6 max-w-2xl mx-auto">
+            <form method="POST" action="{{ url_for('registrar_incidente') }}" class="space-y-6 max-w-2xl mx-auto" id="incidentForm">
                 <!-- Título del Incidente -->
                 <div class="group">
                     <label class="block text-sm font-semibold text-gray-700 mb-2">
@@ -42,6 +67,7 @@
                     <div class="relative">
                         <input 
                             type="text" 
+                            name="titulo"
                             placeholder="Ej: Falla en impresora"
                             class="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 focus:bg-white transition-all duration-200 placeholder-gray-400 group-hover:border-gray-300"
                             required
@@ -62,17 +88,18 @@
                     </label>
                     <div class="relative">
                         <select 
+                            name="categoria"
                             class="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 focus:bg-white transition-all duration-200 appearance-none cursor-pointer group-hover:border-gray-300"
                             required
                         >
                             <option value="">Selecciona una categoría</option>
-                            <option value="hardware">🖥️ Hardware</option>
-                            <option value="software">💻 Software</option>
-                            <option value="red">🌐 Red/Conectividad</option>
-                            <option value="seguridad">🔒 Seguridad</option>
-                            <option value="impresoras">🖨️ Impresoras</option>
-                            <option value="telefonia">📞 Telefonía</option>
-                            <option value="otro">📋 Otro</option>
+                            <option value="1">🖥️ Hardware</option>
+                            <option value="2">💻 Software</option>
+                            <option value="3">🌐 Red/Conectividad</option>
+                            <option value="4">🔒 Seguridad</option>
+                            <option value="5">🖨️ Impresoras</option>
+                            <option value="6">📞 Telefonía</option>
+                            <option value="7">📋 Otro</option>
                         </select>
                         <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
                             <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -89,6 +116,7 @@
                         <span class="text-red-500">*</span>
                     </label>
                     <textarea 
+                        name="descripcion"
                         placeholder="Describe el incidente en detalle..."
                         rows="6"
                         class="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 focus:bg-white transition-all duration-200 placeholder-gray-400 resize-none group-hover:border-gray-300"
@@ -116,18 +144,32 @@
         <div class="mt-8 bg-blue-50 border border-blue-200 rounded-2xl p-6 text-center max-w-2xl mx-auto">
             <div class="flex justify-center mb-3">
                 <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 018 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z"/>
                 </svg>
             </div>
             <h3 class="font-bold text-lg text-blue-800 mb-2">¿Necesitas ayuda?</h3>
             <p class="text-blue-700 text-sm mb-4">
                 Si tienes dudas o necesitas asistencia, contacta al equipo de soporte.
             </p>
-            <a href="#" class="inline-block bg-blue-600 text-white font-medium py-2 px-6 rounded-lg hover:bg-blue-700 transition-colors duration-200">
-                Abrir chat de soporte
-            </a>
+            <div class="space-x-4">
+                <a href="{{ url_for('listar_incidentes') }}" class="inline-block bg-blue-600 text-white font-medium py-2 px-6 rounded-lg hover:bg-blue-700 transition-colors duration-200">
+                    Ver Incidentes
+                </a>
+                <a href="#" class="inline-block bg-green-600 text-white font-medium py-2 px-6 rounded-lg hover:bg-green-700 transition-colors duration-200">
+                    Abrir chat de soporte
+                </a>
+            </div>
         </div>
     </div>
+
+    <script>
+        // Animación simple al enviar el formulario
+        document.getElementById('incidentForm').addEventListener('submit', function(e) {
+            const submitBtn = this.querySelector('button[type="submit"]');
+            submitBtn.innerHTML = '<svg class="w-5 h-5 animate-spin mr-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Registrando...';
+            submitBtn.disabled = true;
+        });
+    </script>
 
 </body>
 </html>

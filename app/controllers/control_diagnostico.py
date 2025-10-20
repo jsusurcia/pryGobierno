@@ -1,6 +1,6 @@
-from app.database.db import get_connection
+from ConexionBD import get_connection
 
-class ControlRol:
+class ControlDiagnosticos:
     @staticmethod
 
     def insertar_diagnostico(id_incidente, id_usuario, descripcion, causa_raiz, solucion_propuesta, comentario_usuario):

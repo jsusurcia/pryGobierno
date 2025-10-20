@@ -1,3 +1,4 @@
+from ConexionBD import get_connection
 
 class controlUsuarios:
     
@@ -111,24 +112,67 @@ class controlUsuarios:
             print(f"Error al editar_usuario => {e}")
             return False
     @staticmethod
-    def eliminar_usuario(id_usuario):
+    def buscar_por_correo(correo, contrasena):
         try:
-            sql = "DELETE FROM USUARIOS WHERE id_usuario = %s"
-
+            sql = """
+                SELECT * FROM usuarios WHERE correo = %s AND contrasena = %s
+            """
+            atributos = [
+                'id_usuario', 'nombre', 'ape_pat', 'ape_mat', 
+                'correo', 'contrasena', 'id_rol', 'estado', 'fecha_creacion'
+            ]
+            
             conexion = get_connection()
             if not conexion:
                 print("No se pudo conectar a la base de datos.")
-                return False
+                return None
 
+            usuario_dict = None
             with conexion.cursor() as cursor:
-                cursor.execute(sql, (id_usuario,))
-                conexion.commit()
+                cursor.execute(sql, (correo, contrasena))  # ✅ usar los parámetros correctos
+                usuario = cursor.fetchone()
+
+            if usuario:
+                usuario_dict = dict(zip(atributos, usuario))
 
             conexion.close()
-            print(f"Usuario {id_usuario} eliminado correctamente.")
-            return True
+            return usuario_dict
 
         except Exception as e:
-            print(f"Error al eliminar_usuario => {e}")
-            return False
+            print(f"Error al buscar_por_correo => {e}")
+        return None
+    @staticmethod
+    def verificar_contrasena(correo, contrasena):
+        try:
+            sql = """
+                SELECT id_usuario, nombre, ape_pat, ape_mat, correo, id_rol, estado
+                FROM usuarios
+                WHERE correo = %s AND contrasena = %s
+            """
+
+            conexion = get_connection()
+            if not conexion:
+                print("❌ No se pudo conectar a la base de datos.")
+                return None
+
+            with conexion.cursor() as cursor:
+                cursor.execute(sql, (correo, contrasena))
+                usuario = cursor.fetchone()
+
+            conexion.close()
+
+            if usuario:
+                atributos = ['id_usuario', 'nombre', 'ape_pat', 'ape_mat', 'correo', 'id_rol', 'estado']
+                usuario_dict = dict(zip(atributos, usuario))
+                print("✅ Usuario verificado correctamente.")
+                return usuario_dict
+            else:
+                print("⚠️ Correo o contraseña incorrectos.")
+                return None
+
+        except Exception as e:
+            print(f"❌ Error en verificar_contrasena => {e}")
+            return None
+
         
+         

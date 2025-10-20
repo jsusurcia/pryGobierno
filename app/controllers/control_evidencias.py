@@ -1,5 +1,4 @@
-from conexion import get_connection
-
+from ConexionBD import get_connection
 class controlEvidencias:
 
     @staticmethod

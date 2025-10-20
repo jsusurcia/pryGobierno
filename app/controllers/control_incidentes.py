@@ -1,6 +1,5 @@
-from app.database.db import get_connection
-
-class ControlRol:
+from ConexionBD import get_connection
+class ControlIncidentes:
     @staticmethod
 
     def insertar_incidentes(titulo, descripcion, id_categoria, id_usuario):

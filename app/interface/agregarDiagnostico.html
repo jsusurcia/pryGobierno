@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Asignar Diagnóstico - Sistema T.I.</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50 min-h-screen p-4 md:p-8">
+    
+    <div class="max-w-3xl mx-auto">
+        <!-- Botón Volver -->
+        <button onclick="window.history.back()" class="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6 transition-colors duration-200">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+            </svg>
+            <span class="font-medium">Volver</span>
+        </button>
+
+        <!-- Formulario -->
+        <div class="bg-white rounded-2xl shadow-xl border border-gray-100 p-6 md:p-8">
+            <!-- Header -->
+            <div class="mb-6">
+                <h1 class="text-2xl md:text-3xl font-bold text-gray-900 mb-2">Asignar Diagnóstico</h1>
+                <p class="text-gray-600 text-sm md:text-base">Ingresa el diagnóstico para el incidente seleccionado</p>
+            </div>
+
+            <!-- Formulario -->
+            <form class="space-y-6">
+                <!-- Incidente Vinculado -->
+                <div class="group">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        Incidente Vinculado
+                        <span class="text-red-500">*</span>
+                    </label>
+                    <div class="relative">
+                        <select 
+                            class="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 focus:bg-white transition-all duration-200 appearance-none cursor-pointer group-hover:border-gray-300"
+                            required
+                        >
+                            <option value="">Selecciona un incidente</option>
+                            <option value="INC001">INC-001 - Fallo en servidor principal</option>
+                            <option value="INC002">INC-002 - Software de contabilidad no inicia</option>
+                            <option value="INC003">INC-003 - Monitor defectuoso</option>
+                            <option value="INC004">INC-004 - Acceso no autorizado detectado</option>
+                            <option value="INC005">INC-005 - Impresora no responde</option>
+                            <option value="INC006">INC-006 - Conexión VPN intermitente</option>
+                        </select>
+                        <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                            <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Descripción -->
+                <div class="group">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        Descripción
+                        <span class="text-red-500">*</span>
+                    </label>
+                    <textarea 
+                        placeholder="Describe el diagnóstico del incidente..."
+                        rows="4"
+                        class="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 focus:bg-white transition-all duration-200 placeholder-gray-400 resize-none group-hover:border-gray-300"
+                        required
+                    ></textarea>
+                </div>
+
+                <!-- Causa Raíz -->
+                <div class="group">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        Causa Raíz
+                        <span class="text-red-500">*</span>
+                    </label>
+                    <textarea 
+                        placeholder="Identifica la causa raíz del problema..."
+                        rows="3"
+                        class="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 focus:bg-white transition-all duration-200 placeholder-gray-400 resize-none group-hover:border-gray-300"
+                        required
+                    ></textarea>
+                </div>
+
+                <!-- Solución -->
+                <div class="group">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        Solución
+                        <span class="text-red-500">*</span>
+                    </label>
+                    <textarea 
+                        placeholder="Detalla la solución aplicada o recomendada..."
+                        rows="4"
+                        class="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 focus:bg-white transition-all duration-200 placeholder-gray-400 resize-none group-hover:border-gray-300"
+                        required
+                    ></textarea>
+                </div>
+
+                <!-- Comentario (Opcional) -->
+                <div class="group">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        Comentario
+                        <span class="text-gray-400 text-xs font-normal">(opcional)</span>
+                    </label>
+                    <textarea 
+                        placeholder="Agrega comentarios adicionales si lo deseas..."
+                        rows="3"
+                        class="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 focus:bg-white transition-all duration-200 placeholder-gray-400 resize-none group-hover:border-gray-300"
+                    ></textarea>
+                </div>
+
+                <!-- Botones de acción -->
+                <div class="flex flex-col-reverse sm:flex-row gap-3 pt-4">
+                    <button 
+                        type="button"
+                        onclick="window.history.back()"
+                        class="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition-all duration-200"
+                    >
+                        Cancelar
+                    </button>
+                    <button 
+                        type="submit"
+                        class="flex-1 bg-gradient-to-r from-gray-800 to-gray-900 hover:from-gray-900 hover:to-black text-white font-semibold py-3 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-[1.02] active:scale-[0.98]"
+                    >
+                        Guardar Diagnóstico
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Prevenir el envío del formulario y mostrar confirmación
+        document.querySelector('form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Obtener los valores del formulario
+            const incidente = this.querySelector('select').value;
+            const descripcion = this.querySelectorAll('textarea')[0].value;
+            const causaRaiz = this.querySelectorAll('textarea')[1].value;
+            const solucion = this.querySelectorAll('textarea')[2].value;
+            const comentario = this.querySelectorAll('textarea')[3].value;
+
+            // Validar campos requeridos
+            if (!incidente || !descripcion || !causaRaiz || !solucion) {
+                alert('Por favor completa todos los campos requeridos');
+                return;
+            }
+
+            // Aquí iría la lógica para enviar los datos al servidor
+            console.log({
+                incidente,
+                descripcion,
+                causaRaiz,
+                solucion,
+                comentario
+            });
+
+            // Mostrar mensaje de éxito
+            alert('Diagnóstico guardado correctamente');
+            
+            // Opcional: Redirigir a otra página
+            // window.location.href = 'gestion-diagnosticos.html';
+        });
+
+        // Validación en tiempo real de campos requeridos
+        const requiredFields = document.querySelectorAll('[required]');
+        requiredFields.forEach(field => {
+            field.addEventListener('blur', function() {
+                if (!this.value.trim()) {
+                    this.classList.add('border-red-300');
+                } else {
+                    this.classList.remove('border-red-300');
+                }
+            });
+        });
+    </script>
+
+</body>
+</html>

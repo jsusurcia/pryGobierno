@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro de Incidentes - Sistema T.I.</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50 min-h-screen p-4 md:p-8">
+    
+    <div class="max-w-4xl mx-auto">
+        <!-- Header -->
+        <div class="mb-8 md:mb-12 text-center">
+            <h1 class="text-3xl md:text-4xl font-bold text-gray-900 mb-3 bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                Registro de Incidentes
+            </h1>
+            <p class="text-gray-600 text-base md:text-lg">
+                Reporta incidentes ocurridos durante tu jornada laboral
+            </p>
+        </div>
+
+        <!-- Formulario Principal -->
+        <div class="bg-white rounded-2xl shadow-xl border border-gray-100 p-6 md:p-8 hover:shadow-2xl transition-shadow duration-300">
+            <!-- SVG centrado -->
+            <div class="flex justify-center mb-4">
+                <div class="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
+                    <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
+                </div>
+            </div>
+            <!-- Título centrado debajo del SVG -->
+            <h2 class="text-2xl font-bold text-gray-800 text-center mb-8">Nuevo Incidente</h2>
+
+            <form class="space-y-6 max-w-2xl mx-auto">
+                <!-- Título del Incidente -->
+                <div class="group">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        Título del Incidente
+                        <span class="text-red-500">*</span>
+                    </label>
+                    <div class="relative">
+                        <input 
+                            type="text" 
+                            placeholder="Ej: Falla en impresora"
+                            class="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 focus:bg-white transition-all duration-200 placeholder-gray-400 group-hover:border-gray-300"
+                            required
+                        >
+                        <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                            <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Categoría -->
+                <div class="group">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        Categoría
+                        <span class="text-red-500">*</span>
+                    </label>
+                    <div class="relative">
+                        <select 
+                            class="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 focus:bg-white transition-all duration-200 appearance-none cursor-pointer group-hover:border-gray-300"
+                            required
+                        >
+                            <option value="">Selecciona una categoría</option>
+                            <option value="hardware">🖥️ Hardware</option>
+                            <option value="software">💻 Software</option>
+                            <option value="red">🌐 Red/Conectividad</option>
+                            <option value="seguridad">🔒 Seguridad</option>
+                            <option value="impresoras">🖨️ Impresoras</option>
+                            <option value="telefonia">📞 Telefonía</option>
+                            <option value="otro">📋 Otro</option>
+                        </select>
+                        <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                            <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Descripción -->
+                <div class="group">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        Descripción
+                        <span class="text-red-500">*</span>
+                    </label>
+                    <textarea 
+                        placeholder="Describe el incidente en detalle..."
+                        rows="6"
+                        class="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 focus:bg-white transition-all duration-200 placeholder-gray-400 resize-none group-hover:border-gray-300"
+                        required
+                    ></textarea>
+                    <p class="text-xs text-gray-500 mt-2">
+                        Incluye detalles como hora, ubicación y cualquier información relevante
+                    </p>
+                </div>
+
+                <!-- Botón de envío -->
+                <button 
+                    type="submit"
+                    class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-4 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2"
+                >
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    Registrar Incidente
+                </button>
+            </form>
+        </div>
+
+        <!-- Panel de ayuda (estilo renovado) -->
+        <div class="mt-8 bg-blue-50 border border-blue-200 rounded-2xl p-6 text-center max-w-2xl mx-auto">
+            <div class="flex justify-center mb-3">
+                <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z"/>
+                </svg>
+            </div>
+            <h3 class="font-bold text-lg text-blue-800 mb-2">¿Necesitas ayuda?</h3>
+            <p class="text-blue-700 text-sm mb-4">
+                Si tienes dudas o necesitas asistencia, contacta al equipo de soporte.
+            </p>
+            <a href="#" class="inline-block bg-blue-600 text-white font-medium py-2 px-6 rounded-lg hover:bg-blue-700 transition-colors duration-200">
+                Abrir chat de soporte
+            </a>
+        </div>
+    </div>
+
+</body>
+</html>

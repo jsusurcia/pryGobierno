@@ -3,7 +3,7 @@ from app.database.db import get_connection
 class ControlRol:
     @staticmethod
 
-    def insertar(id_incidente, id_usuario, descripcion, causa_raiz, solucion_propuesta, comentario_usuario):
+    def insertar_diagnostico(id_incidente, id_usuario, descripcion, causa_raiz, solucion_propuesta, comentario_usuario):
         try:
             sql = """
                 INSERT INTO diagnosticos (
@@ -67,7 +67,7 @@ class ControlRol:
 
             conexion = get_connection()
             if not conexion:
-                print("❌ No se pudo conectar a la base de datos.")
+                print("No se pudo conectar a la base de datos.")
                 return None
 
             with conexion.cursor() as cursor:
@@ -82,7 +82,7 @@ class ControlRol:
             print(f"⚠️ Error en buscar_todos => {e}")
             return None
     
-    def actualizar(id_diagnosticos, descripcion, causa_raiz, solucion_propuesta, comentario_usuario):
+    def actualizar_diagnostico(id_diagnosticos, descripcion, causa_raiz, solucion_propuesta, comentario_usuario):
         try:
             sql = """
                 UPDATE diagnosticos

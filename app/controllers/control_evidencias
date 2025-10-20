@@ -4,9 +4,6 @@ class controlEvidencias:
 
     @staticmethod
     def insertar(id_incidente, nombre, url_archivo, nota):
-        """
-        Inserta una nueva evidencia asociada a un incidente.
-        """
         try:
             sql = """
                 INSERT INTO evidencias (id_incidente, nombre, url_archivo, nota, fecha_subida)

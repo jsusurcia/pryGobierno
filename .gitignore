@@ -1,0 +1,27 @@
+# Entorno Virtual
+venv/
+env/
+.env/
+.venv/
+
+# Archivos de compilación de Python
+__pycache__/
+*.py[cod]
+
+# Archivos de configuración de IDEs (opcional)
+.idea/
+.vscode/
+
+# Archivos de configuración de macOS (opcional)
+.DS_Store
+
+# Archivos de configuración de Windows (opcional)
+Thumbs.db
+
+# Archivos de logs (opcional)
+*.log
+
+# Dependencias de Python
+*.egg-info/
+dist/
+build/

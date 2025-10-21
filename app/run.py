@@ -193,8 +193,6 @@ def ver_incidente(id_incidente):
 @app.route('/incidentes/<incidente_id>/eliminar', methods=['POST'])
 def eliminar_incidente(incidente_id):
     """Eliminar un incidente (solo administradores)"""
-    if 'user_id' not in session or session.get('user_role') != 3:  # 3 = Administrador
-        return jsonify({'error': 'No autorizado'}), 403
     
     try:
         resultado = ControlIncidentes.eliminar_incidente(incidente_id)
@@ -212,11 +210,6 @@ def cambiar_estado_incidente(incidente_id, estado_id):
     """Cambiar el estado de un incidente"""
     if 'user_id' not in session:
         return redirect(url_for('login'))
-    
-    # Solo técnicos y administradores pueden cambiar estados
-    if session.get('user_role') not in [2, 3]:  # 2 = Técnico, 3 = Administrador
-        flash('No tiene permisos para cambiar el estado', 'error')
-        return redirect(url_for('gestion_incidentes'))
     
     # Validar estados permitidos (1-4)
     if estado_id not in [1, 2, 3, 4]:
@@ -306,11 +299,6 @@ def asignar_diagnostico():
     if 'user_id' not in session:
         return redirect(url_for('login'))
     
-    # Solo técnicos y administradores pueden asignar diagnósticos
-    if session.get('user_role') not in [2, 3]:  # 2 = Técnico, 3 = Administrador
-        flash('No tiene permisos para asignar diagnósticos', 'error')
-        return redirect(url_for('dashboard'))
-    
     if request.method == 'POST':
         incidente_id = request.form.get('id_incidente')
         descripcion = request.form.get('descripcion')
@@ -376,11 +364,7 @@ def gestion_diagnosticos():
     """Ruta para gestión de diagnósticos"""
     if 'user_id' not in session:
         return redirect(url_for('login'))
-    
-    # Solo técnicos y administradores pueden ver diagnósticos
-    if session.get('user_role') not in [2, 3]:
-        flash('No tiene permisos para ver diagnósticos', 'error')
-        return redirect(url_for('dashboard'))
+
     
     try:
         # Obtener todos los incidentes con sus diagnósticos
@@ -408,10 +392,6 @@ def listar_usuarios():
     if 'user_id' not in session:
         return redirect(url_for('login'))
     
-    if session.get('user_role') != 3:  # 3 = Administrador
-        flash('No tiene permisos para acceder a esta sección', 'error')
-        return redirect(url_for('dashboard'))
-    
     try:
         usuarios = controlUsuarios.buscar_todos()
     except Exception as e:
@@ -424,9 +404,6 @@ def listar_usuarios():
 @app.route('/usuarios/<user_id>/estado/<int:nuevo_estado>')
 def cambiar_estado_usuario(user_id, nuevo_estado):
     """Cambiar estado de un usuario"""
-    if 'user_id' not in session or session.get('user_role') != 3:
-        flash('No tiene permisos para realizar esta acción', 'error')
-        return redirect(url_for('dashboard'))
     
     # Convertir nuevo_estado a boolean
     activo = nuevo_estado == 1

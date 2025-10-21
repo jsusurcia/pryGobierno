@@ -5,7 +5,7 @@ from controllers.control_categorias import controlCategorias
 from controllers.control_diagnostico import ControlDiagnosticos
 from datetime import datetime
 
-app = Flask(__name__, template_folder="./interface")
+app = Flask(__name__, template_folder="./templates")
 app.secret_key = 'tu_clave_secreta_aqui'  
 
 @app.route('/')

@@ -52,46 +52,31 @@
   </header>
 
   <!-- Filtros de Búsqueda -->
-  <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-      
-      <!-- Búsqueda por Título -->
-      <div class="relative">
-        <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-          </svg>
-        </span>
-        <input type="text" 
-               placeholder="Buscar por título..." 
-               class="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg 
-                      focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
-      </div>
-
-      <!-- Búsqueda por Causa -->
-      <div class="relative">
-        <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-          </svg>
-        </span>
-        <input type="text" 
-               placeholder="Buscar por causa..." 
-               class="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg 
-                      focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
-      </div>
+ <form method="GET" action="/gestion_diagnostico" class="mb-6">
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div>
+      <input type="text" name="titulo" placeholder="Buscar por título..."
+             value="{{ titulo }}" 
+             class="w-full pl-3 pr-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg 
+                    focus:outline-none focus:ring-2 focus:ring-blue-500 transition">
     </div>
-
-    <!-- Botón Aplicar Filtros -->
-    <div class="flex justify-end">
-      <button class="px-4 py-2 text-sm text-white font-medium flex items-center gap-1 
-                     bg-gray-600 hover:bg-gray-800 rounded-lg transition">
-        Aplicar filtros
-      </button>
+    <div>
+      <input type="text" name="causa" placeholder="Buscar por causa..."
+             value="{{ causa }}" 
+             class="w-full pl-3 pr-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg 
+                    focus:outline-none focus:ring-2 focus:ring-blue-500 transition">
     </div>
   </div>
+
+  <div class="flex justify-end mt-4">
+    <button type="submit"
+            class="px-4 py-2 text-white bg-blue-600 hover:bg-blue-800 rounded-lg transition">
+      Buscar
+    </button>
+  </div>
+</form>
+
+
 
   <!-- Tabla de Diagnósticos -->
   <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -120,144 +105,48 @@
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-200">
-          
-          <!-- Fila 1 -->
-          <tr class="hover:bg-gray-50 transition">
-            <td class="px-6 py-4">
-              <p class="text-sm font-semibold text-gray-900">INC001</p>
-              <p class="text-xs text-gray-500">Fallo en servidor web</p>
-            </td>
-            <td class="px-6 py-4 text-sm text-gray-600">2024-10-15</td>
-            <td class="px-6 py-4 text-sm text-gray-600">2024-10-18</td>
-            <td class="px-6 py-4 text-sm text-gray-600">Sobrecarga de memoria en el servidor</td>
-            <td class="px-6 py-4 text-sm text-gray-600">Aumentar RAM y optimizar consultas de b...</td>
-            <td class="px-6 py-4">
-              <div class="flex items-center justify-center gap-2">
-                <button onclick="abrirModalEditar('DG001', 'INC001', 'Fallo en servidor web', '2024-10-15', '2024-10-18', 'Sobrecarga de memoria en el servidor', 'Aumentar RAM y optimizar consultas de base de datos')"
-                        class="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
-                        title="Editar diagnóstico"
-                        aria-label="Editar diagnóstico DG001">
-                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                  </svg>
-                </button>
-                <button onclick="abrirModalEliminar('DG001')"
-                        class="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
-                        title="Eliminar diagnóstico"
-                        aria-label="Eliminar diagnóstico DG001">
-                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                  </svg>
-                </button>
-              </div>
-            </td>
-          </tr>
+  {% if diagnosticos %}
+    {% for diag in diagnosticos %}
+      <tr class="hover:bg-gray-50 transition">
+        <td class="px-6 py-4">
+          <p class="text-sm font-semibold text-gray-900">INC{{ diag.id_incidente }}</p>
+          <p class="text-xs text-gray-500">{{ diag.descripcion }}</p>
+        </td>
+        <td class="px-6 py-4 text-sm text-gray-600">{{ diag.fecha_diagnostico }}</td>
+        <td class="px-6 py-4 text-sm text-gray-600">
+          {{ diag.fecha_actualizacion if diag.fecha_actualizacion else '—' }}
+        </td>
+        <td class="px-6 py-4 text-sm text-gray-600">{{ diag.causa_raiz }}</td>
+        <td class="px-6 py-4 text-sm text-gray-600">{{ diag.solucion_propuesta }}</td>
+        <td class="px-6 py-4">
+          <div class="flex items-center justify-center gap-2">
+            <button onclick="abrirModalEditar('{{ diag.id_diagnosticos }}', '{{ diag.id_incidente }}', '{{ diag.descripcion }}', '{{ diag.fecha_diagnostico }}', '{{ diag.fecha_actualizacion }}', '{{ diag.causa_raiz }}', '{{ diag.solucion_propuesta }}')"
+                    class="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                    title="Editar diagnóstico">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+              </svg>
+            </button>
+            <button onclick="abrirModalEliminar('{{ diag.id_diagnosticos }}')"
+                    class="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
+                    title="Eliminar diagnóstico">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+              </svg>
+            </button>
+          </div>
+        </td>
+      </tr>
+    {% endfor %}
+  {% else %}
+    <tr>
+      <td colspan="6" class="px-6 py-4 text-center text-gray-500">No hay diagnósticos registrados.</td>
+    </tr>
+  {% endif %}
+</tbody>
 
-          <!-- Fila 2 -->
-          <tr class="hover:bg-gray-50 transition">
-            <td class="px-6 py-4">
-              <p class="text-sm font-semibold text-gray-900">INC002</p>
-              <p class="text-xs text-gray-500">Conexión de red inestable</p>
-            </td>
-            <td class="px-6 py-4 text-sm text-gray-600">2024-10-14</td>
-            <td class="px-6 py-4 text-sm text-gray-600">2024-10-17</td>
-            <td class="px-6 py-4 text-sm text-gray-600">Cable de red dañado en el switch principal</td>
-            <td class="px-6 py-4 text-sm text-gray-600">Reemplazar cable de red y verificar conexi...</td>
-            <td class="px-6 py-4">
-              <div class="flex items-center justify-center gap-2">
-                <button onclick="abrirModalEditar('DG002', 'INC002', 'Conexión de red inestable', '2024-10-14', '2024-10-17', 'Cable de red dañado en el switch principal', 'Reemplazar cable de red y verificar conexiones')"
-                        class="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
-                        title="Editar diagnóstico"
-                        aria-label="Editar diagnóstico DG002">
-                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                  </svg>
-                </button>
-                <button onclick="abrirModalEliminar('DG002')"
-                        class="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
-                        title="Eliminar diagnóstico"
-                        aria-label="Eliminar diagnóstico DG002">
-                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                  </svg>
-                </button>
-              </div>
-            </td>
-          </tr>
-
-          <!-- Fila 3 -->
-          <tr class="hover:bg-gray-50 transition">
-            <td class="px-6 py-4">
-              <p class="text-sm font-semibold text-gray-900">INC003</p>
-              <p class="text-xs text-gray-500">Software de contabilidad no responde</p>
-            </td>
-            <td class="px-6 py-4 text-sm text-gray-600">2024-10-13</td>
-            <td class="px-6 py-4 text-sm text-gray-600">2024-10-16</td>
-            <td class="px-6 py-4 text-sm text-gray-600">Conflicto con actualización de Windows</td>
-            <td class="px-6 py-4 text-sm text-gray-600">Reinstalar software y restaurar base de da...</td>
-            <td class="px-6 py-4">
-              <div class="flex items-center justify-center gap-2">
-                <button onclick="abrirModalEditar('DG003', 'INC003', 'Software de contabilidad no responde', '2024-10-13', '2024-10-16', 'Conflicto con actualización de Windows', 'Reinstalar software y restaurar base de datos')"
-                        class="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
-                        title="Editar diagnóstico"
-                        aria-label="Editar diagnóstico DG003">
-                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                  </svg>
-                </button>
-                <button onclick="abrirModalEliminar('DG003')"
-                        class="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
-                        title="Eliminar diagnóstico"
-                        aria-label="Eliminar diagnóstico DG003">
-                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                  </svg>
-                </button>
-              </div>
-            </td>
-          </tr>
-
-          <!-- Fila 4 -->
-          <tr class="hover:bg-gray-50 transition">
-            <td class="px-6 py-4">
-              <p class="text-sm font-semibold text-gray-900">INC004</p>
-              <p class="text-xs text-gray-500">Impresora no imprime</p>
-            </td>
-            <td class="px-6 py-4 text-sm text-gray-600">2024-10-12</td>
-            <td class="px-6 py-4 text-sm text-gray-600">2024-10-15</td>
-            <td class="px-6 py-4 text-sm text-gray-600">Driver desactualizado</td>
-            <td class="px-6 py-4 text-sm text-gray-600">Actualizar driver de impresora</td>
-            <td class="px-6 py-4">
-              <div class="flex items-center justify-center gap-2">
-                <button onclick="abrirModalEditar('DG004', 'INC004', 'Impresora no imprime', '2024-10-12', '2024-10-15', 'Driver desactualizado', 'Actualizar driver de impresora')"
-                        class="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
-                        title="Editar diagnóstico"
-                        aria-label="Editar diagnóstico DG004">
-                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                  </svg>
-                </button>
-                <button onclick="abrirModalEliminar('DG004')"
-                        class="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
-                        title="Eliminar diagnóstico"
-                        aria-label="Eliminar diagnóstico DG004">
-                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                  </svg>
-                </button>
-              </div>
-            </td>
-          </tr>
-
-        </tbody>
       </table>
     </div>
   </div>

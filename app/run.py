@@ -399,36 +399,18 @@ def asignar_diagnostico():
 
     return render_template('agregarDiagnostico.html', incidentes=incidentes)
 
-@app.route('/gestion_diagnosticos')
-def gestion_diagnosticos():
-    """Ruta para gestión de diagnósticos"""
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-    
-    # Solo técnicos y administradores pueden ver diagnósticos
-    if session.get('user_role') not in [2, 3]:
-        flash('No tiene permisos para ver diagnósticos', 'error')
-        return redirect(url_for('dashboard'))
-    
-    try:
-        # Obtener todos los incidentes con sus diagnósticos
-        incidentes = ControlIncidentes.listar_incidentes()
-        
-        # Agregar diagnósticos a cada incidente
-        for incidente in incidentes:
-            incidente['diagnosticos'] = ControlDiagnosticos.listar_por_incidente(incidente['id'])
-        
-        # Filtrar solo incidentes que tienen diagnósticos
-        incidentes_con_diagnosticos = [inc for inc in incidentes if inc['diagnosticos']]
-        
-    except Exception as e:
-        print(f"Error al obtener diagnósticos: {e}")
-        incidentes_con_diagnosticos = []
-        flash('Error al cargar los diagnósticos', 'error')
-    
-    return render_template('gestion_diagnosticos.html', 
-                         incidentes=incidentes_con_diagnosticos,
-                         user_role=session.get('user_role'))
+@app.route('/gestion_diagnostico', methods=['GET'])
+def gestion_diagnostico():
+    titulo = request.args.get('titulo', '')
+    causa = request.args.get('causa', '')
+
+    control_diag = ControlDiagnosticos()
+    diagnosticos = control_diag.obtener_diagnosticos_filtrados(titulo, causa)
+
+    return render_template('gestionDiagnostico.html', diagnosticos=diagnosticos, titulo=titulo, causa=causa)
+
+
+
 
 @app.route('/usuarios')
 def listar_usuarios():

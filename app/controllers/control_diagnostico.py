@@ -53,7 +53,7 @@ class ControlDiagnosticos:
             print(f"Error en buscar_por_ID => {e}")
             return None
     
-    def listar_diagnosticos():
+    def listar_diagnosticos(self):
         try:
             sql = "SELECT * FROM diagnosticos ORDER BY id_diagnosticos DESC"
             atributos = [
@@ -76,7 +76,7 @@ class ControlDiagnosticos:
             return diagnosticos_list
 
         except Exception as e:
-            print(f"⚠️ Error en buscar_todos => {e}")
+            print(f"⚠️ Error en listar_diagnosticos => {e}")
             return None
     
     def actualizar_diagnostico(id_diagnosticos, descripcion, causa_raiz, solucion_propuesta, comentario_usuario):
@@ -105,3 +105,45 @@ class ControlDiagnosticos:
         except Exception as e:
             print(f"Error en actualizar => {e}")
             return -1
+        
+    def obtener_diagnosticos_filtrados(self, titulo='', causa=''):
+        conn = get_connection()
+        if not conn:
+            print("No se pudo conectar a la base de datos.")
+            return []
+
+        try:
+            cursor = conn.cursor()
+            query = """
+                SELECT d.id_diagnosticos, d.id_incidente, i.descripcion, 
+                    d.fecha_diagnostico, d.fecha_actualizacion, 
+                    d.causa_raiz, d.solucion_propuesta
+                FROM diagnosticos d
+                JOIN incidentes i ON d.id_incidente = i.id_incidente
+                WHERE (%s = '' OR i.descripcion ILIKE %s)
+                AND (%s = '' OR d.causa_raiz ILIKE %s)
+                ORDER BY d.fecha_diagnostico DESC;
+            """
+            valores = (titulo, f"%{titulo}%", causa, f"%{causa}%")
+            cursor.execute(query, valores)
+            diagnosticos = cursor.fetchall()
+
+            return [
+                {
+                    "id_diagnosticos": d[0],
+                    "id_incidente": d[1],
+                    "descripcion": d[2],
+                    "fecha_diagnostico": d[3],
+                    "fecha_actualizacion": d[4],
+                    "causa_raiz": d[5],
+                    "solucion_propuesta": d[6]
+                }
+                for d in diagnosticos
+            ]
+
+        except Exception as e:
+            print(f"Error en obtener_diagnosticos_filtrados => {e}")
+            return []
+
+        finally:
+            conn.close()

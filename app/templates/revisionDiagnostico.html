@@ -32,6 +32,7 @@
     <span class="flex-1 ms-3 whitespace-nowrap text-red-700">Cerrar Sesión</span>
   </a>
 </li>
+
 {% endblock nav_links %}
 
 {% block content %}
@@ -79,10 +80,19 @@
             <span class="text-sm font-bold text-gray-900">ID: D{{ d.id_diagnosticos }}</span>
             <span class="px-2 py-1 bg-yellow-100 text-yellow-700 rounded text-xs font-semibold">Pendiente</span>
           </div>
-          <button onclick="abrirModalDetalle('D{{ d.id_diagnosticos }}', '{{ inc.titulo }}', '{{ d.descripcion|escape }}', '{{ d.causa_raiz|escape }}', '{{ d.solucion_propuesta|escape }}', '{{ d.comentario_usuario|escape }}', '{{ d.fecha_diagnostico }}')"
-                  class="text-blue-600 hover:text-blue-800 text-sm font-semibold hover:underline">
-            Ver detalle
+          <button 
+              class="text-blue-600 hover:text-blue-800 text-sm font-semibold hover:underline"
+              data-id="D{{ d.id_diagnosticos }}"
+              data-incidente="{{ inc.titulo }}"
+              data-descripcion="{{ d.descripcion|e }}"
+              data-causa="{{ d.causa_raiz|e }}"
+              data-solucion="{{ d.solucion_propuesta|e }}"
+              data-comentario="{{ d.comentario_usuario|e }}"
+              data-fecha="{{ d.fecha_diagnostico.strftime('%Y-%m-%d') if d.fecha_diagnostico else '' }}"
+              onclick="abrirModalDetalleDesdeBoton(this)">
+              Ver detalle
           </button>
+
         </div>
 
         <div class="space-y-3 mb-4">
@@ -136,6 +146,117 @@
 </div>
 {% endfor %}
 
+<!-- Modal de Detalle del Diagnóstico -->
+<div id="modalDetalle" 
+     class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+  <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+    
+    <!-- Header -->
+    <div class="flex items-center justify-between p-6 border-b border-gray-200 sticky top-0 bg-white rounded-t-2xl">
+      <h3 class="text-xl font-bold text-gray-900">Detalle del Diagnóstico</h3>
+      <button onclick="cerrarModalDetalle()" class="text-gray-400 hover:text-gray-600 transition">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Contenido -->
+    <div class="p-6 space-y-4">
+      <div><label class="text-sm font-semibold text-gray-700">ID Diagnóstico</label>
+        <p id="detalle-id" class="text-gray-900 font-mono text-lg">-</p></div>
+
+      <div><label class="text-sm font-semibold text-gray-700">Incidente Vinculado</label>
+        <p id="detalle-incidente" class="text-gray-900 text-lg">-</p></div>
+
+      <div><label class="text-sm font-semibold text-gray-700">Descripción</label>
+        <p id="detalle-descripcion" class="text-gray-800">-</p></div>
+
+      <div><label class="text-sm font-semibold text-gray-700">Causa Raíz</label>
+        <p id="detalle-causa-raiz" class="text-gray-800">-</p></div>
+
+      <div><label class="text-sm font-semibold text-gray-700">Solución</label>
+        <p id="detalle-solucion" class="text-gray-800">-</p></div>
+
+      <div><label class="text-sm font-semibold text-gray-700">Comentario</label>
+        <p id="detalle-comentario" class="text-gray-800">-</p></div>
+
+      <div><label class="text-sm font-semibold text-gray-700">Fecha de Registro</label>
+        <p id="detalle-fecha" class="text-gray-900">-</p></div>
+    </div>
+
+    <!-- Footer -->
+    <div class="p-6 border-t border-gray-200 bg-gray-50 rounded-b-2xl sticky bottom-0">
+      <button onclick="cerrarModalDetalle()"
+              class="w-full px-6 py-3 bg-gray-800 hover:bg-gray-900 text-white font-semibold rounded-xl transition">
+        Cerrar
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de Aceptar -->
+<div id="modalAceptar" 
+     class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+  <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full">
+    <div class="p-6 text-center">
+      <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+        <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                d="M5 13l4 4L19 7"/>
+        </svg>
+      </div>
+      <h3 class="text-xl font-bold text-gray-900 mb-2">Confirmar Aceptación</h3>
+      <p class="text-gray-600 mb-1">
+        ¿Deseas aceptar el diagnóstico <span id="aceptar-id-diagnostico" class="font-bold text-gray-900">D001</span>?
+      </p>
+    </div>
+    <div class="flex gap-3 p-6 border-t border-gray-200">
+      <button onclick="cerrarModalAceptar()"
+              class="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition">
+        Cancelar
+      </button>
+      <button onclick="confirmarAceptacion()"
+              class="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-3 rounded-xl transition">
+        Aceptar
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de Rechazar -->
+<div id="modalRechazar" 
+     class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+  <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full">
+    <div class="p-6 text-center">
+      <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+        <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </div>
+      <h3 class="text-xl font-bold text-gray-900 mb-2">Confirmar Rechazo</h3>
+      <p class="text-gray-600 mb-1">
+        ¿Deseas rechazar el diagnóstico <span id="rechazar-id-diagnostico" class="font-bold text-gray-900">D001</span>?
+      </p>
+    </div>
+    <div class="flex gap-3 p-6 border-t border-gray-200">
+      <button onclick="cerrarModalRechazar()"
+              class="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition">
+        Cancelar
+      </button>
+      <button onclick="confirmarRechazo()"
+              class="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold py-3 rounded-xl transition">
+        Rechazar
+      </button>
+    </div>
+  </div>
+</div>
+
+
+
+
 {% endblock content %}
 
 {% block scripts %}
@@ -155,18 +276,29 @@
   }
 
   // Funciones para el Modal de Detalle
-  function abrirModalDetalle(id, incidente, descripcion, causaRaiz, solucion, comentario, fecha) {
-    document.getElementById('modalDetalle').classList.remove('hidden');
-    document.body.style.overflow = 'hidden';
-    
-    document.getElementById('detalle-id').textContent = id;
-    document.getElementById('detalle-incidente').textContent = incidente;
-    document.getElementById('detalle-descripcion').textContent = descripcion;
-    document.getElementById('detalle-causa-raiz').textContent = causaRaiz;
-    document.getElementById('detalle-solucion').textContent = solucion;
-    document.getElementById('detalle-comentario').textContent = comentario;
-    document.getElementById('detalle-fecha').textContent = fecha;
-  }
+  function abrirModalDetalleDesdeBoton(boton) {
+  const id = boton.dataset.id;
+  const incidente = boton.dataset.incidente;
+  const descripcion = boton.dataset.descripcion;
+  const causaRaiz = boton.dataset.causa;
+  const solucion = boton.dataset.solucion;
+  const comentario = boton.dataset.comentario;
+  const fecha = boton.dataset.fecha;
+
+  // Llenar datos en el modal
+  document.getElementById('detalle-id').textContent = id || '-';
+  document.getElementById('detalle-incidente').textContent = incidente || '-';
+  document.getElementById('detalle-descripcion').textContent = descripcion || '-';
+  document.getElementById('detalle-causa-raiz').textContent = causaRaiz || '-';
+  document.getElementById('detalle-solucion').textContent = solucion || '-';
+  document.getElementById('detalle-comentario').textContent = comentario || '-';
+  document.getElementById('detalle-fecha').textContent = fecha || '-';
+
+  // Mostrar modal
+  document.getElementById('modalDetalle').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+}
+
 
   function cerrarModalDetalle() {
     document.getElementById('modalDetalle').classList.add('hidden');

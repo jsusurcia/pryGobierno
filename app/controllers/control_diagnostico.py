@@ -104,6 +104,7 @@ class ControlDiagnosticos:
                     d.fecha_actualizacion
                 FROM diagnosticos d
                 LEFT JOIN incidentes i ON d.id_incidente = i.id_incidente
+                where i.estado = 'P'
                 ORDER BY d.id_diagnosticos DESC;
             """
 

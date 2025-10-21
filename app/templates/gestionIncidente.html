@@ -220,16 +220,23 @@
 
 
                   {% if session.user_role in [1, 3] %}
-                  <!-- Botón Asignar Diagnóstico -->
-                  <a href="{{ url_for('asignar_diagnostico') }}?incidente={{ incidente.id_incidente }}"
-                     class="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition"
-                     title="Asignar diagnóstico"
-                     aria-label="Asignar diagnóstico">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-                    </svg>
-                  </a>
+                    {% if incidente.estado not in ['cerrado', 'resuelto', 'C', 'R'] %}
+                      <!-- Botón Asignar Diagnóstico -->
+                      <a href="{{ url_for('asignar_diagnostico') }}?incidente={{ incidente.id_incidente }}"
+                        class="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition"
+                        title="Asignar diagnóstico"
+                        aria-label="Asignar diagnóstico">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                        </svg>
+                      </a>
+                    {% else %}
+                      <!-- Texto gris en lugar del botón -->
+                      <span class="text-xs text-gray-400 italic"></span>
+                    {% endif %}
                   {% endif %}
+
 
                   {% if session.user_role == 1 %}
                   <!-- Botón Eliminar -->

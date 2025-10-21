@@ -122,7 +122,7 @@
                  placeholder="Añadir comentario de revisión..."
                  class="flex-1 px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm 
                         focus:outline-none focus:ring-2 focus:ring-blue-500">
-          <button onclick="abrirModalAceptar('D{{ d.id_diagnosticos }}')"
+          <button onclick="abrirModalAceptar('{{ d.id_diagnosticos }}', '{{ d.id_incidente }}')"
                   class="px-6 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg 
                          transition-colors duration-200 flex items-center gap-2">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -130,7 +130,7 @@
             </svg>
             Aceptar
           </button>
-          <button onclick="abrirModalRechazar('D{{ d.id_diagnosticos }}')"
+          <button onclick="abrirModalRechazar('{{ d.id_diagnosticos }}', '{{ d.id_incidente }}')"
                   class="px-6 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg 
                          transition-colors duration-200 flex items-center gap-2">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -306,46 +306,69 @@
   }
 
   // Funciones para el Modal de Aceptar
-  function abrirModalAceptar(idDiagnostico) {
+  let diagnosticoSeleccionado = null;
+  let incidenteSeleccionado = null;
+
+  function abrirModalAceptar(idDiagnostico, idIncidente) {
+    diagnosticoSeleccionado = idDiagnostico;
+    incidenteSeleccionado = idIncidente;
+    document.getElementById('aceptar-id-diagnostico').textContent = "D" + idDiagnostico;
     document.getElementById('modalAceptar').classList.remove('hidden');
-    document.getElementById('aceptar-id-diagnostico').textContent = idDiagnostico;
     document.body.style.overflow = 'hidden';
   }
 
-  function cerrarModalAceptar() {
-    document.getElementById('modalAceptar').classList.add('hidden');
-    document.body.style.overflow = 'auto';
-  }
-
-  function confirmarAceptacion() {
-    const idDiagnostico = document.getElementById('aceptar-id-diagnostico').textContent;
-    const comentario = document.getElementById('comentario-' + idDiagnostico).value;
-    
-    alert('Diagnóstico ' + idDiagnostico + ' aceptado correctamente\nComentario: ' + (comentario || 'Sin comentario'));
-    cerrarModalAceptar();
-    // Aquí iría la lógica para actualizar el estado en la base de datos
-  }
-
-  // Funciones para el Modal de Rechazar
-  function abrirModalRechazar(idDiagnostico) {
+  function abrirModalRechazar(idDiagnostico, idIncidente) {
+    diagnosticoSeleccionado = idDiagnostico;
+    incidenteSeleccionado = idIncidente;
+    document.getElementById('rechazar-id-diagnostico').textContent = "D" + idDiagnostico;
     document.getElementById('modalRechazar').classList.remove('hidden');
-    document.getElementById('rechazar-id-diagnostico').textContent = idDiagnostico;
     document.body.style.overflow = 'hidden';
   }
 
-  function cerrarModalRechazar() {
-    document.getElementById('modalRechazar').classList.add('hidden');
-    document.body.style.overflow = 'auto';
+  // Confirmar aceptación
+  function confirmarAceptacion() {
+    fetch(`/api/diagnostico/${diagnosticoSeleccionado}/aceptar/${incidenteSeleccionado}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        alert('Si dio: ' + data.message);
+        location.reload();
+      } else {
+        alert('No dio:' + data.message);
+      }
+    })
+    .catch(err => {
+      console.error(err);
+      alert('Error al conectar con el servidor.');
+    })
+    .finally(() => cerrarModalAceptar());
   }
 
+  // Confirmar rechazo
   function confirmarRechazo() {
-    const idDiagnostico = document.getElementById('rechazar-id-diagnostico').textContent;
-    const comentario = document.getElementById('comentario-' + idDiagnostico).value;
-    
-    alert('Diagnóstico ' + idDiagnostico + ' rechazado\nComentario: ' + (comentario || 'Sin comentario'));
-    cerrarModalRechazar();
-    // Aquí iría la lógica para actualizar el estado en la base de datos
+    fetch(`/api/diagnostico/${diagnosticoSeleccionado}/cancelar/${incidenteSeleccionado}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        alert('Si dio: ' + data.message);
+        location.reload();
+      } else {
+        alert('No dio: ' + data.message);
+      }
+    })
+    .catch(err => {
+      console.error(err);
+      alert(' Error al conectar con el servidor.');
+    })
+    .finally(() => cerrarModalRechazar());
   }
+
 
   // Cerrar modales al hacer clic fuera de ellos
   document.getElementById('modalDetalle').addEventListener('click', function(e) {

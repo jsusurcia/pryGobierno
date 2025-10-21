@@ -219,8 +219,30 @@ def revision_diagnostico():
 
     return render_template('revisionDiagnostico.html', incidentes=incidentes)
 
+@app.route('/api/diagnostico/<int:id_diagnostico>/aceptar/<int:id_incidente>', methods=['POST'])
+def api_aceptar_revision(id_diagnostico, id_incidente):
+    """Aceptar revisión del diagnóstico"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'No autorizado'}), 401
+
+    exito = ControlDiagnosticos.aceptar_revision(id_diagnostico, id_incidente)
+    if exito:
+        return jsonify({'success': True, 'message': 'Diagnóstico aceptado correctamente'})
+    else:
+        return jsonify({'success': False, 'message': 'Error al aceptar diagnóstico'}), 500
 
 
+@app.route('/api/diagnostico/<int:id_diagnostico>/cancelar/<int:id_incidente>', methods=['POST'])
+def api_cancelar_revision(id_diagnostico, id_incidente):
+    """Cancelar (rechazar) revisión del diagnóstico"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'No autorizado'}), 401
+
+    exito = ControlDiagnosticos.cancelar_revision(id_diagnostico, id_incidente)
+    if exito:
+        return jsonify({'success': True, 'message': 'Diagnóstico rechazado correctamente'})
+    else:
+        return jsonify({'success': False, 'message': 'Error al rechazar diagnóstico'}), 500
 
 
 

@@ -1,0 +1,595 @@
+{% extends 'sidebar.html' %} {% block title %}Métricas MTTR{% endblock title %}
+{% block nav_links %}
+<li>
+  <a
+    href="#"
+    class="flex items-center p-2 text-gray-900 rounded-lg hover:bg-gray-100 group"
+  >
+    <svg
+      class="w-5 h-5 text-gray-500 transition duration-75 group-hover:text-gray-900"
+      ...
+    ></svg>
+    <span class="ms-3">Diagnósticos</span>
+  </a>
+</li>
+<li>
+  <a
+    href="#"
+    class="flex items-center p-2 text-gray-900 rounded-lg hover:bg-gray-100 group"
+  >
+    <svg
+      class="shrink-0 w-5 h-5 text-gray-500 transition duration-75 group-hover:text-gray-900"
+      ...
+    ></svg>
+    <span class="flex-1 ms-3 whitespace-nowrap">Reportes</span>
+  </a>
+</li>
+<li>
+  <a
+    href="#"
+    class="flex items-center p-2 text-gray-900 rounded-lg hover:bg-gray-100 group"
+  >
+    <svg
+      class="shrink-0 w-5 h-5 text-red-500 transition duration-75 group-hover:text-red-700"
+      ...
+    ></svg>
+    <span class="flex-1 ms-3 whitespace-nowrap text-red-700"
+      >Cerrar Sesión</span
+    >
+  </a>
+</li>
+{% endblock nav_links %} {% block content %}
+<div class="max-w-7xl mx-auto">
+  <!-- Header -->
+  <div
+    class="flex flex-col md:flex-row md:items-center md:justify-between mb-8"
+  >
+    <div class="mb-4 md:mb-0">
+      <h1 class="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
+        Métricas MTTR
+      </h1>
+      <p class="text-gray-600 text-sm md:text-base">
+        Mean Time To Repair - Tiempo promedio de reparación
+      </p>
+    </div>
+    <div class="flex items-center gap-4">
+      <!-- Filtro de período -->
+      <div class="flex items-center gap-2">
+        <svg
+          class="w-5 h-5 text-gray-600"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
+          />
+        </svg>
+        <label class="text-sm font-semibold text-gray-700">Período:</label>
+        <select
+          class="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+        >
+          <option>Últimos 6 meses</option>
+          <option>Último mes</option>
+          <option>Últimos 3 meses</option>
+          <option>Último año</option>
+        </select>
+      </div>
+
+      <!-- Filtro de categoría -->
+      <div class="flex items-center gap-2">
+        <label class="text-sm font-semibold text-gray-700">Categoría:</label>
+        <select
+          class="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+        >
+          <option>Todas</option>
+          <option>Hardware</option>
+          <option>Software</option>
+          <option>Red</option>
+          <option>Seguridad</option>
+          <option>Otro</option>
+        </select>
+      </div>
+
+      <!-- Botón exportar -->
+      <button
+        class="bg-gray-900 hover:bg-black text-white font-semibold px-6 py-2 rounded-lg transition-colors duration-200 flex items-center gap-2 shadow-md"
+      >
+        <svg
+          class="w-4 h-4"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+          />
+        </svg>
+        Exportar PDF
+      </button>
+    </div>
+  </div>
+
+  <!-- Tarjetas de métricas principales -->
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <!-- MTTR Global -->
+    <div
+      class="bg-white rounded-xl shadow-md border border-gray-200 p-6 hover:shadow-lg transition-shadow duration-200"
+    >
+      <div class="flex items-center justify-between mb-2">
+        <h3 class="text-sm font-semibold text-gray-600">MTTR Global</h3>
+        <div
+          class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center"
+        >
+          <svg
+            class="w-5 h-5 text-blue-600"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
+          </svg>
+        </div>
+      </div>
+      <p class="text-4xl font-bold text-gray-900 mb-1">
+        2.8 <span class="text-2xl text-gray-500">hrs</span>
+      </p>
+      <p class="text-xs text-gray-500">Promedio de todas las categorías</p>
+    </div>
+
+    <!-- Total Incidentes -->
+    <div
+      class="bg-white rounded-xl shadow-md border border-gray-200 p-6 hover:shadow-lg transition-shadow duration-200"
+    >
+      <div class="flex items-center justify-between mb-2">
+        <h3 class="text-sm font-semibold text-gray-600">Total Incidentes</h3>
+        <div
+          class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center"
+        >
+          <svg
+            class="w-5 h-5 text-purple-600"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+            />
+          </svg>
+        </div>
+      </div>
+      <p class="text-4xl font-bold text-gray-900 mb-1">188</p>
+      <p class="text-xs text-gray-500">En el período seleccionado</p>
+    </div>
+
+    <!-- Mejor Categoría -->
+    <div
+      class="bg-white rounded-xl shadow-md border border-gray-200 p-6 hover:shadow-lg transition-shadow duration-200"
+    >
+      <div class="flex items-center justify-between mb-2">
+        <h3 class="text-sm font-semibold text-gray-600">Mejor Categoría</h3>
+        <div
+          class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center"
+        >
+          <svg
+            class="w-5 h-5 text-green-600"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
+          </svg>
+        </div>
+      </div>
+      <p class="text-4xl font-bold text-gray-900 mb-1">Red</p>
+      <p class="text-xs text-gray-500">1.5 hrs promedio</p>
+    </div>
+
+    <!-- Categoría Crítica -->
+    <div
+      class="bg-white rounded-xl shadow-md border border-gray-200 p-6 hover:shadow-lg transition-shadow duration-200"
+    >
+      <div class="flex items-center justify-between mb-2">
+        <h3 class="text-sm font-semibold text-gray-600">Categoría Crítica</h3>
+        <div
+          class="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center"
+        >
+          <svg
+            class="w-5 h-5 text-red-600"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+            />
+          </svg>
+        </div>
+      </div>
+      <p class="text-4xl font-bold text-gray-900 mb-1">Hardware</p>
+      <p class="text-xs text-gray-500">4.2 hrs promedio</p>
+    </div>
+  </div>
+
+  <!-- Gráficos -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+    <!-- Gráfico de Barras: MTTR por Categoría -->
+    <div class="bg-white rounded-xl shadow-md border border-gray-200 p-6">
+      <div class="mb-4">
+        <h3 class="text-lg font-bold text-gray-900">MTTR por Categoría</h3>
+        <p class="text-sm text-gray-600">
+          Tiempo promedio de reparación en horas
+        </p>
+      </div>
+      <div class="relative h-80">
+        <canvas id="barChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Gráfico de Línea: Tendencia MTTR -->
+    <div class="bg-white rounded-xl shadow-md border border-gray-200 p-6">
+      <div class="mb-4">
+        <h3 class="text-lg font-bold text-gray-900">Tendencia MTTR</h3>
+        <p class="text-sm text-gray-600">
+          Evolución del tiempo promedio de reparación
+        </p>
+      </div>
+      <div class="relative h-80">
+        <canvas id="lineChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Segunda fila de gráficos -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- Gráfico Circular: Distribución de Incidentes -->
+    <div class="bg-white rounded-xl shadow-md border border-gray-200 p-6">
+      <div class="mb-4">
+        <h3 class="text-lg font-bold text-gray-900">
+          Distribución de Incidentes
+        </h3>
+        <p class="text-sm text-gray-600">Porcentaje por categoría</p>
+      </div>
+      <div class="relative h-80 flex items-center justify-center">
+        <canvas id="pieChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Tabla: Detalles por Categoría -->
+    <div class="bg-white rounded-xl shadow-md border border-gray-200 p-6">
+      <div class="mb-4">
+        <h3 class="text-lg font-bold text-gray-900">Detalles por Categoría</h3>
+        <p class="text-sm text-gray-600">Resumen de métricas</p>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full">
+          <thead>
+            <tr class="border-b border-gray-200">
+              <th
+                class="text-left py-3 px-4 text-sm font-semibold text-gray-700"
+              >
+                Categoría
+              </th>
+              <th
+                class="text-right py-3 px-4 text-sm font-semibold text-gray-700"
+              >
+                MTTR (hrs)
+              </th>
+              <th
+                class="text-right py-3 px-4 text-sm font-semibold text-gray-700"
+              >
+                Incidentes
+              </th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100">
+            <tr class="hover:bg-gray-50 transition">
+              <td class="py-3 px-4 text-sm font-medium text-gray-900">
+                Hardware
+              </td>
+              <td class="py-3 px-4 text-sm text-right text-gray-800">4.2</td>
+              <td class="py-3 px-4 text-sm text-right text-gray-800">45</td>
+            </tr>
+            <tr class="hover:bg-gray-50 transition">
+              <td class="py-3 px-4 text-sm font-medium text-gray-900">
+                Software
+              </td>
+              <td class="py-3 px-4 text-sm text-right text-gray-800">2.8</td>
+              <td class="py-3 px-4 text-sm text-right text-gray-800">62</td>
+            </tr>
+            <tr class="hover:bg-gray-50 transition">
+              <td class="py-3 px-4 text-sm font-medium text-gray-900">Red</td>
+              <td class="py-3 px-4 text-sm text-right text-gray-800">1.5</td>
+              <td class="py-3 px-4 text-sm text-right text-gray-800">38</td>
+            </tr>
+            <tr class="hover:bg-gray-50 transition">
+              <td class="py-3 px-4 text-sm font-medium text-gray-900">
+                Seguridad
+              </td>
+              <td class="py-3 px-4 text-sm text-right text-gray-800">3.1</td>
+              <td class="py-3 px-4 text-sm text-right text-gray-800">28</td>
+            </tr>
+            <tr class="hover:bg-gray-50 transition">
+              <td class="py-3 px-4 text-sm font-medium text-gray-900">Otro</td>
+              <td class="py-3 px-4 text-sm text-right text-gray-800">2.3</td>
+              <td class="py-3 px-4 text-sm text-right text-gray-800">15</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Resumen total -->
+      <div class="mt-4 pt-4 border-t border-gray-200">
+        <div class="flex justify-between items-center">
+          <span class="text-sm font-bold text-gray-900">Total</span>
+          <div class="flex gap-8">
+            <span class="text-sm font-bold text-gray-900">2.8 hrs</span>
+            <span class="text-sm font-bold text-gray-900">188</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock content %} {% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+  // Configuración de colores
+  const colors = {
+    primary: "rgb(59, 130, 246)",
+    secondary: "rgb(139, 92, 246)",
+    success: "rgb(34, 197, 94)",
+    warning: "rgb(251, 146, 60)",
+    danger: "rgb(239, 68, 68)",
+    info: "rgb(14, 165, 233)",
+    gray: "rgb(107, 114, 128)",
+  };
+
+  // Gráfico de Barras: MTTR por Categoría
+  const barCtx = document.getElementById("barChart").getContext("2d");
+  const barChart = new Chart(barCtx, {
+    type: "bar",
+    data: {
+      labels: ["Hardware", "Software", "Red", "Seguridad", "Otro"],
+      datasets: [
+        {
+          label: "MTTR (horas)",
+          data: [4.2, 2.8, 1.5, 3.1, 2.3],
+          backgroundColor: [
+            "rgba(239, 68, 68, 0.8)",
+            "rgba(59, 130, 246, 0.8)",
+            "rgba(34, 197, 94, 0.8)",
+            "rgba(251, 146, 60, 0.8)",
+            "rgba(107, 114, 128, 0.8)",
+          ],
+          borderColor: [
+            "rgb(239, 68, 68)",
+            "rgb(59, 130, 246)",
+            "rgb(34, 197, 94)",
+            "rgb(251, 146, 60)",
+            "rgb(107, 114, 128)",
+          ],
+          borderWidth: 2,
+          borderRadius: 8,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: false,
+        },
+        tooltip: {
+          backgroundColor: "rgba(0, 0, 0, 0.8)",
+          padding: 12,
+          titleFont: {
+            size: 14,
+            weight: "bold",
+          },
+          bodyFont: {
+            size: 13,
+          },
+          borderColor: "rgba(255, 255, 255, 0.1)",
+          borderWidth: 1,
+          callbacks: {
+            label: function (context) {
+              return "MTTR: " + context.parsed.y + " horas";
+            },
+          },
+        },
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          grid: {
+            color: "rgba(0, 0, 0, 0.05)",
+          },
+          ticks: {
+            font: {
+              size: 12,
+            },
+            callback: function (value) {
+              return value + " hrs";
+            },
+          },
+        },
+        x: {
+          grid: {
+            display: false,
+          },
+          ticks: {
+            font: {
+              size: 12,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  // Gráfico de Línea: Tendencia MTTR
+  const lineCtx = document.getElementById("lineChart").getContext("2d");
+  const lineChart = new Chart(lineCtx, {
+    type: "line",
+    data: {
+      labels: ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio"],
+      datasets: [
+        {
+          label: "MTTR",
+          data: [3.0, 2.9, 3.2, 2.7, 2.6, 2.5],
+          borderColor: colors.primary,
+          backgroundColor: "rgba(59, 130, 246, 0.1)",
+          borderWidth: 3,
+          tension: 0.4,
+          fill: true,
+          pointBackgroundColor: colors.primary,
+          pointBorderColor: "#fff",
+          pointBorderWidth: 2,
+          pointRadius: 5,
+          pointHoverRadius: 7,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: false,
+        },
+        tooltip: {
+          backgroundColor: "rgba(0, 0, 0, 0.8)",
+          padding: 12,
+          titleFont: {
+            size: 14,
+            weight: "bold",
+          },
+          bodyFont: {
+            size: 13,
+          },
+          borderColor: "rgba(255, 255, 255, 0.1)",
+          borderWidth: 1,
+          callbacks: {
+            label: function (context) {
+              return "MTTR: " + context.parsed.y.toFixed(1) + " horas";
+            },
+          },
+        },
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          grid: {
+            color: "rgba(0, 0, 0, 0.05)",
+          },
+          ticks: {
+            font: {
+              size: 12,
+            },
+            callback: function (value) {
+              return value.toFixed(1) + " hrs";
+            },
+          },
+        },
+        x: {
+          grid: {
+            display: false,
+          },
+          ticks: {
+            font: {
+              size: 12,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  // Gráfico Circular: Distribución de Incidentes
+  const pieCtx = document.getElementById("pieChart").getContext("2d");
+  const pieChart = new Chart(pieCtx, {
+    type: "doughnut",
+    data: {
+      labels: ["Hardware", "Software", "Red", "Seguridad", "Otro"],
+      datasets: [
+        {
+          data: [45, 62, 38, 28, 15],
+          backgroundColor: [
+            "rgba(239, 68, 68, 0.8)",
+            "rgba(59, 130, 246, 0.8)",
+            "rgba(34, 197, 94, 0.8)",
+            "rgba(251, 146, 60, 0.8)",
+            "rgba(107, 114, 128, 0.8)",
+          ],
+          borderColor: "#fff",
+          borderWidth: 3,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: "right",
+          labels: {
+            padding: 15,
+            font: {
+              size: 13,
+            },
+            usePointStyle: true,
+            pointStyle: "circle",
+          },
+        },
+        tooltip: {
+          backgroundColor: "rgba(0, 0, 0, 0.8)",
+          padding: 12,
+          titleFont: {
+            size: 14,
+            weight: "bold",
+          },
+          bodyFont: {
+            size: 13,
+          },
+          borderColor: "rgba(255, 255, 255, 0.1)",
+          borderWidth: 1,
+          callbacks: {
+            label: function (context) {
+              const total = context.dataset.data.reduce((a, b) => a + b, 0);
+              const percentage = ((context.parsed / total) * 100).toFixed(1);
+              return (
+                context.label + ": " + context.parsed + " (" + percentage + "%)"
+              );
+            },
+          },
+        },
+      },
+    },
+  });
+</script>
+{% endblock scripts %}

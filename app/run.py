@@ -5,15 +5,16 @@ from controllers.control_categorias import controlCategorias
 from controllers.control_diagnostico import ControlDiagnosticos
 from datetime import datetime
 
-app = Flask(__name__, template_folder="./interface")
+app = Flask(__name__, template_folder="./templates")
 app.secret_key = 'tu_clave_secreta_aqui'  
 
 @app.route('/')
 def index():
     """Ruta principal que redirige al login"""
-    if 'user_id' in session:
-        return redirect(url_for('dashboard'))
-    return redirect(url_for('login'))
+    return render_template('gestionDiagnostico.html')
+    # if 'user_id' in session:
+    #     return redirect(url_for('dashboard'))
+    # return redirect(url_for('login'))
 
 
 @app.route('/login', methods=['GET', 'POST'])

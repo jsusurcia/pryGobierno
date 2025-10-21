@@ -102,7 +102,7 @@ class ControlIncidentes:
             return incidentes
 
         except Exception as e:
-            print(f"⚠️ Error en listar_incidentes => {e}")
+            print(f"Error en listar_incidentes => {e}")
             return []
 
         
@@ -161,7 +161,7 @@ class ControlIncidentes:
                 conexion.commit()
 
             conexion.close()
-            return 0  # ✅ Éxito
+            return 0  
 
         except Exception as e:
             print(f"Error en actualizar_estado => {e}")

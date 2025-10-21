@@ -109,7 +109,12 @@ def gestion_incidentes():
     try:
         # Obtener todos los incidentes
         todos = ControlIncidentes.listar_incidentes()
-        print(f"🧩 Total de incidentes obtenidos: {len(todos)}")
+
+        # 🧹 Si la función devuelve None o vacío, lo forzamos a lista vacía
+        if not todos:
+            todos = []
+
+        print(f"Total de incidentes obtenidos: {len(todos)}")
 
         incidentes = []
         for inc in todos:
@@ -119,7 +124,7 @@ def gestion_incidentes():
             titulo = str(inc.get('titulo', '')).lower()
             categoria = str(inc.get('categoria', '')).lower()
             estado = str(inc.get('estado', '')).lower()
-            
+
             # Manejar fecha correctamente
             fecha = inc.get('fecha_reporte', '')
             if isinstance(fecha, datetime):
@@ -150,32 +155,36 @@ def gestion_incidentes():
             if cumple:
                 incidentes.append(inc)
 
-        # Convertir incidentes a objetos para el template
-        class IncidenteObj:
-            def __init__(self, data):
-                self.id_incidente = data.get('id_incidente') or data.get('id')
-                self.titulo = data.get('titulo', '')
-                self.descripcion = data.get('descripcion', '')
-                self.categoria = data.get('categoria', 'No asignada')
-                self.estado = data.get('estado', 'abierto')
-                
-                # Manejar fecha_creacion
-                fecha_reporte = data.get('fecha_reporte')
-                if isinstance(fecha_reporte, datetime):
-                    self.fecha_creacion = fecha_reporte
-                elif fecha_reporte:
-                    try:
-                        self.fecha_creacion = datetime.strptime(str(fecha_reporte), '%Y-%m-%d')
-                    except:
-                        self.fecha_creacion = None
-                else:
-                    self.fecha_creacion = None
+        #  Si no hay incidentes, se envía una lista vacía (evita datos falsos)
+        if not incidentes:
+            incidentes_obj = []
+        else:
+            class IncidenteObj:
+                def __init__(self, data):
+                    self.id_incidente = data.get('id_incidente') or data.get('id')
+                    self.titulo = data.get('titulo', '')
+                    self.descripcion = data.get('descripcion', '')
+                    self.categoria = data.get('categoria', 'No asignada')
+                    self.estado = data.get('estado', 'abierto')
 
-        incidentes_obj = [IncidenteObj(inc) for inc in incidentes]
-        print(f"✅ Filtrados: {len(incidentes_obj)} incidentes que cumplen los filtros")
+                    # Manejar fecha_creacion
+                    fecha_reporte = data.get('fecha_reporte')
+                    if isinstance(fecha_reporte, datetime):
+                        self.fecha_creacion = fecha_reporte
+                    elif fecha_reporte:
+                        try:
+                            self.fecha_creacion = datetime.strptime(str(fecha_reporte), '%Y-%m-%d')
+                        except:
+                            self.fecha_creacion = None
+                    else:
+                        self.fecha_creacion = None
+
+            incidentes_obj = [IncidenteObj(inc) for inc in incidentes]
+
+        print(f"Filtrados: {len(incidentes_obj)} incidentes válidos")
 
     except Exception as e:
-        print(f"❌ Error al obtener incidentes: {e}")
+        print(f"Error al obtener incidentes: {e}")
         import traceback
         traceback.print_exc()
         incidentes_obj = []

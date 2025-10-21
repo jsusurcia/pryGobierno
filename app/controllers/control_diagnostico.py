@@ -2,31 +2,28 @@ from ConexionBD import get_connection
 
 class ControlDiagnosticos:
     @staticmethod
-
-    def insertar_diagnostico(id_incidente, id_usuario, descripcion, causa_raiz, solucion_propuesta, comentario_usuario):
+    def insertar_diagnostico(id_incidente, descripcion, causa_raiz, solucion, comentario, usuario_id):
         try:
-            sql = """
-                INSERT INTO diagnosticos (
-                    id_incidente, id_usuario, descripcion, causa_raiz, 
-                    solucion_propuesta, comentario_usuario
-                )
-                VALUES (%s, %s, %s, %s, %s, %s);
-            """
             conexion = get_connection()
             if not conexion:
                 print("No se pudo conectar a la base de datos.")
                 return -2
 
+            sql = """
+                INSERT INTO diagnosticos (id_incidente, descripcion, causa_raiz, solucion_propuesta, comentario_usuario, id_usuario)
+                VALUES (%s, %s, %s, %s, %s, %s);
+            """
+
             with conexion.cursor() as cursor:
-                cursor.execute(sql, (id_incidente, id_usuario, descripcion, causa_raiz, solucion_propuesta, comentario_usuario))
+                cursor.execute(sql, (id_incidente, descripcion, causa_raiz, solucion, comentario, usuario_id))
                 conexion.commit()
 
             conexion.close()
-            return 0 
+            return True  # Éxito
 
         except Exception as e:
-            print(f"Error en insertar => {e}")
-            return -1
+            print(f"Error en insertar_diagnostico => {e}")
+            return False
     
     def buscar_por_IDDiagnostico(id_diagnosticos):
         try:

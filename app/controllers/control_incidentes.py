@@ -167,22 +167,31 @@ class ControlIncidentes:
             print(f"Error en actualizar_estado => {e}")
             return -1
         
-    def obtener_incidentes_sin_diagnostico(self):
+    @staticmethod
+    def obtener_incidentes_sin_diagnostico():
         try:
-            conn = self.conexion.conectar()
-            cursor = conn.cursor()
-            cursor.execute("""
+            conexion = get_connection()
+            if not conexion:
+                print("No se pudo conectar a la base de datos.")
+                return []
+
+            sql = """
                 SELECT id_incidente, titulo
                 FROM incidentes
-                WHERE estado != 'Diagnosticado'
-            """)
-            resultado = cursor.fetchall()
+                WHERE estado != 'Diagnosticado';
+            """
+
+            with conexion.cursor() as cursor:
+                cursor.execute(sql)
+                resultado = cursor.fetchall()
+
             incidentes = [
                 {'id_incidente': row[0], 'titulo': row[1]} for row in resultado
             ]
+
+            conexion.close()
             return incidentes
+
         except Exception as e:
             print("Error al obtener incidentes =>", e)
             return []
-        finally:
-            self.conexion.cerrar(conn, cursor)

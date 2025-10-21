@@ -388,7 +388,7 @@ def asignar_diagnostico():
             causa_raiz=causa_raiz,
             solucion=solucion,
             comentario=comentario,
-            usuario_id=session.get('id_usuario')  # registra quién lo hizo
+            usuario_id=session.get('user_id')  # registra quién lo hizo
         )
 
         if exito:

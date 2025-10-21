@@ -200,6 +200,7 @@ def mostrar_formulario_incidente():
 
 @app.route('/revision_diagnostico', methods=['GET'])
 def revision_diagnostico():
+    """Vista de aceptación de diagnósticos con diseño original"""
     if 'user_id' not in session:
         return redirect(url_for('login'))
 

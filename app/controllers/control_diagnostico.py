@@ -80,6 +80,7 @@ class ControlDiagnosticos:
             return None
         
     
+    @staticmethod
     def listado_diagnosticos_revision():
         """
         Lista todos los diagnósticos con su incidente asociado,

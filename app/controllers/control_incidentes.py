@@ -49,27 +49,62 @@ class ControlIncidentes:
         
     def listar_incidentes():
         try:
-            sql = "SELECT * FROM incidentes ORDER BY id_incidente DESC"
-            atributos = [
-                'id_incidente', 'titulo', 'descripcion', 'id_categoria',
-                'id_usuario', 'estado', 'fecha_reporte', 'fecha_resolucion', 'tiempo_reparacion'
-            ]
-
             conexion = get_connection()
             if not conexion:
                 print("No se pudo conectar a la base de datos.")
-                return None
+                return []
+
+            sql = """
+                SELECT 
+                    i.id_incidente,
+                    i.titulo,
+                    i.descripcion,
+                    COALESCE(c.nombre, 'Sin categoría') AS categoria,
+                    i.estado,
+                    i.fecha_reporte,
+                    i.fecha_resolucion,
+                    i.tiempo_reparacion
+                FROM incidentes i
+                LEFT JOIN categorias c ON i.id_categoria = c.id_categoria
+                ORDER BY i.id_incidente DESC;
+            """
 
             with conexion.cursor() as cursor:
                 cursor.execute(sql)
-                incidentes = cursor.fetchall()
+                filas = cursor.fetchall()
+
+            atributos = [
+                'id_incidente', 'titulo', 'descripcion',
+                'categoria', 'estado', 'fecha_reporte',
+                'fecha_resolucion', 'tiempo_reparacion'
+            ]
+
+            incidentes = [dict(zip(atributos, fila)) for fila in filas]
+
+            # 🔹 Traducir estado corto a texto completo
+            estado_map = {
+                'A': 'abierto',
+                'P': 'en_proceso',
+                'R': 'resuelto',
+                'C': 'cerrado'
+            }
+
+            for inc in incidentes:
+                if inc.get('estado'):
+                    inc['estado'] = estado_map.get(inc['estado'].upper(), inc['estado'])
+                if inc.get('fecha_reporte'):
+                    inc['fecha_reporte'] = inc['fecha_reporte'].strftime('%Y-%m-%d')
+
+            
+            
 
             conexion.close()
-            incidentes_list = [dict(zip(atributos, i)) for i in incidentes] if incidentes else []
-            return incidentes_list
+            return incidentes
+
         except Exception as e:
-            print(f"Error en buscar_todos => {e}")
-            return None
+            print(f"⚠️ Error en listar_incidentes => {e}")
+            return []
+
         
     def actualizar_incidentes(id_incidente, titulo, descripcion, id_categoria, id_usuario, estado):
         try:

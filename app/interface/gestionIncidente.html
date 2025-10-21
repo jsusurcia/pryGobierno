@@ -210,23 +210,20 @@
                                             {% endif %}
                                         </td>
                                         <td class="px-6 py-4 text-sm text-gray-600">
-                                            {{ incidente.fecha_creacion.strftime('%Y-%m-%d') if incidente.fecha_creacion else 'N/A' }}
+                                            {{ incidente.fecha_creacion if incidente.fecha_creacion else 'N/A' }}
                                         </td>
                                         <td class="px-6 py-4">
                                             <div class="flex items-center justify-center gap-2">
                                                 <!-- Botón ver detalles -->
                                                
-                                                    class="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
-                                                    title="Ver detalles">
-                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor"
-                                                        viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round"
-                                                            stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                        <path stroke-linecap="round" stroke-linejoin="round"
-                                                            stroke-width="2"
-                                                            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                                    </svg>
-                                                </button>
+                                                    <button onclick="openDetailModal('{{ incidente.id_incidente }}', '{{ incidente.titulo }}', '{{ incidente.descripcion }}', '{{ incidente.categoria }}', '{{ incidente.estado }}', '{{ incidente.fecha_creacion }}')"
+                                                        class="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                                                        title="Ver detalles">
+                                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                        </svg>
+                                                    </button>
                                                 {% if session.user_role in [1, 3] %}
                                                 <!-- Botón asignar diagnóstico -->
                                                 <a href="{{ url_for('asignar_diagnostico') }}?incidente={{ incidente.id_incidente }}"
@@ -257,77 +254,6 @@
                                     </tr>
                                     {% endfor %}
                                 {% else %}
-                                    <!-- Datos de ejemplo cuando no hay incidentes en BD -->
-                                    <tr class="hover:bg-gray-50 transition">
-                                        <td class="px-6 py-4">
-                                            <div>
-                                                <p class="text-sm font-medium text-gray-900">Fallo en servidor principal</p>
-                                                <p class="text-xs text-gray-500">INC-001</p>
-                                            </div>
-                                        </td>
-                                        <td class="px-6 py-4 text-sm text-gray-600">Red</td>
-                                        <td class="px-6 py-4">
-                                            <span class="px-3 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-700">En Progreso</span>
-                                        </td>
-                                        <td class="px-6 py-4 text-sm text-gray-600">2025-10-19</td>
-                                        <td class="px-6 py-4">
-                                            <div class="flex items-center justify-center gap-2">
-                                                <button onclick="openDetailModal('INC-001', 'Fallo en servidor principal', 'El servidor principal no responde desde las 10:30 AM', 'Red', 'en_proceso', '2025-10-19')"
-                                                    class="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
-                                                    title="Ver detalles">
-                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                                    </svg>
-                                                </button>
-                                                {% if session.user_role in [1, 3] %}
-                                                <a href="{{ url_for('asignar_diagnostico') }}"
-                                                    class="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition"
-                                                    title="Asignar diagnóstico">
-                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                                                    </svg>
-                                                </a>
-                                                {% endif %}
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    
-                                    <!-- Más filas de ejemplo -->
-                                    <tr class="hover:bg-gray-50 transition">
-                                        <td class="px-6 py-4">
-                                            <div>
-                                                <p class="text-sm font-medium text-gray-900">Software de contabilidad no inicia</p>
-                                                <p class="text-xs text-gray-500">INC-002</p>
-                                            </div>
-                                        </td>
-                                        <td class="px-6 py-4 text-sm text-gray-600">Software</td>
-                                        <td class="px-6 py-4">
-                                            <span class="px-3 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-700">Abierto</span>
-                                        </td>
-                                        <td class="px-6 py-4 text-sm text-gray-600">2025-10-18</td>
-                                        <td class="px-6 py-4">
-                                            <div class="flex items-center justify-center gap-2">
-                                                <button onclick="openDetailModal('INC-002', 'Software de contabilidad no inicia', 'Error al abrir la aplicación de contabilidad', 'Software', 'abierto', '2025-10-18')"
-                                                    class="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
-                                                    title="Ver detalles">
-                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                                    </svg>
-                                                </button>
-                                                {% if session.user_role in [1, 3] %}
-                                                <a href="{{ url_for('asignar_diagnostico') }}"
-                                                    class="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition"
-                                                    title="Asignar diagnóstico">
-                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                                                    </svg>
-                                                </a>
-                                                {% endif %}
-                                            </div>
-                                        </td>
-                                    </tr>
                                 {% endif %}
                             </tbody>
                         </table>

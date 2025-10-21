@@ -12,7 +12,7 @@ app.secret_key = 'tu_clave_secreta_aqui'
 def index():
     """Ruta principal que redirige al login"""
     if 'user_id' in session:
-        return redirect(url_for('dashboard'))
+        return redirect(url_for('gestion_incidentes'))
     return redirect(url_for('login'))
 
 
@@ -37,7 +37,7 @@ def login():
                 session['user_role'] = usuario['id_rol']
                 session['user_role_name'] = usuario.get('rol_nombre', 'Usuario')
                 flash('Inicio de sesión exitoso', 'success')
-                return redirect(url_for('dashboard'))
+                return redirect(url_for('gestion_incidentes'))
             else:
                 flash('Usuario inactivo. Contacte al administrador', 'error')
         else:
@@ -94,43 +94,76 @@ def dashboard():
 @app.route('/gestion_incidentes')
 def gestion_incidentes():
     """Ruta para gestión de incidentes con filtros"""
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
     
     # Obtener parámetros de filtro
     filtros = {
-        'buscar': request.args.get('buscar', ''),
-        'fecha_desde': request.args.get('fecha_desde', ''),
-        'fecha_hasta': request.args.get('fecha_hasta', ''),
-        'categoria': request.args.get('categoria', ''),
-        'estado': request.args.get('estado', '')
+        'buscar': request.args.get('buscar', '').strip().lower(),
+        'fecha_desde': request.args.get('fecha_desde', '').strip(),
+        'fecha_hasta': request.args.get('fecha_hasta', '').strip(),
+        'categoria': request.args.get('categoria', '').strip().lower(),
+        'estado': request.args.get('estado', '').strip().lower()
     }
-    
-    # Limpiar filtros vacíos
-    filtros = {k: v for k, v in filtros.items() if v}
-    
+
     try:
-        # Obtener incidentes con filtros
-        incidentes = ControlIncidentes.listar_incidentes(filtros if filtros else None)
-        
+        # Obtener todos los incidentes
+        todos = ControlIncidentes.listar_incidentes()
+        print(f"🧩 Total de incidentes obtenidos: {len(todos)}")
+
+        incidentes = []
+        for inc in todos:
+            cumple = True
+
+            # Normalizar campos
+            titulo = str(inc.get('titulo', '')).lower()
+            categoria = str(inc.get('categoria', '')).lower()
+            estado = str(inc.get('estado', '')).lower()
+            fecha = str(inc.get('fecha_reporte', ''))
+
+            # Buscar texto en ID o título
+            if filtros['buscar']:
+                if filtros['buscar'] not in titulo and filtros['buscar'] not in str(inc['id_incidente']).lower():
+                    cumple = False
+
+            # Filtrar por categoría
+            if filtros['categoria'] and filtros['categoria'] != categoria:
+                cumple = False
+
+            # Filtrar por estado
+            if filtros['estado'] and filtros['estado'] != estado:
+                cumple = False
+
+            # Filtrar por fechas
+            if filtros['fecha_desde'] and fecha < filtros['fecha_desde']:
+                cumple = False
+            if filtros['fecha_hasta'] and fecha > filtros['fecha_hasta']:
+                cumple = False
+
+            if cumple:
+                incidentes.append(inc)
+
         # Convertir incidentes a objetos para el template
         class IncidenteObj:
             def __init__(self, data):
                 for key, value in data.items():
                     setattr(self, key, value)
-                # Compatibilidad con el template
                 if hasattr(self, 'fecha_reporte'):
                     self.fecha_creacion = self.fecha_reporte
-                    self.id_incidente = str(self.id)[:8]  # Primeros 8 caracteres del UUID
-        
+                if hasattr(self, 'id_incidente'):
+                    self.id = self.id_incidente
+
         incidentes_obj = [IncidenteObj(inc) for inc in incidentes]
-        
+        print(f"✅ Filtrados: {len(incidentes_obj)} incidentes que cumplen los filtros")
+
     except Exception as e:
         print(f"Error al obtener incidentes: {e}")
         incidentes_obj = []
         flash('Error al cargar los incidentes', 'error')
-    
-    return render_template('gestionIncidente.html', 
-                         incidentes=incidentes_obj,
-                         user_role=session.get('user_role'))
+
+    return render_template('gestionIncidente.html',
+                           incidentes=incidentes_obj,
+                           user_role=session.get('user_role'))
 
 @app.route('/registrar_incidente', methods=['GET'])
 def mostrar_formulario_incidente():

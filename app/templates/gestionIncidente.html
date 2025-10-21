@@ -1,0 +1,535 @@
+{% extends "sidebar.html" %}
+
+{% block title %}Gestión de Incidentes{% endblock %}
+
+{% block nav_links %}
+<li>
+  <a
+    href="#"
+    class="flex items-center p-2 text-gray-900 rounded-lg hover:bg-gray-100 group"
+  >
+    <svg
+      class="w-5 h-5 text-gray-500 transition duration-75 group-hover:text-gray-900"
+      aria-hidden="true"
+      xmlns="http://www.w3.org/2000/svg"
+      fill="currentColor"
+      viewBox="0 0 22 21"
+    >
+      <path
+        d="M16.975 11H10V4.025a1 1 0 0 0-1.066-.998 8.5 8.5 0 1 0 9.039 9.039.999.999 0 0 0-1-1.066h.002Z"
+      />
+      <path
+        d="M12.5 0c-.157 0-.311.01-.565.027A1 1 0 0 0 11 1.02V10h8.975a1 1 0 0 0 1-.935c.013-.188.028-.374.028-.565A8.51 8.51 0 0 0 12.5 0Z"
+      />
+    </svg>
+    <span class="ms-3">Incidentes</span>
+  </a>
+</li>
+<li>
+  <a
+    href="#"
+    class="flex items-center p-2 text-gray-900 rounded-lg hover:bg-gray-100 group"
+  >
+    <svg
+      class="shrink-0 w-5 h-5 text-gray-500 transition duration-75 group-hover:text-gray-900"
+      aria-hidden="true"
+      xmlns="http://www.w3.org/2000/svg"
+      fill="currentColor"
+      viewBox="0 0 18 18"
+    >
+      <path
+        d="M6.143 0H1.857A1.857 1.857 0 0 0 0 1.857v4.286C0 7.169.831 8 1.857 8h4.286A1.857 1.857 0 0 0 8 6.143V1.857A1.857 1.857 0 0 0 6.143 0Zm10 0h-4.286A1.857 1.857 0 0 0 10 1.857v4.286C10 7.169 10.831 8 11.857 8h4.286A1.857 1.857 0 0 0 18 6.143V1.857A1.857 1.857 0 0 0 16.143 0Zm-10 10H1.857A1.857 1.857 0 0 0 0 11.857v4.286C0 17.169.831 18 1.857 18h4.286A1.857 1.857 0 0 0 8 16.143v-4.286A1.857 1.857 0 0 0 6.143 10Zm10 0h-4.286A1.857 1.857 0 0 0 10 11.857v4.286c0 1.026.831 1.857 1.857 1.857h4.286A1.857 1.857 0 0 0 18 16.143v-4.286A1.857 1.857 0 0 0 16.143 10Z"
+      />
+    </svg>
+    <span class="flex-1 ms-3 whitespace-nowrap">Diagnósticos</span>
+  </a>
+</li>
+<li>
+  <a
+    href="#"
+    class="flex items-center p-2 text-gray-900 rounded-lg hover:bg-gray-100 group"
+  >
+    <svg
+      class="shrink-0 w-5 h-5 text-red-500 transition duration-75 group-hover:text-red-700"
+      aria-hidden="true"
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      viewBox="0 0 18 16"
+    >
+      <path
+        stroke="currentColor"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        stroke-width="2"
+        d="M1 8h11m0 0L8 4m4 4-4 4m4-11h3a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-3"
+      />
+    </svg>
+    <span class="flex-1 ms-3 whitespace-nowrap text-red-700"
+      >Cerrar Sesión</span
+    >
+  </a>
+</li>
+{% endblock nav_links %}
+
+{% block content %}
+            <!-- Mensajes Flash -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="mb-4 p-4 rounded-lg {% if category == 'error' %}bg-red-100 border border-red-200 text-red-700{% elif category == 'success' %}bg-green-100 border border-green-200 text-green-700{% elif category == 'info' %}bg-blue-100 border border-blue-200 text-blue-700{% else %}bg-yellow-100 border border-yellow-200 text-yellow-700{% endif %}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <div class="max-w-7xl mx-auto">
+                <!-- Header -->
+                <div class="mb-6">
+                    <h1 class="text-3xl font-bold text-gray-900 mb-1">Gestión de Incidentes</h1>
+                </div>
+
+                <!-- Filtros y búsqueda -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-6 mb-6">
+                    <!-- Barra de búsqueda -->
+                    <form method="GET" action="{{ url_for('gestion_incidentes') }}">
+                        <div class="mb-4">
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                    </svg>
+                                </span>
+                                <input type="text" name="buscar" value="{{ request.args.get('buscar', '') }}"
+                                    placeholder="Buscar por ID o título..."
+                                    class="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
+                            </div>
+                        </div>
+
+                        <!-- Filtros de fecha y categorías -->
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Desde</label>
+                                <input type="date" name="fecha_desde" value="{{ request.args.get('fecha_desde', '') }}"
+                                    class="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Hasta</label>
+                                <input type="date" name="fecha_hasta" value="{{ request.args.get('fecha_hasta', '') }}"
+                                    class="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
+                                <select name="categoria" class="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    <option value="">Todas las categorías</option>
+                                    <option value="Red" {% if request.args.get('categoria') == 'Red' %}selected{% endif %}>Red</option>
+                                    <option value="Software" {% if request.args.get('categoria') == 'Software' %}selected{% endif %}>Software</option>
+                                    <option value="Hardware" {% if request.args.get('categoria') == 'Hardware' %}selected{% endif %}>Hardware</option>
+                                    <option value="Seguridad" {% if request.args.get('categoria') == 'Seguridad' %}selected{% endif %}>Seguridad</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Estado</label>
+                                <select name="estado" class="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    <option value="">Todos los estados</option>
+                                    <option value="abierto" {% if request.args.get('estado') == 'abierto' %}selected{% endif %}>Abierto</option>
+                                    <option value="en_proceso" {% if request.args.get('estado') == 'en_proceso' %}selected{% endif %}>En Progreso</option>
+                                    <option value="resuelto" {% if request.args.get('estado') == 'resuelto' %}selected{% endif %}>Resuelto</option>
+                                    <option value="cerrado" {% if request.args.get('estado') == 'cerrado' %}selected{% endif %}>Cerrado</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Botón aplicar filtros -->
+                        <div class="mt-4 flex justify-end">
+                            <button type="submit"
+                                class="px-4 py-2 text-sm text-white font-medium flex items-center gap-1 bg-gray-600 hover:bg-gray-800 rounded-lg transition">
+                                Aplicar filtros
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Tabla de incidentes -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead>
+                                <tr class="bg-gray-50 border-b border-gray-200">
+                                    <th
+                                        class="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                        Título</th>
+                                    <th
+                                        class="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                        Categoría</th>
+                                    <th
+                                        class="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                        Estado</th>
+                                    <th
+                                        class="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                        Fecha de Registro</th>
+                                    <th
+                                        class="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                        Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-200">
+                                {% if incidentes %}
+                                    {% for incidente in incidentes %}
+                                    <tr class="hover:bg-gray-50 transition">
+                                        <td class="px-6 py-4">
+                                            <div>
+                                                <p class="text-sm font-medium text-gray-900">{{ incidente.titulo }}</p>
+                                                <p class="text-xs text-gray-500">INC-{{ "%03d"|format(incidente.id_incidente) }}</p>
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4 text-sm text-gray-600">{{ incidente.categoria or 'No asignada' }}</td>
+                                        <td class="px-6 py-4">
+                                            {% if incidente.estado == 'abierto' %}
+                                                <span class="px-3 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-700">Abierto</span>
+                                            {% elif incidente.estado == 'en_proceso' %}
+                                                <span class="px-3 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-700">En Progreso</span>
+                                            {% elif incidente.estado == 'resuelto' %}
+                                                <span class="px-3 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-700">Resuelto</span>
+                                            {% elif incidente.estado == 'cerrado' %}
+                                                <span class="px-3 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-700">Cerrado</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="px-6 py-4 text-sm text-gray-600">
+                                            {{ incidente.fecha_creacion.strftime('%Y-%m-%d') if incidente.fecha_creacion else 'N/A' }}
+                                        </td>
+                                        <td class="px-6 py-4">
+                                            <div class="flex items-center justify-center gap-2">
+                                                <!-- Botón ver detalles -->
+                                               
+                                                    class="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                                                    title="Ver detalles">
+                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor"
+                                                        viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            stroke-width="2"
+                                                            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                    </svg>
+                                                </button>
+                                                {% if session.user_role in [1, 3] %}
+                                                <!-- Botón asignar diagnóstico -->
+                                                <a href="{{ url_for('asignar_diagnostico') }}?incidente={{ incidente.id_incidente }}"
+                                                    class="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition"
+                                                    title="Asignar diagnóstico">
+                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor"
+                                                        viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                                    </svg>
+                                                </a>
+                                                {% endif %}
+                                                {% if session.user_role == 1 %}
+                                                <!-- Botón eliminar -->
+                                                <button onclick="openDeleteModal('{{ incidente.id_incidente }}')"
+                                                    class="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
+                                                    title="Eliminar">
+                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor"
+                                                        viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            stroke-width="2"
+                                                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                    </svg>
+                                                </button>
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <!-- Datos de ejemplo cuando no hay incidentes en BD -->
+                                    <tr class="hover:bg-gray-50 transition">
+                                        <td class="px-6 py-4">
+                                            <div>
+                                                <p class="text-sm font-medium text-gray-900">Fallo en servidor principal</p>
+                                                <p class="text-xs text-gray-500">INC-001</p>
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4 text-sm text-gray-600">Red</td>
+                                        <td class="px-6 py-4">
+                                            <span class="px-3 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-700">En Progreso</span>
+                                        </td>
+                                        <td class="px-6 py-4 text-sm text-gray-600">2025-10-19</td>
+                                        <td class="px-6 py-4">
+                                            <div class="flex items-center justify-center gap-2">
+                                                <button onclick="openDetailModal('INC-001', 'Fallo en servidor principal', 'El servidor principal no responde desde las 10:30 AM', 'Red', 'en_proceso', '2025-10-19')"
+                                                    class="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                                                    title="Ver detalles">
+                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                    </svg>
+                                                </button>
+                                                {% if session.user_role in [1, 3] %}
+                                                <a href="{{ url_for('asignar_diagnostico') }}"
+                                                    class="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition"
+                                                    title="Asignar diagnóstico">
+                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                                    </svg>
+                                                </a>
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    
+                                    <!-- Más filas de ejemplo -->
+                                    <tr class="hover:bg-gray-50 transition">
+                                        <td class="px-6 py-4">
+                                            <div>
+                                                <p class="text-sm font-medium text-gray-900">Software de contabilidad no inicia</p>
+                                                <p class="text-xs text-gray-500">INC-002</p>
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4 text-sm text-gray-600">Software</td>
+                                        <td class="px-6 py-4">
+                                            <span class="px-3 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-700">Abierto</span>
+                                        </td>
+                                        <td class="px-6 py-4 text-sm text-gray-600">2025-10-18</td>
+                                        <td class="px-6 py-4">
+                                            <div class="flex items-center justify-center gap-2">
+                                                <button onclick="openDetailModal('INC-002', 'Software de contabilidad no inicia', 'Error al abrir la aplicación de contabilidad', 'Software', 'abierto', '2025-10-18')"
+                                                    class="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                                                    title="Ver detalles">
+                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                    </svg>
+                                                </button>
+                                                {% if session.user_role in [1, 3] %}
+                                                <a href="{{ url_for('asignar_diagnostico') }}"
+                                                    class="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition"
+                                                    title="Asignar diagnóstico">
+                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                                    </svg>
+                                                </a>
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+{% endblock %}
+
+{% block scripts %}
+<!-- Modal de Detalle del Incidente -->
+<div id="detailModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full transform transition-all">
+        <!-- Header del modal -->
+        <div class="flex items-center justify-between p-6 border-b border-gray-200">
+            <h3 class="text-xl font-bold text-gray-900">Detalle del Incidente</h3>
+            <button onclick="closeDetailModal()" class="text-gray-400 hover:text-gray-600 transition">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+
+        <!-- Contenido del modal -->
+        <div class="p-6 space-y-4">
+            <div>
+                <label class="text-sm font-semibold text-gray-700">ID</label>
+                <p id="modal-id" class="text-gray-900 font-mono">INC-001</p>
+            </div>
+
+            <div>
+                <label class="text-sm font-semibold text-gray-700">Título</label>
+                <p id="modal-title" class="text-gray-900">Fallo en servidor principal</p>
+            </div>
+
+            <div>
+                <label class="text-sm font-semibold text-gray-700">Descripción</label>
+                <p id="modal-description" class="text-gray-600">El servidor principal no responde desde las 10:30 AM</p>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="text-sm font-semibold text-gray-700">Categoría</label>
+                    <p id="modal-category" class="text-gray-600">Red</p>
+                </div>
+                <div>
+                    <label class="text-sm font-semibold text-gray-700">Estado</label>
+                    <p id="modal-status" class="mt-1">
+                        <span class="px-3 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-700 inline-block">En Progreso</span>
+                    </p>
+                </div>
+            </div>
+
+            <div>
+                <label class="text-sm font-semibold text-gray-700">Fecha de Registro</label>
+                <p id="modal-date" class="text-gray-600">2025-10-19</p>
+            </div>
+        </div>
+
+        <!-- Footer del modal -->
+        <div class="flex gap-3 p-6 border-t border-gray-200 justify-end">
+            {% if session.user_role in [1, 3] %}
+            <a href="{{ url_for('asignar_diagnostico') }}" id="modal-assign-btn"
+                class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition">
+                Asignar Diagnóstico
+            </a>
+            {% endif %}
+            <button onclick="closeDetailModal()"
+                class="px-6 py-3 border-2 border-gray-300 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition">
+                Cerrar
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Confirmación de Eliminación -->
+<div id="deleteModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full transform transition-all">
+        <!-- Contenido del modal -->
+        <div class="p-6 text-center">
+            <!-- Icono de advertencia -->
+            <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+            </div>
+
+            <h3 class="text-xl font-bold text-gray-900 mb-2">Confirmar eliminación</h3>
+            <p class="text-gray-600 mb-1">
+                ¿Estás seguro de que deseas eliminar el incidente
+                <span id="delete-incident-id" class="font-bold text-gray-900">INC-001</span>?
+            </p>
+            <p class="text-sm text-gray-500">Esta acción no se puede deshacer.</p>
+        </div>
+
+        <!-- Botones de acción -->
+        <div class="flex gap-3 p-6 border-t border-gray-200">
+            <button onclick="closeDeleteModal()"
+                class="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition">
+                Cancelar
+            </button>
+            <button onclick="confirmDelete()"
+                class="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold py-3 rounded-xl transition-all duration-200">
+                Eliminar
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Funciones para el modal de detalle
+    function openDetailModal(incidentId, title, description, category, status, date) {
+        document.getElementById('detailModal').classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+
+        // Actualizar contenido del modal
+        document.getElementById('modal-id').textContent = 'INC-' + String(incidentId).padStart(3, '0');
+        document.getElementById('modal-title').textContent = title;
+        document.getElementById('modal-description').textContent = description || 'Sin descripción disponible';
+        document.getElementById('modal-category').textContent = category;
+        document.getElementById('modal-date').textContent = date;
+
+        // Actualizar estado con el color correcto
+        const statusElement = document.getElementById('modal-status');
+        let statusHtml = '';
+        
+        switch(status) {
+            case 'abierto':
+                statusHtml = '<span class="px-3 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-700 inline-block">Abierto</span>';
+                break;
+            case 'en_proceso':
+                statusHtml = '<span class="px-3 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-700 inline-block">En Progreso</span>';
+                break;
+            case 'resuelto':
+                statusHtml = '<span class="px-3 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-700 inline-block">Resuelto</span>';
+                break;
+            case 'cerrado':
+                statusHtml = '<span class="px-3 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-700 inline-block">Cerrado</span>';
+                break;
+            default:
+                statusHtml = '<span class="px-3 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-700 inline-block">Desconocido</span>';
+        }
+        
+        statusElement.innerHTML = statusHtml;
+
+        // Actualizar enlace de asignar diagnóstico
+        const assignBtn = document.getElementById('modal-assign-btn');
+        if (assignBtn) {
+            assignBtn.href = "{{ url_for('asignar_diagnostico') }}?incidente=" + incidentId;
+        }
+    }
+
+    function closeDetailModal() {
+        document.getElementById('detailModal').classList.add('hidden');
+        document.body.style.overflow = 'auto';
+    }
+
+    // Funciones para el modal de eliminación
+    function openDeleteModal(incidentId) {
+        document.getElementById('deleteModal').classList.remove('hidden');
+        document.getElementById('delete-incident-id').textContent = 'INC-' + String(incidentId).padStart(3, '0');
+        document.body.style.overflow = 'hidden';
+        
+        // Guardar el ID para usarlo en confirmDelete
+        document.getElementById('deleteModal').setAttribute('data-incident-id', incidentId);
+    }
+
+    function closeDeleteModal() {
+        document.getElementById('deleteModal').classList.add('hidden');
+        document.body.style.overflow = 'auto';
+    }
+
+    function confirmDelete() {
+        const incidentId = document.getElementById('deleteModal').getAttribute('data-incident-id');
+        
+        // Enviar solicitud de eliminación
+        fetch(`/incidentes/${incidentId}/eliminar`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => {
+            if (response.ok) {
+                // Recargar la página para mostrar los cambios
+                window.location.reload();
+            } else {
+                alert('Error al eliminar el incidente');
+            }
+        })
+        .catch(error => {
+            alert('Error de conexión');
+            console.error('Error:', error);
+        });
+        
+        closeDeleteModal();
+    }
+
+    // Cerrar modales al hacer clic fuera de ellos
+    document.getElementById('detailModal').addEventListener('click', function (e) {
+        if (e.target === this) closeDetailModal();
+    });
+
+    document.getElementById('deleteModal').addEventListener('click', function (e) {
+        if (e.target === this) closeDeleteModal();
+    });
+
+    // Cerrar modales con la tecla ESC
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') {
+            closeDetailModal();
+            closeDeleteModal();
+        }
+    });
+</script>
+{% endblock %}

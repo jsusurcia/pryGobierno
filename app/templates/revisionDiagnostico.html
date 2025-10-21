@@ -1,518 +1,537 @@
-{% extends 'sidebar.html' %} {% block title %}Métricas MTTR{% endblock title %}
+{% extends 'sidebar.html' %}
+
+{% block title %}Aceptación de Diagnósticos{% endblock title %}
+
 {% block nav_links %}
 <li>
-  <a
-    href="#"
-    class="flex items-center p-2 text-gray-900 rounded-lg hover:bg-gray-100 group"
-  >
-<svg class="w-5 h-5 text-gray-500 transition duration-75 group-hover:text-gray-900"
-                            aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor"
-                            viewBox="0 0 22 21">
-                            <path
-                                d="M16.975 11H10V4.025a1 1 0 0 0-1.066-.998 8.5 8.5 0 1 0 9.039 9.039.999.999 0 0 0-1-1.066h.002Z" />
-                            <path
-                                d="M12.5 0c-.157 0-.311.01-.565.027A1 1 0 0 0 11 1.02V10h8.975a1 1 0 0 0 1-.935c.013-.188.028-.374.028-.565A8.51 8.51 0 0 0 12.5 0Z" />
-                        </svg>
-                        <span class="ms-3">Diagnósticos</span>
+  <a href="#" class="flex items-center p-2 text-gray-900 rounded-lg hover:bg-gray-100 group">
+    <svg class="w-5 h-5 text-gray-500 transition duration-75 group-hover:text-gray-900"
+         aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 22 21">
+      <path d="M16.975 11H10V4.025a1 1 0 0 0-1.066-.998 8.5 8.5 0 1 0 9.039 9.039.999.999 0 0 0-1-1.066h.002Z"/>
+      <path d="M12.5 0c-.157 0-.311.01-.565.027A1 1 0 0 0 11 1.02V10h8.975a1 1 0 0 0 1-.935c.013-.188.028-.374.028-.565A8.51 8.51 0 0 0 12.5 0Z"/>
+    </svg>
+    <span class="ms-3">Diagnósticos</span>
   </a>
 </li>
 <li>
-  <a
-    href="#"
-    class="flex items-center p-2 text-gray-900 rounded-lg hover:bg-gray-100 group"
-  >
+  <a href="#" class="flex items-center p-2 text-gray-900 rounded-lg hover:bg-gray-100 group">
     <svg class="shrink-0 w-5 h-5 text-gray-500 transition duration-75 group-hover:text-gray-900"
-                            aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor"
-                            viewBox="0 0 18 18">
-                            <path
-                                d="M6.143 0H1.857A1.857 1.857 0 0 0 0 1.857v4.286C0 7.169.831 8 1.857 8h4.286A1.857 1.857 0 0 0 8 6.143V1.857A1.857 1.857 0 0 0 6.143 0Zm10 0h-4.286A1.857 1.857 0 0 0 10 1.857v4.286C10 7.169 10.831 8 11.857 8h4.286A1.857 1.857 0 0 0 18 6.143V1.857A1.857 1.857 0 0 0 16.143 0Zm-10 10H1.857A1.857 1.857 0 0 0 0 11.857v4.286C0 17.169.831 18 1.857 18h4.286A1.857 1.857 0 0 0 8 16.143v-4.286A1.857 1.857 0 0 0 6.143 10Zm10 0h-4.286A1.857 1.857 0 0 0 10 11.857v4.286c0 1.026.831 1.857 1.857 1.857h4.286A1.857 1.857 0 0 0 18 16.143v-4.286A1.857 1.857 0 0 0 16.143 10Z" />
-                        </svg>
-                        <span class="flex-1 ms-3 whitespace-nowrap">Reportes</span>
+         aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 18 18">
+      <path d="M6.143 0H1.857A1.857 1.857 0 0 0 0 1.857v4.286C0 7.169.831 8 1.857 8h4.286A1.857 1.857 0 0 0 8 6.143V1.857A1.857 1.857 0 0 0 6.143 0Zm10 0h-4.286A1.857 1.857 0 0 0 10 1.857v4.286C10 7.169 10.831 8 11.857 8h4.286A1.857 1.857 0 0 0 18 6.143V1.857A1.857 1.857 0 0 0 16.143 0Zm-10 10H1.857A1.857 1.857 0 0 0 0 11.857v4.286C0 17.169.831 18 1.857 18h4.286A1.857 1.857 0 0 0 8 16.143v-4.286A1.857 1.857 0 0 0 6.143 10Zm10 0h-4.286A1.857 1.857 0 0 0 10 11.857v4.286c0 1.026.831 1.857 1.857 1.857h4.286A1.857 1.857 0 0 0 18 16.143v-4.286A1.857 1.857 0 0 0 16.143 10Z"/>
+    </svg>
+    <span class="flex-1 ms-3 whitespace-nowrap">Reportes</span>
   </a>
 </li>
 <li>
-  <a
-    href="#"
-    class="flex items-center p-2 text-gray-900 rounded-lg hover:bg-gray-100 group"
-  >
+  <a href="#" class="flex items-center p-2 text-gray-900 rounded-lg hover:bg-gray-100 group">
     <svg class="shrink-0 w-5 h-5 text-red-500 transition duration-75 group-hover:text-red-700"
-                            aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 18 16">
-                            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M1 8h11m0 0L8 4m4 4-4 4m4-11h3a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-3" />
-                        </svg>
-                        <span class="flex-1 ms-3 whitespace-nowrap text-red-700">Cerrar Sesión</span>
+         aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 18 16">
+      <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M1 8h11m0 0L8 4m4 4-4 4m4-11h3a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-3"/>
+    </svg>
+    <span class="flex-1 ms-3 whitespace-nowrap text-red-700">Cerrar Sesión</span>
   </a>
 </li>
 {% endblock nav_links %}
+
 {% block content %}
-            <div class="max-w-7xl mx-auto">
-                <!-- Header -->
-                <div class="mb-6">
-                    <h1 class="text-3xl font-bold text-gray-900 mb-1">Aceptación de Diagnósticos</h1>
-                </div>
+<div class="max-w-7xl mx-auto">
+  
+  <!-- Encabezado -->
+  <header class="mb-6">
+    <h1 class="text-3xl font-bold text-gray-900">Aceptación de Diagnósticos</h1>
+  </header>
 
-                <!-- Acordeón de Incidentes -->
-                <div class="space-y-4">
-                    <!-- Incidente 1 -->
-                    <div class="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
-                        <!-- Header del acordeón -->
-                        <button onclick="toggleAccordion('incident1')"
-                            class="w-full px-6 py-5 flex items-center justify-between hover:bg-gray-50 transition-colors duration-200">
-                            <div class="flex items-center gap-4 flex-1">
-                                <svg id="icon-incident1" class="w-5 h-5 text-gray-600 transition-transform duration-300"
-                                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M19 9l-7 7-7-7" />
-                                </svg>
-                                <div class="text-left">
-                                    <h3 class="text-lg font-bold text-gray-900">Fallo en servidor principal</h3>
-                                    <div class="flex items-center gap-3 mt-1">
-                                        <span class="text-sm text-blue-600 font-semibold">INC001</span>
-                                        <span class="text-sm text-gray-500">ID: INC001 · 2024-10-15</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <span class="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-semibold">2
-                                    diagnósticos</span>
-                            </div>
-                        </button>
-
-                        <!-- Contenido del acordeón -->
-                        <div id="incident1" class="hidden border-t border-gray-200">
-                            <div class="p-6 space-y-4">
-                                <!-- Diagnóstico 1 -->
-                                <div class="bg-gray-50 rounded-xl p-5 border border-gray-200">
-                                    <div class="flex items-start justify-between mb-4">
-                                        <div class="flex items-center gap-2">
-                                            <span class="text-sm font-bold text-gray-900">ID: D001</span>
-                                            <span
-                                                class="px-2 py-1 bg-yellow-100 text-yellow-700 rounded text-xs font-semibold">Pendiente</span>
-                                        </div>
-                                        <button
-                                            onclick="openDetailModal('D001', 'Fallo en servidor principal', 'El servidor no responde a las solicitudes', 'Sobrecarga de memoria', 'Aumentar RAM y optimizar procesos', 'Requiere mantenimiento urgente', '2024-10-15')"
-                                            class="text-blue-600 hover:text-blue-800 text-sm font-semibold hover:underline">
-                                            Ver detalle
-                                        </button>
-                                    </div>
-
-                                    <div class="space-y-3 mb-4">
-                                        <div>
-                                            <p class="text-xs font-semibold text-gray-500 mb-1">Descripción:</p>
-                                            <p class="text-sm text-gray-800">El servidor no responde a las solicitudes
-                                            </p>
-                                        </div>
-                                        <div class="grid md:grid-cols-2 gap-4">
-                                            <div>
-                                                <p class="text-xs font-semibold text-gray-500 mb-1">Causa raíz:</p>
-                                                <p class="text-sm text-gray-800">Sobrecarga de memoria</p>
-                                            </div>
-                                            <div>
-                                                <p class="text-xs font-semibold text-gray-500 mb-1">Solución:</p>
-                                                <p class="text-sm text-gray-800">Aumentar RAM y optimizar procesos</p>
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <p class="text-xs font-semibold text-gray-500 mb-1">Comentario:</p>
-                                            <p class="text-sm text-gray-800">Requiere mantenimiento urgente</p>
-                                        </div>
-                                    </div>
-
-                                    <!-- Acciones -->
-                                    <div class="flex gap-3">
-                                        <input type="text" placeholder="Añadir comentario de revisión..."
-                                            class="flex-1 px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                            id="comment-D001">
-                                        <button onclick="openApproveModal('D001')"
-                                            class="px-6 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors duration-200 flex items-center gap-2">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                    d="M5 13l4 4L19 7" />
-                                            </svg>
-                                            Aceptar
-                                        </button>
-                                        <button onclick="openRejectModal('D001')"
-                                            class="px-6 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg transition-colors duration-200 flex items-center gap-2">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                    d="M6 18L18 6M6 6l12 12" />
-                                            </svg>
-                                            Rechazar
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <!-- Diagnóstico 2 -->
-                                <div class="bg-gray-50 rounded-xl p-5 border border-gray-200">
-                                    <div class="flex items-start justify-between mb-4">
-                                        <div class="flex items-center gap-2">
-                                            <span class="text-sm font-bold text-gray-900">ID: D002</span>
-                                            <span
-                                                class="px-2 py-1 bg-yellow-100 text-yellow-700 rounded text-xs font-semibold">Pendiente</span>
-                                        </div>
-                                        <button
-                                            onclick="openDetailModal('D002', 'Fallo en servidor principal', 'Conexión perdida con base de datos', 'Cable de red desconectado', 'Reconectar cable y verificar conexión', 'Problema físico resuelto', '2024-10-15')"
-                                            class="text-blue-600 hover:text-blue-800 text-sm font-semibold hover:underline">
-                                            Ver detalle
-                                        </button>
-                                    </div>
-
-                                    <div class="space-y-3 mb-4">
-                                        <div>
-                                            <p class="text-xs font-semibold text-gray-500 mb-1">Descripción:</p>
-                                            <p class="text-sm text-gray-800">Conexión perdida con base de datos</p>
-                                        </div>
-                                        <div class="grid md:grid-cols-2 gap-4">
-                                            <div>
-                                                <p class="text-xs font-semibold text-gray-500 mb-1">Causa raíz:</p>
-                                                <p class="text-sm text-gray-800">Cable de red desconectado</p>
-                                            </div>
-                                            <div>
-                                                <p class="text-xs font-semibold text-gray-500 mb-1">Solución:</p>
-                                                <p class="text-sm text-gray-800">Reconectar cable y verificar conexión
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <p class="text-xs font-semibold text-gray-500 mb-1">Comentario:</p>
-                                            <p class="text-sm text-gray-800">Problema físico resuelto</p>
-                                        </div>
-                                    </div>
-
-                                    <!-- Acciones -->
-                                    <div class="flex gap-3">
-                                        <input type="text" placeholder="Añadir comentario de revisión..."
-                                            class="flex-1 px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                            id="comment-D002">
-                                        <button onclick="openApproveModal('D002')"
-                                            class="px-6 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors duration-200 flex items-center gap-2">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                    d="M5 13l4 4L19 7" />
-                                            </svg>
-                                            Aceptar
-                                        </button>
-                                        <button onclick="openRejectModal('D002')"
-                                            class="px-6 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg transition-colors duration-200 flex items-center gap-2">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                    d="M6 18L18 6M6 6l12 12" />
-                                            </svg>
-                                            Rechazar
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Incidente 2 -->
-                    <div class="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
-                        <!-- Header del acordeón -->
-                        <button onclick="toggleAccordion('incident2')"
-                            class="w-full px-6 py-5 flex items-center justify-between hover:bg-gray-50 transition-colors duration-200">
-                            <div class="flex items-center gap-4 flex-1">
-                                <svg id="icon-incident2" class="w-5 h-5 text-gray-600 transition-transform duration-300"
-                                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M19 9l-7 7-7-7" />
-                                </svg>
-                                <div class="text-left">
-                                    <h3 class="text-lg font-bold text-gray-900">Error en aplicación web</h3>
-                                    <div class="flex items-center gap-3 mt-1">
-                                        <span class="text-sm text-blue-600 font-semibold">INC002</span>
-                                        <span class="text-sm text-gray-500">ID: INC002 · 2024-10-14</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <span class="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-semibold">1
-                                    diagnóstico</span>
-                            </div>
-                        </button>
-
-                        <!-- Contenido del acordeón -->
-                        <div id="incident2" class="hidden border-t border-gray-200">
-                            <div class="p-6 space-y-4">
-                                <!-- Diagnóstico 1 -->
-                                <div class="bg-gray-50 rounded-xl p-5 border border-gray-200">
-                                    <div class="flex items-start justify-between mb-4">
-                                        <div class="flex items-center gap-2">
-                                            <span class="text-sm font-bold text-gray-900">ID: D003</span>
-                                            <span
-                                                class="px-2 py-1 bg-yellow-100 text-yellow-700 rounded text-xs font-semibold">Pendiente</span>
-                                        </div>
-                                        <button
-                                            onclick="openDetailModal('D003', 'Error en aplicación web', 'La aplicación no carga correctamente', 'Conflicto de versiones en librerías', 'Actualizar dependencias y reiniciar servidor', 'Verificar compatibilidad antes de actualizar', '2024-10-14')"
-                                            class="text-blue-600 hover:text-blue-800 text-sm font-semibold hover:underline">
-                                            Ver detalle
-                                        </button>
-                                    </div>
-
-                                    <div class="space-y-3 mb-4">
-                                        <div>
-                                            <p class="text-xs font-semibold text-gray-500 mb-1">Descripción:</p>
-                                            <p class="text-sm text-gray-800">La aplicación no carga correctamente</p>
-                                        </div>
-                                        <div class="grid md:grid-cols-2 gap-4">
-                                            <div>
-                                                <p class="text-xs font-semibold text-gray-500 mb-1">Causa raíz:</p>
-                                                <p class="text-sm text-gray-800">Conflicto de versiones en librerías</p>
-                                            </div>
-                                            <div>
-                                                <p class="text-xs font-semibold text-gray-500 mb-1">Solución:</p>
-                                                <p class="text-sm text-gray-800">Actualizar dependencias y reiniciar
-                                                    servidor</p>
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <p class="text-xs font-semibold text-gray-500 mb-1">Comentario:</p>
-                                            <p class="text-sm text-gray-800">Verificar compatibilidad antes de
-                                                actualizar</p>
-                                        </div>
-                                    </div>
-
-                                    <!-- Acciones -->
-                                    <div class="flex gap-3">
-                                        <input type="text" placeholder="Añadir comentario de revisión..."
-                                            class="flex-1 px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                            id="comment-D003">
-                                        <button onclick="openApproveModal('D003')"
-                                            class="px-6 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors duration-200 flex items-center gap-2">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                    d="M5 13l4 4L19 7" />
-                                            </svg>
-                                            Aceptar
-                                        </button>
-                                        <button onclick="openRejectModal('D003')"
-                                            class="px-6 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg transition-colors duration-200 flex items-center gap-2">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                    d="M6 18L18 6M6 6l12 12" />
-                                            </svg>
-                                            Rechazar
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+  <!-- Acordeón de Incidentes -->
+  <div class="space-y-4">
+    
+    <!-- Incidente 1 -->
+    <div class="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
+      
+      <!-- Header del Acordeón -->
+      <button onclick="alternarAcordeon('incidente1')"
+              class="w-full px-6 py-5 flex items-center justify-between hover:bg-gray-50 
+                     transition-colors duration-200">
+        <div class="flex items-center gap-4 flex-1">
+          <svg id="icono-incidente1" 
+               class="w-5 h-5 text-gray-600 transition-transform duration-300"
+               fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+          </svg>
+          <div class="text-left">
+            <h3 class="text-lg font-bold text-gray-900">Fallo en servidor principal</h3>
+            <div class="flex items-center gap-3 mt-1">
+              <span class="text-sm text-blue-600 font-semibold">INC001</span>
+              <span class="text-sm text-gray-500">ID: INC001 · 2024-10-15</span>
             </div>
-
-    <div id="detailModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-        <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <!-- Header del modal -->
-            <div class="flex items-center justify-between p-6 border-b border-gray-200 sticky top-0 bg-white rounded-t-2xl">
-                <h3 class="text-xl font-bold text-gray-900">Detalle del Diagnóstico</h3>
-                <button onclick="closeDetailModal()" class="text-gray-400 hover:text-gray-600 transition">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                    </svg>
-                </button>
-            </div>
-
-            <!-- Contenido del modal -->
-            <div class="p-6 space-y-4">
-                <div>
-                    <label class="text-sm font-semibold text-gray-700">ID Diagnóstico</label>
-                    <p id="detail-id" class="text-gray-900 font-mono text-lg">D001</p>
-                </div>
-
-                <div>
-                    <label class="text-sm font-semibold text-gray-700">Incidente Vinculado</label>
-                    <p id="detail-incident" class="text-gray-900 text-lg">Fallo en servidor principal</p>
-                </div>
-
-                <div>
-                    <label class="text-sm font-semibold text-gray-700">Descripción</label>
-                    <p id="detail-description" class="text-gray-800">El servidor no responde a las solicitudes</p>
-                </div>
-
-                <div>
-                    <label class="text-sm font-semibold text-gray-700">Causa Raíz</label>
-                    <p id="detail-root-cause" class="text-gray-800">Sobrecarga de memoria</p>
-                </div>
-
-                <div>
-                    <label class="text-sm font-semibold text-gray-700">Solución</label>
-                    <p id="detail-solution" class="text-gray-800">Aumentar RAM y optimizar procesos</p>
-                </div>
-
-                <div>
-                    <label class="text-sm font-semibold text-gray-700">Comentario</label>
-                    <p id="detail-comment" class="text-gray-800">Requiere mantenimiento urgente</p>
-                </div>
-
-                <div>
-                    <label class="text-sm font-semibold text-gray-700">Fecha de Registro</label>
-                    <p id="detail-date" class="text-gray-900">2024-10-15</p>
-                </div>
-            </div>
-
-            <!-- Footer del modal -->
-            <div class="p-6 border-t border-gray-200 bg-gray-50 rounded-b-2xl sticky bottom-0">
-                <button onclick="closeDetailModal()" class="w-full px-6 py-3 bg-gray-800 hover:bg-gray-900 text-white font-semibold rounded-xl transition">
-                    Cerrar
-                </button>
-            </div>
+          </div>
         </div>
+        <span class="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-semibold">
+          2 diagnósticos
+        </span>
+      </button>
+
+      <!-- Contenido del Acordeón -->
+      <div id="incidente1" class="hidden border-t border-gray-200">
+        <div class="p-6 space-y-4">
+          
+          <!-- Diagnóstico 1 -->
+          <div class="bg-gray-50 rounded-xl p-5 border border-gray-200">
+            <div class="flex items-start justify-between mb-4">
+              <div class="flex items-center gap-2">
+                <span class="text-sm font-bold text-gray-900">ID: D001</span>
+                <span class="px-2 py-1 bg-yellow-100 text-yellow-700 rounded text-xs font-semibold">
+                  Pendiente
+                </span>
+              </div>
+              <button onclick="abrirModalDetalle('D001', 'Fallo en servidor principal', 'El servidor no responde a las solicitudes', 'Sobrecarga de memoria', 'Aumentar RAM y optimizar procesos', 'Requiere mantenimiento urgente', '2024-10-15')"
+                      class="text-blue-600 hover:text-blue-800 text-sm font-semibold hover:underline">
+                Ver detalle
+              </button>
+            </div>
+
+            <div class="space-y-3 mb-4">
+              <div>
+                <p class="text-xs font-semibold text-gray-500 mb-1">Descripción:</p>
+                <p class="text-sm text-gray-800">El servidor no responde a las solicitudes</p>
+              </div>
+              <div class="grid md:grid-cols-2 gap-4">
+                <div>
+                  <p class="text-xs font-semibold text-gray-500 mb-1">Causa raíz:</p>
+                  <p class="text-sm text-gray-800">Sobrecarga de memoria</p>
+                </div>
+                <div>
+                  <p class="text-xs font-semibold text-gray-500 mb-1">Solución:</p>
+                  <p class="text-sm text-gray-800">Aumentar RAM y optimizar procesos</p>
+                </div>
+              </div>
+              <div>
+                <p class="text-xs font-semibold text-gray-500 mb-1">Comentario:</p>
+                <p class="text-sm text-gray-800">Requiere mantenimiento urgente</p>
+              </div>
+            </div>
+
+            <!-- Acciones -->
+            <div class="flex gap-3">
+              <input type="text" 
+                     id="comentario-D001"
+                     placeholder="Añadir comentario de revisión..."
+                     class="flex-1 px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm 
+                            focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <button onclick="abrirModalAceptar('D001')"
+                      class="px-6 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg 
+                             transition-colors duration-200 flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                </svg>
+                Aceptar
+              </button>
+              <button onclick="abrirModalRechazar('D001')"
+                      class="px-6 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg 
+                             transition-colors duration-200 flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+                Rechazar
+              </button>
+            </div>
+          </div>
+
+          <!-- Diagnóstico 2 -->
+          <div class="bg-gray-50 rounded-xl p-5 border border-gray-200">
+            <div class="flex items-start justify-between mb-4">
+              <div class="flex items-center gap-2">
+                <span class="text-sm font-bold text-gray-900">ID: D002</span>
+                <span class="px-2 py-1 bg-yellow-100 text-yellow-700 rounded text-xs font-semibold">
+                  Pendiente
+                </span>
+              </div>
+              <button onclick="abrirModalDetalle('D002', 'Fallo en servidor principal', 'Conexión perdida con base de datos', 'Cable de red desconectado', 'Reconectar cable y verificar conexión', 'Problema físico resuelto', '2024-10-15')"
+                      class="text-blue-600 hover:text-blue-800 text-sm font-semibold hover:underline">
+                Ver detalle
+              </button>
+            </div>
+
+            <div class="space-y-3 mb-4">
+              <div>
+                <p class="text-xs font-semibold text-gray-500 mb-1">Descripción:</p>
+                <p class="text-sm text-gray-800">Conexión perdida con base de datos</p>
+              </div>
+              <div class="grid md:grid-cols-2 gap-4">
+                <div>
+                  <p class="text-xs font-semibold text-gray-500 mb-1">Causa raíz:</p>
+                  <p class="text-sm text-gray-800">Cable de red desconectado</p>
+                </div>
+                <div>
+                  <p class="text-xs font-semibold text-gray-500 mb-1">Solución:</p>
+                  <p class="text-sm text-gray-800">Reconectar cable y verificar conexión</p>
+                </div>
+              </div>
+              <div>
+                <p class="text-xs font-semibold text-gray-500 mb-1">Comentario:</p>
+                <p class="text-sm text-gray-800">Problema físico resuelto</p>
+              </div>
+            </div>
+
+            <!-- Acciones -->
+            <div class="flex gap-3">
+              <input type="text" 
+                     id="comentario-D002"
+                     placeholder="Añadir comentario de revisión..."
+                     class="flex-1 px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm 
+                            focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <button onclick="abrirModalAceptar('D002')"
+                      class="px-6 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg 
+                             transition-colors duration-200 flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                </svg>
+                Aceptar
+              </button>
+              <button onclick="abrirModalRechazar('D002')"
+                      class="px-6 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg 
+                             transition-colors duration-200 flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+                Rechazar
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <!-- Modal de Aceptar -->
-    <div id="approveModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full">
-            <div class="p-6 text-center">
-                <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                    </svg>
-                </div>
-                <h3 class="text-xl font-bold text-gray-900 mb-2">Confirmar Aceptación</h3>
-                <p class="text-gray-600 mb-1">
-                    ¿Estás seguro de que deseas aceptar el diagnóstico 
-                    <span id="approve-diagnostic-id" class="font-bold text-gray-900">D001</span>?
-                </p>
-                <p class="text-sm text-gray-500">Esta acción marcará el diagnóstico como aprobado.</p>
+    <!-- Incidente 2 -->
+    <div class="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
+      
+      <!-- Header del Acordeón -->
+      <button onclick="alternarAcordeon('incidente2')"
+              class="w-full px-6 py-5 flex items-center justify-between hover:bg-gray-50 
+                     transition-colors duration-200">
+        <div class="flex items-center gap-4 flex-1">
+          <svg id="icono-incidente2" 
+               class="w-5 h-5 text-gray-600 transition-transform duration-300"
+               fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+          </svg>
+          <div class="text-left">
+            <h3 class="text-lg font-bold text-gray-900">Error en aplicación web</h3>
+            <div class="flex items-center gap-3 mt-1">
+              <span class="text-sm text-blue-600 font-semibold">INC002</span>
+              <span class="text-sm text-gray-500">ID: INC002 · 2024-10-14</span>
+            </div>
+          </div>
+        </div>
+        <span class="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-semibold">
+          1 diagnóstico
+        </span>
+      </button>
+
+      <!-- Contenido del Acordeón -->
+      <div id="incidente2" class="hidden border-t border-gray-200">
+        <div class="p-6 space-y-4">
+          
+          <!-- Diagnóstico 1 -->
+          <div class="bg-gray-50 rounded-xl p-5 border border-gray-200">
+            <div class="flex items-start justify-between mb-4">
+              <div class="flex items-center gap-2">
+                <span class="text-sm font-bold text-gray-900">ID: D003</span>
+                <span class="px-2 py-1 bg-yellow-100 text-yellow-700 rounded text-xs font-semibold">
+                  Pendiente
+                </span>
+              </div>
+              <button onclick="abrirModalDetalle('D003', 'Error en aplicación web', 'La aplicación no carga correctamente', 'Conflicto de versiones en librerías', 'Actualizar dependencias y reiniciar servidor', 'Verificar compatibilidad antes de actualizar', '2024-10-14')"
+                      class="text-blue-600 hover:text-blue-800 text-sm font-semibold hover:underline">
+                Ver detalle
+              </button>
             </div>
 
-            <div class="flex gap-3 p-6 border-t border-gray-200">
-                <button onclick="closeApproveModal()" class="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition">
-                    Cancelar
-                </button>
-                <button onclick="confirmApprove()" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-3 rounded-xl transition">
-                    Aceptar
-                </button>
+            <div class="space-y-3 mb-4">
+              <div>
+                <p class="text-xs font-semibold text-gray-500 mb-1">Descripción:</p>
+                <p class="text-sm text-gray-800">La aplicación no carga correctamente</p>
+              </div>
+              <div class="grid md:grid-cols-2 gap-4">
+                <div>
+                  <p class="text-xs font-semibold text-gray-500 mb-1">Causa raíz:</p>
+                  <p class="text-sm text-gray-800">Conflicto de versiones en librerías</p>
+                </div>
+                <div>
+                  <p class="text-xs font-semibold text-gray-500 mb-1">Solución:</p>
+                  <p class="text-sm text-gray-800">Actualizar dependencias y reiniciar servidor</p>
+                </div>
+              </div>
+              <div>
+                <p class="text-xs font-semibold text-gray-500 mb-1">Comentario:</p>
+                <p class="text-sm text-gray-800">Verificar compatibilidad antes de actualizar</p>
+              </div>
             </div>
+
+            <!-- Acciones -->
+            <div class="flex gap-3">
+              <input type="text" 
+                     id="comentario-D003"
+                     placeholder="Añadir comentario de revisión..."
+                     class="flex-1 px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm 
+                            focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <button onclick="abrirModalAceptar('D003')"
+                      class="px-6 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg 
+                             transition-colors duration-200 flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                </svg>
+                Aceptar
+              </button>
+              <button onclick="abrirModalRechazar('D003')"
+                      class="px-6 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg 
+                             transition-colors duration-200 flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+                Rechazar
+              </button>
+            </div>
+          </div>
         </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de Detalle del Diagnóstico -->
+<div id="modalDetalle" 
+     class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+  <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+    
+    <!-- Header del Modal -->
+    <div class="flex items-center justify-between p-6 border-b border-gray-200 sticky top-0 bg-white rounded-t-2xl">
+      <h3 class="text-xl font-bold text-gray-900">Detalle del Diagnóstico</h3>
+      <button onclick="cerrarModalDetalle()" 
+              class="text-gray-400 hover:text-gray-600 transition"
+              aria-label="Cerrar modal">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
     </div>
 
-    <!-- Modal de Rechazar -->
-    <div id="rejectModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full">
-            <div class="p-6 text-center">
-                <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                    </svg>
-                </div>
-                <h3 class="text-xl font-bold text-gray-900 mb-2">Confirmar Rechazo</h3>
-                <p class="text-gray-600 mb-1">
-                    ¿Estás seguro de que deseas rechazar el diagnóstico 
-                    <span id="reject-diagnostic-id" class="font-bold text-gray-900">D001</span>?
-                </p>
-                <p class="text-sm text-gray-500">Esta acción requerirá una nueva revisión del diagnóstico.</p>
-            </div>
+    <!-- Contenido del Modal -->
+    <div class="p-6 space-y-4">
+      <div>
+        <label class="text-sm font-semibold text-gray-700">ID Diagnóstico</label>
+        <p id="detalle-id" class="text-gray-900 font-mono text-lg">D001</p>
+      </div>
 
-            <div class="flex gap-3 p-6 border-t border-gray-200">
-                <button onclick="closeRejectModal()" class="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition">
-                    Cancelar
-                </button>
-                <button onclick="confirmReject()" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold py-3 rounded-xl transition">
-                    Rechazar
-                </button>
-            </div>
-        </div>
+      <div>
+        <label class="text-sm font-semibold text-gray-700">Incidente Vinculado</label>
+        <p id="detalle-incidente" class="text-gray-900 text-lg">Fallo en servidor principal</p>
+      </div>
+
+      <div>
+        <label class="text-sm font-semibold text-gray-700">Descripción</label>
+        <p id="detalle-descripcion" class="text-gray-800">El servidor no responde a las solicitudes</p>
+      </div>
+
+      <div>
+        <label class="text-sm font-semibold text-gray-700">Causa Raíz</label>
+        <p id="detalle-causa-raiz" class="text-gray-800">Sobrecarga de memoria</p>
+      </div>
+
+      <div>
+        <label class="text-sm font-semibold text-gray-700">Solución</label>
+        <p id="detalle-solucion" class="text-gray-800">Aumentar RAM y optimizar procesos</p>
+      </div>
+
+      <div>
+        <label class="text-sm font-semibold text-gray-700">Comentario</label>
+        <p id="detalle-comentario" class="text-gray-800">Requiere mantenimiento urgente</p>
+      </div>
+
+      <div>
+        <label class="text-sm font-semibold text-gray-700">Fecha de Registro</label>
+        <p id="detalle-fecha" class="text-gray-900">2024-10-15</p>
+      </div>
     </div>
+
+    <!-- Footer del Modal -->
+    <div class="p-6 border-t border-gray-200 bg-gray-50 rounded-b-2xl sticky bottom-0">
+      <button onclick="cerrarModalDetalle()"
+              class="w-full px-6 py-3 bg-gray-800 hover:bg-gray-900 text-white font-semibold rounded-xl transition">
+        Cerrar
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de Aceptar -->
+<div id="modalAceptar" 
+     class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+  <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full">
+    
+    <!-- Contenido del Modal -->
+    <div class="p-6 text-center">
+      <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+        <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+        </svg>
+      </div>
+      <h3 class="text-xl font-bold text-gray-900 mb-2">Confirmar Aceptación</h3>
+      <p class="text-gray-600 mb-1">
+        ¿Estás seguro de que deseas aceptar el diagnóstico 
+        <span id="aceptar-id-diagnostico" class="font-bold text-gray-900">D001</span>?
+      </p>
+      <p class="text-sm text-gray-500">Esta acción marcará el diagnóstico como aprobado.</p>
+    </div>
+
+    <!-- Botones de Acción -->
+    <div class="flex gap-3 p-6 border-t border-gray-200">
+      <button onclick="cerrarModalAceptar()"
+              class="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 font-semibold rounded-xl 
+                     hover:bg-gray-50 transition">
+        Cancelar
+      </button>
+      <button onclick="confirmarAceptacion()"
+              class="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-3 rounded-xl transition">
+        Aceptar
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de Rechazar -->
+<div id="modalRechazar" 
+     class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+  <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full">
+    
+    <!-- Contenido del Modal -->
+    <div class="p-6 text-center">
+      <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+        <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </div>
+      <h3 class="text-xl font-bold text-gray-900 mb-2">Confirmar Rechazo</h3>
+      <p class="text-gray-600 mb-1">
+        ¿Estás seguro de que deseas rechazar el diagnóstico 
+        <span id="rechazar-id-diagnostico" class="font-bold text-gray-900">D001</span>?
+      </p>
+      <p class="text-sm text-gray-500">Esta acción requerirá una nueva revisión del diagnóstico.</p>
+    </div>
+
+    <!-- Botones de Acción -->
+    <div class="flex gap-3 p-6 border-t border-gray-200">
+      <button onclick="cerrarModalRechazar()"
+              class="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 font-semibold rounded-xl 
+                     hover:bg-gray-50 transition">
+        Cancelar
+      </button>
+      <button onclick="confirmarRechazo()"
+              class="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold py-3 rounded-xl transition">
+        Rechazar
+      </button>
+    </div>
+  </div>
+</div>
 {% endblock content %}
+
 {% block scripts %}
-    <script>
-        // Funciones para el acordeón
-        function toggleAccordion(id) {
-            const content = document.getElementById(id);
-            const icon = document.getElementById('icon-' + id);
-            
-            if (content.classList.contains('hidden')) {
-                content.classList.remove('hidden');
-                icon.style.transform = 'rotate(180deg)';
-            } else {
-                content.classList.add('hidden');
-                icon.style.transform = 'rotate(0deg)';
-            }
-        }
+<script>
+  // Funciones para el Acordeón
+  function alternarAcordeon(id) {
+    const contenido = document.getElementById(id);
+    const icono = document.getElementById('icono-' + id);
+    
+    if (contenido.classList.contains('hidden')) {
+      contenido.classList.remove('hidden');
+      icono.style.transform = 'rotate(180deg)';
+    } else {
+      contenido.classList.add('hidden');
+      icono.style.transform = 'rotate(0deg)';
+    }
+  }
 
-        // Funciones para el modal de detalle
-        function openDetailModal(id, incident, description, rootCause, solution, comment, date) {
-            document.getElementById('detailModal').classList.remove('hidden');
-            document.body.style.overflow = 'hidden';
-            
-            document.getElementById('detail-id').textContent = id;
-            document.getElementById('detail-incident').textContent = incident;
-            document.getElementById('detail-description').textContent = description;
-            document.getElementById('detail-root-cause').textContent = rootCause;
-            document.getElementById('detail-solution').textContent = solution;
-            document.getElementById('detail-comment').textContent = comment;
-            document.getElementById('detail-date').textContent = date;
-        }
+  // Funciones para el Modal de Detalle
+  function abrirModalDetalle(id, incidente, descripcion, causaRaiz, solucion, comentario, fecha) {
+    document.getElementById('modalDetalle').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    
+    document.getElementById('detalle-id').textContent = id;
+    document.getElementById('detalle-incidente').textContent = incidente;
+    document.getElementById('detalle-descripcion').textContent = descripcion;
+    document.getElementById('detalle-causa-raiz').textContent = causaRaiz;
+    document.getElementById('detalle-solucion').textContent = solucion;
+    document.getElementById('detalle-comentario').textContent = comentario;
+    document.getElementById('detalle-fecha').textContent = fecha;
+  }
 
-        function closeDetailModal() {
-            document.getElementById('detailModal').classList.add('hidden');
-            document.body.style.overflow = 'auto';
-        }
+  function cerrarModalDetalle() {
+    document.getElementById('modalDetalle').classList.add('hidden');
+    document.body.style.overflow = 'auto';
+  }
 
-        // Funciones para el modal de aceptar
-        function openApproveModal(diagnosticId) {
-            document.getElementById('approveModal').classList.remove('hidden');
-            document.getElementById('approve-diagnostic-id').textContent = diagnosticId;
-            document.body.style.overflow = 'hidden';
-        }
+  // Funciones para el Modal de Aceptar
+  function abrirModalAceptar(idDiagnostico) {
+    document.getElementById('modalAceptar').classList.remove('hidden');
+    document.getElementById('aceptar-id-diagnostico').textContent = idDiagnostico;
+    document.body.style.overflow = 'hidden';
+  }
 
-        function closeApproveModal() {
-            document.getElementById('approveModal').classList.add('hidden');
-            document.body.style.overflow = 'auto';
-        }
+  function cerrarModalAceptar() {
+    document.getElementById('modalAceptar').classList.add('hidden');
+    document.body.style.overflow = 'auto';
+  }
 
-        function confirmApprove() {
-            const diagnosticId = document.getElementById('approve-diagnostic-id').textContent;
-            const comment = document.getElementById('comment-' + diagnosticId).value;
-            
-            alert('Diagnóstico ' + diagnosticId + ' aceptado correctamente\nComentario: ' + (comment || 'Sin comentario'));
-            closeApproveModal();
-            // Aquí iría la lógica para actualizar el estado en la base de datos
-        }
+  function confirmarAceptacion() {
+    const idDiagnostico = document.getElementById('aceptar-id-diagnostico').textContent;
+    const comentario = document.getElementById('comentario-' + idDiagnostico).value;
+    
+    alert('Diagnóstico ' + idDiagnostico + ' aceptado correctamente\nComentario: ' + (comentario || 'Sin comentario'));
+    cerrarModalAceptar();
+    // Aquí iría la lógica para actualizar el estado en la base de datos
+  }
 
-        // Funciones para el modal de rechazar
-        function openRejectModal(diagnosticId) {
-            document.getElementById('rejectModal').classList.remove('hidden');
-            document.getElementById('reject-diagnostic-id').textContent = diagnosticId;
-            document.body.style.overflow = 'hidden';
-        }
+  // Funciones para el Modal de Rechazar
+  function abrirModalRechazar(idDiagnostico) {
+    document.getElementById('modalRechazar').classList.remove('hidden');
+    document.getElementById('rechazar-id-diagnostico').textContent = idDiagnostico;
+    document.body.style.overflow = 'hidden';
+  }
 
-        function closeRejectModal() {
-            document.getElementById('rejectModal').classList.add('hidden');
-            document.body.style.overflow = 'auto';
-        }
+  function cerrarModalRechazar() {
+    document.getElementById('modalRechazar').classList.add('hidden');
+    document.body.style.overflow = 'auto';
+  }
 
-        function confirmReject() {
-            const diagnosticId = document.getElementById('reject-diagnostic-id').textContent;
-            const comment = document.getElementById('comment-' + diagnosticId).value;
-            
-            alert('Diagnóstico ' + diagnosticId + ' rechazado\nComentario: ' + (comment || 'Sin comentario'));
-            closeRejectModal();
-            // Aquí iría la lógica para actualizar el estado en la base de datos
-        }
+  function confirmarRechazo() {
+    const idDiagnostico = document.getElementById('rechazar-id-diagnostico').textContent;
+    const comentario = document.getElementById('comentario-' + idDiagnostico).value;
+    
+    alert('Diagnóstico ' + idDiagnostico + ' rechazado\nComentario: ' + (comentario || 'Sin comentario'));
+    cerrarModalRechazar();
+    // Aquí iría la lógica para actualizar el estado en la base de datos
+  }
 
-        // Cerrar modales al hacer clic fuera
-        document.getElementById('detailModal').addEventListener('click', function(e) {
-            if (e.target === this) closeDetailModal();
-        });
+  // Cerrar modales al hacer clic fuera de ellos
+  document.getElementById('modalDetalle').addEventListener('click', function(e) {
+    if (e.target === this) cerrarModalDetalle();
+  });
 
-        document.getElementById('approveModal').addEventListener('click', function(e) {
-            if (e.target === this) closeApproveModal();
-        });
+  document.getElementById('modalAceptar').addEventListener('click', function(e) {
+    if (e.target === this) cerrarModalAceptar();
+  });
 
-        document.getElementById('rejectModal').addEventListener('click', function(e) {
-            if (e.target === this) closeRejectModal();
-        });
+  document.getElementById('modalRechazar').addEventListener('click', function(e) {
+    if (e.target === this) cerrarModalRechazar();
+  });
 
-        // Cerrar modales con ESC
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') {
-                closeDetailModal();
-                closeApproveModal();
-                closeRejectModal();
-            }
-        });
-    </script>
+  // Cerrar modales con la tecla ESC
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      cerrarModalDetalle();
+      cerrarModalAceptar();
+      cerrarModalRechazar();
+    }
+  });
+</script>
 {% endblock scripts %}

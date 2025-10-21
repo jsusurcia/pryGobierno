@@ -9,15 +9,17 @@
 <body class="bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50 min-h-screen p-4 md:p-8">
     
     <div class="max-w-4xl mx-auto">
-        <!-- Header -->
-        <div class="mb-8 md:mb-12 text-center">
-            <h1 class="text-3xl md:text-4xl font-bold text-gray-900 mb-3 bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+        
+        <!-- Encabezado -->
+        <header class="mb-8 md:mb-12 text-center">
+            <h1 class="text-3xl md:text-4xl font-bold text-gray-900 mb-3 
+                       bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
                 Registro de Incidentes
             </h1>
             <p class="text-gray-600 text-base md:text-lg">
                 Reporta incidentes ocurridos durante tu jornada laboral
             </p>
-        </div>
+        </header>
 
         <!-- Mensajes Flash -->
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -26,14 +28,14 @@
                     <div class="mb-6 max-w-2xl mx-auto">
                         {% if category == 'success' %}
                             <div class="bg-green-50 border border-green-200 rounded-xl p-4 flex items-center">
-                                <svg class="w-5 h-5 text-green-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg class="w-5 h-5 text-green-600 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                 </svg>
                                 <span class="text-green-800">{{ message }}</span>
                             </div>
                         {% else %}
                             <div class="bg-red-50 border border-red-200 rounded-xl p-4 flex items-center">
-                                <svg class="w-5 h-5 text-red-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg class="w-5 h-5 text-red-600 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                 </svg>
                                 <span class="text-red-800">{{ message }}</span>
@@ -45,53 +47,64 @@
         {% endwith %}
 
         <!-- Formulario Principal -->
-        <div class="bg-white rounded-2xl shadow-xl border border-gray-100 p-6 md:p-8 hover:shadow-2xl transition-shadow duration-300">
-            <!-- SVG centrado -->
+        <div class="bg-white rounded-2xl shadow-xl border border-gray-100 p-6 md:p-8 
+                    hover:shadow-2xl transition-shadow duration-300">
+            
+            <!-- Ícono Principal -->
             <div class="flex justify-center mb-4">
-                <div class="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
+                <div class="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 
+                            rounded-full flex items-center justify-center">
                     <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
                     </svg>
                 </div>
             </div>
-            <!-- Título centrado debajo del SVG -->
+
             <h2 class="text-2xl font-bold text-gray-800 text-center mb-8">Nuevo Incidente</h2>
 
-            <form method="POST" action="{{ url_for('registrar_incidente') }}" class="space-y-6 max-w-2xl mx-auto" id="incidentForm">
-                <!-- Título del Incidente -->
+            <!-- Formulario -->
+            <form method="POST" 
+                  action="{{ url_for('registrar_incidente') }}" 
+                  class="space-y-6 max-w-2xl mx-auto" 
+                  id="formIncidente">
+                
+                <!-- Campo: Título del Incidente -->
                 <div class="group">
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">
-                        Título del Incidente
-                        <span class="text-red-500">*</span>
+                    <label for="titulo" class="block text-sm font-semibold text-gray-700 mb-2">
+                        Título del Incidente <span class="text-red-500">*</span>
                     </label>
                     <div class="relative">
-                        <input 
-                            type="text" 
-                            name="titulo"
-                            placeholder="Ej: Falla en impresora"
-                            class="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 focus:bg-white transition-all duration-200 placeholder-gray-400 group-hover:border-gray-300"
-                            required
-                        >
-                        <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                            <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                            </svg>
-                        </div>
+                        <input type="text" 
+                               id="titulo"
+                               name="titulo"
+                               required
+                               placeholder="Ej: Falla en impresora"
+                               class="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl 
+                                      focus:outline-none focus:border-blue-500 focus:bg-white 
+                                      group-hover:border-gray-300 transition-all duration-200 
+                                      placeholder-gray-400">
+                        <svg class="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" 
+                             fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                        </svg>
                     </div>
                 </div>
 
-                <!-- Categoría -->
+                <!-- Campo: Categoría -->
                 <div class="group">
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">
-                        Categoría
-                        <span class="text-red-500">*</span>
+                    <label for="categoria" class="block text-sm font-semibold text-gray-700 mb-2">
+                        Categoría <span class="text-red-500">*</span>
                     </label>
                     <div class="relative">
-                        <select 
-                            name="categoria"
-                            class="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 focus:bg-white transition-all duration-200 appearance-none cursor-pointer group-hover:border-gray-300"
-                            required
-                        >
+                        <select id="categoria"
+                                name="categoria"
+                                required
+                                class="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl 
+                                       focus:outline-none focus:border-blue-500 focus:bg-white 
+                                       group-hover:border-gray-300 transition-all duration-200 
+                                       appearance-none cursor-pointer">
                             <option value="">Selecciona una categoría</option>
                             <option value="1">🖥️ Hardware</option>
                             <option value="2">💻 Software</option>
@@ -101,61 +114,69 @@
                             <option value="6">📞 Telefonía</option>
                             <option value="7">📋 Otro</option>
                         </select>
-                        <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                            <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                            </svg>
-                        </div>
+                        <svg class="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" 
+                             fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
                     </div>
                 </div>
 
-                <!-- Descripción -->
+                <!-- Campo: Descripción -->
                 <div class="group">
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">
-                        Descripción
-                        <span class="text-red-500">*</span>
+                    <label for="descripcion" class="block text-sm font-semibold text-gray-700 mb-2">
+                        Descripción <span class="text-red-500">*</span>
                     </label>
-                    <textarea 
-                        name="descripcion"
-                        placeholder="Describe el incidente en detalle..."
-                        rows="6"
-                        class="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 focus:bg-white transition-all duration-200 placeholder-gray-400 resize-none group-hover:border-gray-300"
-                        required
-                    ></textarea>
+                    <textarea id="descripcion"
+                              name="descripcion"
+                              required
+                              rows="6"
+                              placeholder="Describe el incidente en detalle..."
+                              class="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl 
+                                     focus:outline-none focus:border-blue-500 focus:bg-white 
+                                     group-hover:border-gray-300 transition-all duration-200 
+                                     placeholder-gray-400 resize-none"></textarea>
                     <p class="text-xs text-gray-500 mt-2">
                         Incluye detalles como hora, ubicación y cualquier información relevante
                     </p>
                 </div>
 
-                <!-- Botón de envío -->
-                <button 
-                    type="submit"
-                    class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-4 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2"
-                >
+                <!-- Botón de Envío -->
+                <button type="submit"
+                        class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 
+                               hover:from-blue-700 hover:to-indigo-700 text-white font-bold 
+                               py-4 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl 
+                               transform hover:scale-[1.02] active:scale-[0.98] 
+                               flex items-center justify-center gap-2">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                              d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
                     Registrar Incidente
                 </button>
             </form>
         </div>
 
-        <!-- Panel de ayuda (estilo renovado) -->
+        <!-- Panel de Ayuda -->
         <div class="mt-8 bg-blue-50 border border-blue-200 rounded-2xl p-6 text-center max-w-2xl mx-auto">
             <div class="flex justify-center mb-3">
                 <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 018 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                          d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z"/>
                 </svg>
             </div>
             <h3 class="font-bold text-lg text-blue-800 mb-2">¿Necesitas ayuda?</h3>
             <p class="text-blue-700 text-sm mb-4">
                 Si tienes dudas o necesitas asistencia, contacta al equipo de soporte.
             </p>
-            <div class="space-x-4">
-                <a href="{{ url_for('listar_incidentes') }}" class="inline-block bg-blue-600 text-white font-medium py-2 px-6 rounded-lg hover:bg-blue-700 transition-colors duration-200">
+            <div class="flex flex-col sm:flex-row gap-3 justify-center">
+                <a href="{{ url_for('listar_incidentes') }}" 
+                   class="inline-block bg-blue-600 text-white font-medium py-2 px-6 
+                          rounded-lg hover:bg-blue-700 transition-colors duration-200">
                     Ver Incidentes
                 </a>
-                <a href="#" class="inline-block bg-green-600 text-white font-medium py-2 px-6 rounded-lg hover:bg-green-700 transition-colors duration-200">
+                <a href="#" 
+                   class="inline-block bg-green-600 text-white font-medium py-2 px-6 
+                          rounded-lg hover:bg-green-700 transition-colors duration-200">
                     Abrir chat de soporte
                 </a>
             </div>
@@ -163,11 +184,18 @@
     </div>
 
     <script>
-        // Animación simple al enviar el formulario
-        document.getElementById('incidentForm').addEventListener('submit', function(e) {
-            const submitBtn = this.querySelector('button[type="submit"]');
-            submitBtn.innerHTML = '<svg class="w-5 h-5 animate-spin mr-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Registrando...';
-            submitBtn.disabled = true;
+        // Animación al enviar el formulario
+        document.getElementById('formIncidente').addEventListener('submit', function(e) {
+            const botonEnvio = this.querySelector('button[type="submit"]');
+            
+            botonEnvio.innerHTML = `
+                <svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span>Registrando...</span>
+            `;
+            botonEnvio.disabled = true;
         });
     </script>
 

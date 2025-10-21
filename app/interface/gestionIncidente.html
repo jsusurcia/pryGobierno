@@ -254,6 +254,17 @@
                                     </tr>
                                     {% endfor %}
                                 {% else %}
+                                    <tr>
+                                        <td colspan="5" class="text-center py-10">
+                                            <div class="flex flex-col items-center justify-center text-gray-400">
+                                                <svg class="w-12 h-12 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                        d="M9 17v-2a4 4 0 018 0v2m-6-6a4 4 0 118 0m-8 0v2m8-2v2M5 13v6a2 2 0 002 2h10a2 2 0 002-2v-6" />
+                                                </svg>
+                                                <p class="text-sm font-medium">No se encontraron incidentes registrados.</p>
+                                            </div>
+                                        </td>
+                                    </tr>
                                 {% endif %}
                             </tbody>
                         </table>
@@ -277,41 +288,7 @@
                 </button>
             </div>
 
-            <!-- Contenido del modal -->
-            <div class="p-6 space-y-4">
-                <div>
-                    <label class="text-sm font-semibold text-gray-700">ID</label>
-                    <p id="modal-id" class="text-gray-900 font-mono">INC-001</p>
-                </div>
-
-                <div>
-                    <label class="text-sm font-semibold text-gray-700">Título</label>
-                    <p id="modal-title" class="text-gray-900">Fallo en servidor principal</p>
-                </div>
-
-                <div>
-                    <label class="text-sm font-semibold text-gray-700">Descripción</label>
-                    <p id="modal-description" class="text-gray-600">El servidor principal no responde desde las 10:30 AM</p>
-                </div>
-
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="text-sm font-semibold text-gray-700">Categoría</label>
-                        <p id="modal-category" class="text-gray-600">Red</p>
-                    </div>
-                    <div>
-                        <label class="text-sm font-semibold text-gray-700">Estado</label>
-                        <p id="modal-status" class="mt-1">
-                            <span class="px-3 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-700 inline-block">En Progreso</span>
-                        </p>
-                    </div>
-                </div>
-
-                <div>
-                    <label class="text-sm font-semibold text-gray-700">Fecha de Registro</label>
-                    <p id="modal-date" class="text-gray-600">2025-10-19</p>
-                </div>
-            </div>
+            
 
             <!-- Footer del modal -->
             <div class="flex gap-3 p-6 border-t border-gray-200 justify-end">

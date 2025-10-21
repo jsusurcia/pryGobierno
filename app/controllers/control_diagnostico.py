@@ -154,6 +154,58 @@ class ControlDiagnosticos:
         except Exception as e:
             print(f"Error en actualizar => {e}")
             return -1
+    
+    def aceptar_revision(id_diagnostico, id_incidente):
+    
+        try:
+            conexion = get_connection()
+            if not conexion:
+                print("No se pudo conectar a la base de datos.")
+                return False
+
+            sql = """
+                UPDATE incidentes
+                SET estado = 'R',
+                id_diagnosticos = %s
+                WHERE id_incidente = %s;
+            """
+
+            with conexion.cursor() as cursor:
+                cursor.execute(sql, (id_diagnostico, id_incidente))
+                conexion.commit()
+
+            conexion.close()
+            return True
+
+        except Exception as e:
+            print(f"Error en actualizar_revision => {e}")
+            return False
+        
+    def cancelar_revision(id_diagnostico, id_incidente):
+    
+        try:
+            conexion = get_connection()
+            if not conexion:
+                print("No se pudo conectar a la base de datos.")
+                return False
+
+            sql = """
+                UPDATE incidentes
+                SET estado = 'C',
+                id_diagnosticos = %s
+                WHERE id_incidente = %s;
+            """
+
+            with conexion.cursor() as cursor:
+                cursor.execute(sql, (id_diagnostico, id_incidente))
+                conexion.commit()
+
+            conexion.close()
+            return True
+
+        except Exception as e:
+            print(f"Error en actualizar_revision => {e}")
+            return False
         
     def obtener_diagnosticos_filtrados(self, titulo='', causa=''):
         conexion = get_connection()

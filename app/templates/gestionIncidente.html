@@ -113,10 +113,13 @@
                   class="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg 
                          focus:outline-none focus:ring-2 focus:ring-blue-500">
             <option value="">Todas las categorías</option>
-            <option value="Red" {% if request.args.get('categoria') == 'Red' %}selected{% endif %}>Red</option>
+            <option value="Red/Conectividad" {% if request.args.get('categoria') == 'Red/Conectividad' %}selected{% endif %}>Red/Conectividad</option>
             <option value="Software" {% if request.args.get('categoria') == 'Software' %}selected{% endif %}>Software</option>
             <option value="Hardware" {% if request.args.get('categoria') == 'Hardware' %}selected{% endif %}>Hardware</option>
             <option value="Seguridad" {% if request.args.get('categoria') == 'Seguridad' %}selected{% endif %}>Seguridad</option>
+            <option value="Impresoras" {% if request.args.get('categoria') == 'Impresoras' %}selected{% endif %}>Impresoras</option>
+            <option value="Telefonía" {% if request.args.get('categoria') == 'Telefonía' %}selected{% endif %}>Telefonía</option>
+            <option value="Otro" {% if request.args.get('categoria') == 'Otro' %}selected{% endif %}>Otro</option>
           </select>
         </div>
 
@@ -230,15 +233,7 @@
 
                   {% if session.user_role == 1 %}
                   <!-- Botón Eliminar -->
-                  <button onclick="abrirModalEliminar('{{ incidente.id_incidente }}')"
-                          class="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
-                          title="Eliminar incidente"
-                          aria-label="Eliminar incidente">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                    </svg>
-                  </button>
+                  
                   {% endif %}
                 </div>
               </td>

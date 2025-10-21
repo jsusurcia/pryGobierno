@@ -393,7 +393,7 @@ def asignar_diagnostico():
 
         if exito:
             flash('Diagnóstico asignado correctamente.', 'success')
-            return redirect(url_for('dashboard'))
+            return redirect(url_for('gestion_incidentes'))
         else:
             flash('Error al asignar el diagnóstico.', 'error')
 

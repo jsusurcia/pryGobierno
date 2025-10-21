@@ -37,6 +37,18 @@
 {% block content %}
 <div class="max-w-7xl mx-auto">
   
+  <!-- Mensaje si no hay datos -->
+  {% if not mttr_data or mttr_data|length == 0 %}
+  <div class="mb-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+    <div class="flex items-center">
+      <svg class="w-5 h-5 text-yellow-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+      </svg>
+      <span class="text-yellow-800">No hay incidentes resueltos para calcular métricas MTTR. Los incidentes deben tener estado 'R' (resuelto) o 'C' (cerrado).</span>
+    </div>
+  </div>
+  {% endif %}
+  
   <!-- Encabezado -->
   <header class="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
     <div class="mb-4 md:mb-0">
@@ -56,33 +68,32 @@
                 d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/>
         </svg>
         <label for="filtroPeriodo" class="text-sm font-semibold text-gray-700">Período:</label>
-        <select id="filtroPeriodo"
+        <select id="filtroPeriodo" onchange="filtrarDatos()"
                 class="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm 
                        focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
-          <option>Últimos 6 meses</option>
-          <option>Último mes</option>
-          <option>Últimos 3 meses</option>
-          <option>Último año</option>
+          <option value="6">Últimos 6 meses</option>
+          <option value="1">Último mes</option>
+          <option value="3">Últimos 3 meses</option>
+          <option value="12">Último año</option>
         </select>
       </div>
 
       <!-- Filtro de Categoría -->
       <div class="flex items-center gap-2">
         <label for="filtroCategoria" class="text-sm font-semibold text-gray-700">Categoría:</label>
-        <select id="filtroCategoria"
+        <select id="filtroCategoria" onchange="filtrarDatos()"
                 class="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm 
                        focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
-          <option>Todas</option>
-          <option>Hardware</option>
-          <option>Software</option>
-          <option>Red</option>
-          <option>Seguridad</option>
-          <option>Otro</option>
+          <option value="">Todas</option>
+          {% for categoria in categorias_disponibles %}
+          <option value="{{ categoria }}">{{ categoria }}</option>
+          {% endfor %}
         </select>
       </div>
 
       <!-- Botón Exportar -->
-      <button class="bg-gray-900 hover:bg-black text-white font-semibold px-6 py-2 rounded-lg 
+      <button onclick="exportarPDF()" 
+              class="bg-gray-900 hover:bg-black text-white font-semibold px-6 py-2 rounded-lg 
                      transition-colors duration-200 flex items-center gap-2 shadow-md"
               aria-label="Exportar reporte a PDF">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -109,8 +120,8 @@
           </svg>
         </div>
       </div>
-      <p class="text-4xl font-bold text-gray-900 mb-1">
-        2.8 <span class="text-2xl text-gray-500">hrs</span>
+      <p class="text-4xl font-bold text-gray-900 mb-1" id="mttr-global">
+        {{ estadisticas.mttr_global|default(0)|round(1) }} <span class="text-2xl text-gray-500">hrs</span>
       </p>
       <p class="text-xs text-gray-500">Promedio de todas las categorías</p>
     </div>
@@ -127,7 +138,7 @@
           </svg>
         </div>
       </div>
-      <p class="text-4xl font-bold text-gray-900 mb-1">188</p>
+      <p class="text-4xl font-bold text-gray-900 mb-1" id="total-incidentes">{{ estadisticas.total_incidentes|default(0) }}</p>
       <p class="text-xs text-gray-500">En el período seleccionado</p>
     </div>
 
@@ -143,8 +154,8 @@
           </svg>
         </div>
       </div>
-      <p class="text-4xl font-bold text-gray-900 mb-1">Red</p>
-      <p class="text-xs text-gray-500">1.5 hrs promedio</p>
+      <p class="text-4xl font-bold text-gray-900 mb-1" id="mejor-categoria">{{ estadisticas.mejor_categoria|default("N/A") }}</p>
+      <p class="text-xs text-gray-500" id="mejor-mttr">{{ estadisticas.mejor_mttr|default(0)|round(1) }} hrs promedio</p>
     </div>
 
     <!-- Categoría Crítica -->
@@ -159,8 +170,8 @@
           </svg>
         </div>
       </div>
-      <p class="text-4xl font-bold text-gray-900 mb-1">Hardware</p>
-      <p class="text-xs text-gray-500">4.2 hrs promedio</p>
+      <p class="text-4xl font-bold text-gray-900 mb-1" id="categoria-critica">{{ estadisticas.categoria_critica|default("N/A") }}</p>
+      <p class="text-xs text-gray-500" id="critica-mttr">{{ estadisticas.crit_mttr|default(0)|round(1) }} hrs promedio</p>
     </div>
   </div>
 
@@ -174,7 +185,18 @@
         <p class="text-sm text-gray-600">Tiempo promedio de reparación en horas</p>
       </div>
       <div class="relative h-80">
+        {% if mttr_data and mttr_data|length > 0 %}
         <canvas id="graficoBarras"></canvas>
+        {% else %}
+        <div class="flex items-center justify-center h-full text-gray-500">
+          <div class="text-center">
+            <svg class="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+            </svg>
+            <p>No hay datos para mostrar</p>
+          </div>
+        </div>
+        {% endif %}
       </div>
     </div>
 
@@ -185,7 +207,18 @@
         <p class="text-sm text-gray-600">Evolución del tiempo promedio de reparación</p>
       </div>
       <div class="relative h-80">
+        {% if tendencia_data and tendencia_data|length > 0 %}
         <canvas id="graficoLinea"></canvas>
+        {% else %}
+        <div class="flex items-center justify-center h-full text-gray-500">
+          <div class="text-center">
+            <svg class="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4"/>
+            </svg>
+            <p>No hay datos históricos</p>
+          </div>
+        </div>
+        {% endif %}
       </div>
     </div>
   </div>
@@ -200,7 +233,16 @@
         <p class="text-sm text-gray-600">Porcentaje por categoría</p>
       </div>
       <div class="relative h-80 flex items-center justify-center">
+        {% if distribucion_data and distribucion_data|length > 0 %}
         <canvas id="graficoCircular"></canvas>
+        {% else %}
+        <div class="text-center text-gray-500">
+          <svg class="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"/>
+          </svg>
+          <p>No hay datos de distribución</p>
+        </div>
+        {% endif %}
       </div>
     </div>
 
@@ -211,7 +253,7 @@
         <p class="text-sm text-gray-600">Resumen de métricas</p>
       </div>
       <div class="overflow-x-auto">
-        <table class="w-full">
+        <table class="w-full" id="tabla-detalles">
           <thead>
             <tr class="border-b border-gray-200">
               <th class="text-left py-3 px-4 text-sm font-semibold text-gray-700">Categoría</th>
@@ -219,43 +261,33 @@
               <th class="text-right py-3 px-4 text-sm font-semibold text-gray-700">Incidentes</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-gray-100">
-            <tr class="hover:bg-gray-50 transition">
-              <td class="py-3 px-4 text-sm font-medium text-gray-900">Hardware</td>
-              <td class="py-3 px-4 text-sm text-right text-gray-800">4.2</td>
-              <td class="py-3 px-4 text-sm text-right text-gray-800">45</td>
-            </tr>
-            <tr class="hover:bg-gray-50 transition">
-              <td class="py-3 px-4 text-sm font-medium text-gray-900">Software</td>
-              <td class="py-3 px-4 text-sm text-right text-gray-800">2.8</td>
-              <td class="py-3 px-4 text-sm text-right text-gray-800">62</td>
-            </tr>
-            <tr class="hover:bg-gray-50 transition">
-              <td class="py-3 px-4 text-sm font-medium text-gray-900">Red</td>
-              <td class="py-3 px-4 text-sm text-right text-gray-800">1.5</td>
-              <td class="py-3 px-4 text-sm text-right text-gray-800">38</td>
-            </tr>
-            <tr class="hover:bg-gray-50 transition">
-              <td class="py-3 px-4 text-sm font-medium text-gray-900">Seguridad</td>
-              <td class="py-3 px-4 text-sm text-right text-gray-800">3.1</td>
-              <td class="py-3 px-4 text-sm text-right text-gray-800">28</td>
-            </tr>
-            <tr class="hover:bg-gray-50 transition">
-              <td class="py-3 px-4 text-sm font-medium text-gray-900">Otro</td>
-              <td class="py-3 px-4 text-sm text-right text-gray-800">2.3</td>
-              <td class="py-3 px-4 text-sm text-right text-gray-800">15</td>
-            </tr>
+          <tbody class="divide-y divide-gray-100" id="tabla-body">
+            {% if mttr_data and mttr_data|length > 0 %}
+              {% for item in mttr_data %}
+              <tr class="hover:bg-gray-50 transition" data-categoria="{{ item.categoria }}">
+                <td class="py-3 px-4 text-sm font-medium text-gray-900">{{ item.categoria }}</td>
+                <td class="py-3 px-4 text-sm text-right text-gray-800">{{ item.mttr_horas|round(1) }}</td>
+                <td class="py-3 px-4 text-sm text-right text-gray-800">{{ item.total_incidentes }}</td>
+              </tr>
+              {% endfor %}
+            {% else %}
+              <tr>
+                <td colspan="3" class="py-8 text-center text-gray-500">
+                  No hay datos disponibles
+                </td>
+              </tr>
+            {% endif %}
           </tbody>
         </table>
       </div>
 
       <!-- Resumen Total -->
-      <div class="mt-4 pt-4 border-t border-gray-200">
+      <div class="mt-4 pt-4 border-t border-gray-200" id="resumen-total">
         <div class="flex justify-between items-center">
           <span class="text-sm font-bold text-gray-900">Total</span>
           <div class="flex gap-8">
-            <span class="text-sm font-bold text-gray-900">2.8 hrs</span>
-            <span class="text-sm font-bold text-gray-900">188</span>
+            <span class="text-sm font-bold text-gray-900" id="mttr-promedio">{{ estadisticas.mttr_global|default(0)|round(1) }} hrs</span>
+            <span class="text-sm font-bold text-gray-900" id="total-todos">{{ estadisticas.total_incidentes|default(0) }}</span>
           </div>
         </div>
       </div>
@@ -266,8 +298,16 @@
 
 {% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <script>
+  // Variables globales para almacenar datos
+  let datosOriginales = {{ mttr_data|tojson if mttr_data else '[]' }};
+  let estadisticasOriginales = {{ estadisticas|tojson if estadisticas else '{}' }};
+  let tendenciaOriginales = {{ tendencia_data|tojson if tendencia_data else '[]' }};
+  let distribucionOriginales = {{ distribucion_data|tojson if distribucion_data else '[]' }};
+  let graficos = {};
+
   // Configuración de Colores
   const colores = {
     primario: 'rgb(59, 130, 246)',
@@ -279,220 +319,386 @@
     gris: 'rgb(107, 114, 128)'
   };
 
-  // Gráfico de Barras: MTTR por Categoría
-  const ctxBarras = document.getElementById('graficoBarras').getContext('2d');
-  const graficoBarras = new Chart(ctxBarras, {
-    type: 'bar',
-    data: {
-      labels: ['Hardware', 'Software', 'Red', 'Seguridad', 'Otro'],
-      datasets: [{
-        label: 'MTTR (horas)',
-        data: [4.2, 2.8, 1.5, 3.1, 2.3],
-        backgroundColor: [
-          'rgba(239, 68, 68, 0.8)',
-          'rgba(59, 130, 246, 0.8)',
-          'rgba(34, 197, 94, 0.8)',
-          'rgba(251, 146, 60, 0.8)',
-          'rgba(107, 114, 128, 0.8)'
-        ],
-        borderColor: [
-          'rgb(239, 68, 68)',
-          'rgb(59, 130, 246)',
-          'rgb(34, 197, 94)',
-          'rgb(251, 146, 60)',
-          'rgb(107, 114, 128)'
-        ],
-        borderWidth: 2,
-        borderRadius: 8
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          display: false
-        },
-        tooltip: {
-          backgroundColor: 'rgba(0, 0, 0, 0.8)',
-          padding: 12,
-          titleFont: {
-            size: 14,
-            weight: 'bold'
-          },
-          bodyFont: {
-            size: 13
-          },
-          borderColor: 'rgba(255, 255, 255, 0.1)',
-          borderWidth: 1,
-          callbacks: {
-            label: function(context) {
-              return 'MTTR: ' + context.parsed.y + ' horas';
-            }
-          }
-        }
-      },
-      scales: {
-        y: {
-          beginAtZero: true,
-          grid: {
-            color: 'rgba(0, 0, 0, 0.05)'
-          },
-          ticks: {
-            font: {
-              size: 12
-            },
-            callback: function(value) {
-              return value + ' hrs';
-            }
-          }
-        },
-        x: {
-          grid: {
-            display: false
-          },
-          ticks: {
-            font: {
-              size: 12
-            }
-          }
-        }
-      }
-    }
-  });
+  // Función para filtrar datos según los filtros seleccionados
+  function filtrarDatos() {
+    console.log('Filtrando datos...');
+    
+    const periodo = document.getElementById('filtroPeriodo').value;
+    const categoria = document.getElementById('filtroCategoria').value;
 
-  // Gráfico de Línea: Tendencia MTTR
-  const ctxLinea = document.getElementById('graficoLinea').getContext('2d');
-  const graficoLinea = new Chart(ctxLinea, {
-    type: 'line',
-    data: {
-      labels: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio'],
-      datasets: [{
-        label: 'MTTR',
-        data: [3.0, 2.9, 3.2, 2.7, 2.6, 2.5],
-        borderColor: colores.primario,
-        backgroundColor: 'rgba(59, 130, 246, 0.1)',
-        borderWidth: 3,
-        tension: 0.4,
-        fill: true,
-        pointBackgroundColor: colores.primario,
-        pointBorderColor: '#fff',
-        pointBorderWidth: 2,
-        pointRadius: 5,
-        pointHoverRadius: 7
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          display: false
-        },
-        tooltip: {
-          backgroundColor: 'rgba(0, 0, 0, 0.8)',
-          padding: 12,
-          titleFont: {
-            size: 14,
-            weight: 'bold'
-          },
-          bodyFont: {
-            size: 13
-          },
-          borderColor: 'rgba(255, 255, 255, 0.1)',
-          borderWidth: 1,
-          callbacks: {
-            label: function(context) {
-              return 'MTTR: ' + context.parsed.y.toFixed(1) + ' horas';
-            }
-          }
+    // Hacer llamada AJAX a la API
+    const url = `/api/mttr/filtrar?periodo=${periodo}&categoria=${encodeURIComponent(categoria)}`;
+    
+    fetch(url)
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          // Actualizar datos globales
+          datosOriginales = data.mttr_data;
+          estadisticasOriginales = data.estadisticas;
+          
+          // Actualizar la interfaz
+          actualizarMetricas(data.estadisticas);
+          actualizarGraficos(data.mttr_data);
+          actualizarTabla(data.mttr_data);
+        } else {
+          console.error('Error al filtrar datos:', data.error);
         }
-      },
-      scales: {
-        y: {
-          beginAtZero: true,
-          grid: {
-            color: 'rgba(0, 0, 0, 0.05)'
-          },
-          ticks: {
-            font: {
-              size: 12
-            },
-            callback: function(value) {
-              return value.toFixed(1) + ' hrs';
-            }
-          }
-        },
-        x: {
-          grid: {
-            display: false
-          },
-          ticks: {
-            font: {
-              size: 12
-            }
-          }
-        }
-      }
-    }
-  });
+      })
+      .catch(error => {
+        console.error('Error en la petición:', error);
+      });
+  }
 
-  // Gráfico Circular: Distribución de Incidentes
-  const ctxCircular = document.getElementById('graficoCircular').getContext('2d');
-  const graficoCircular = new Chart(ctxCircular, {
-    type: 'doughnut',
-    data: {
-      labels: ['Hardware', 'Software', 'Red', 'Seguridad', 'Otro'],
-      datasets: [{
-        data: [45, 62, 38, 28, 15],
-        backgroundColor: [
-          'rgba(239, 68, 68, 0.8)',
-          'rgba(59, 130, 246, 0.8)',
-          'rgba(34, 197, 94, 0.8)',
-          'rgba(251, 146, 60, 0.8)',
-          'rgba(107, 114, 128, 0.8)'
-        ],
-        borderColor: '#fff',
-        borderWidth: 3
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          position: 'right',
-          labels: {
-            padding: 15,
-            font: {
-              size: 13
-            },
-            usePointStyle: true,
-            pointStyle: 'circle'
+  // Función para actualizar las métricas principales
+  function actualizarMetricas(estadisticas) {
+    document.getElementById('mttr-global').innerHTML = `${estadisticas.mttr_global} <span class="text-2xl text-gray-500">hrs</span>`;
+    document.getElementById('total-incidentes').textContent = estadisticas.total_incidentes;
+    document.getElementById('mejor-categoria').textContent = estadisticas.mejor_categoria;
+    document.getElementById('mejor-mttr').textContent = `${estadisticas.mejor_mttr} hrs promedio`;
+    document.getElementById('categoria-critica').textContent = estadisticas.categoria_critica;
+    document.getElementById('critica-mttr').textContent = `${estadisticas.crit_mttr} hrs promedio`;
+  }
+
+  // Función para actualizar los gráficos
+  function actualizarGraficos(datos) {
+    // Destruir gráficos existentes
+    Object.values(graficos).forEach(grafico => {
+      if (grafico) grafico.destroy();
+      
+    });
+
+    // Recrear gráficos con nuevos datos
+    if (datos && datos.length > 0) {
+      crearGraficoBarras(datos);
+      crearGraficoLinea(datos);
+      crearGraficoCircular(datos);
+    }
+  }
+
+  // Función para actualizar la tabla
+  function actualizarTabla(datos) {
+    const tbody = document.getElementById('tabla-body');
+    tbody.innerHTML = '';
+
+    if (!datos || datos.length === 0) {
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td colspan="3" class="py-8 text-center text-gray-500">
+          No hay datos disponibles para los filtros seleccionados
+        </td>
+      `;
+      tbody.appendChild(row);
+      return;
+    }
+
+    datos.forEach(item => {
+      const row = document.createElement('tr');
+      row.className = 'hover:bg-gray-50 transition';
+      row.innerHTML = `
+        <td class="py-3 px-4 text-sm font-medium text-gray-900">${item.categoria}</td>
+        <td class="py-3 px-4 text-sm text-right text-gray-800">${parseFloat(item.mttr_horas).toFixed(1)}</td>
+        <td class="py-3 px-4 text-sm text-right text-gray-800">${item.total_incidentes || 0}</td>
+      `;
+      tbody.appendChild(row);
+    });
+
+    // Actualizar resumen total
+    const mttrPromedio = datos.reduce((sum, item) => sum + parseFloat(item.mttr_horas), 0) / datos.length;
+    const totalTodos = datos.reduce((sum, item) => sum + (item.total_incidentes || 0), 0);
+    
+    document.getElementById('mttr-promedio').textContent = `${mttrPromedio.toFixed(1)} hrs`;
+    document.getElementById('total-todos').textContent = totalTodos;
+  }
+
+  // Función para crear el gráfico de barras
+  function crearGraficoBarras(datos) {
+    const ctx = document.getElementById('graficoBarras');
+    if (!ctx) return;
+    
+    const labels = datos.map(item => item.categoria);
+    const values = datos.map(item => parseFloat(item.mttr_horas));
+    
+    graficos.barras = new Chart(ctx.getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'MTTR (horas)',
+          data: values,
+          backgroundColor: values.map((_, index) => {
+            const colors = [
+              'rgba(239, 68, 68, 0.8)',
+              'rgba(59, 130, 246, 0.8)',
+              'rgba(34, 197, 94, 0.8)',
+              'rgba(251, 146, 60, 0.8)',
+              'rgba(107, 114, 128, 0.8)'
+            ];
+            return colors[index % colors.length];
+          }),
+          borderColor: values.map((_, index) => {
+            const colors = [
+              'rgb(239, 68, 68)',
+              'rgb(59, 130, 246)',
+              'rgb(34, 197, 94)',
+              'rgb(251, 146, 60)',
+              'rgb(107, 114, 128)'
+            ];
+            return colors[index % colors.length];
+          }),
+          borderWidth: 2,
+          borderRadius: 8
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+            padding: 12,
+            titleFont: { size: 14, weight: 'bold' },
+            bodyFont: { size: 13 },
+            borderColor: 'rgba(255, 255, 255, 0.1)',
+            borderWidth: 1,
+            callbacks: {
+              label: function(context) {
+                return 'MTTR: ' + context.parsed.y.toFixed(1) + ' horas';
+              }
+            }
           }
         },
-        tooltip: {
-          backgroundColor: 'rgba(0, 0, 0, 0.8)',
-          padding: 12,
-          titleFont: {
-            size: 14,
-            weight: 'bold'
+        scales: {
+          y: {
+            beginAtZero: true,
+            grid: { color: 'rgba(0, 0, 0, 0.05)' },
+            ticks: {
+              font: { size: 12 },
+              callback: function(value) {
+                return value.toFixed(1) + ' hrs';
+              }
+            }
           },
-          bodyFont: {
-            size: 13
+          x: {
+            grid: { display: false },
+            ticks: { font: { size: 12 } }
+          }
+        }
+      }
+    });
+  }
+
+  // Función para crear el gráfico de línea con datos reales
+  function crearGraficoLinea(datos) {
+    const ctx = document.getElementById('graficoLinea');
+    if (!ctx || !tendenciaOriginales || tendenciaOriginales.length === 0) return;
+    
+    const labels = tendenciaOriginales.map(item => item.mes);
+    const values = tendenciaOriginales.map(item => parseFloat(item.mttr_horas));
+    
+    graficos.linea = new Chart(ctx.getContext('2d'), {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'MTTR',
+          data: values,
+          borderColor: colores.primario,
+          backgroundColor: 'rgba(59, 130, 246, 0.1)',
+          borderWidth: 3,
+          tension: 0.4,
+          fill: true,
+          pointBackgroundColor: colores.primario,
+          pointBorderColor: '#fff',
+          pointBorderWidth: 2,
+          pointRadius: 5,
+          pointHoverRadius: 7
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+            padding: 12,
+            titleFont: { size: 14, weight: 'bold' },
+            bodyFont: { size: 13 },
+            borderColor: 'rgba(255, 255, 255, 0.1)',
+            borderWidth: 1,
+            callbacks: {
+              label: function(context) {
+                return 'MTTR: ' + context.parsed.y.toFixed(1) + ' horas';
+              }
+            }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            grid: { color: 'rgba(0, 0, 0, 0.05)' },
+            ticks: {
+              font: { size: 12 },
+              callback: function(value) {
+                return value.toFixed(1) + ' hrs';
+              }
+            }
           },
-          borderColor: 'rgba(255, 255, 255, 0.1)',
-          borderWidth: 1,
-          callbacks: {
-            label: function(context) {
-              const total = context.dataset.data.reduce((a, b) => a + b, 0);
-              const porcentaje = ((context.parsed / total) * 100).toFixed(1);
-              return context.label + ': ' + context.parsed + ' (' + porcentaje + '%)';
+          x: {
+            grid: { display: false },
+            ticks: { font: { size: 12 } }
+          }
+        }
+      }
+    });
+  }
+
+  // Función para crear el gráfico circular con datos reales
+  function crearGraficoCircular(datos) {
+    const ctx = document.getElementById('graficoCircular');
+    if (!ctx || !distribucionOriginales || distribucionOriginales.length === 0) return;
+    
+    const labels = distribucionOriginales.map(item => item.categoria);
+    const values = distribucionOriginales.map(item => item.cantidad);
+    
+    graficos.circular = new Chart(ctx.getContext('2d'), {
+      type: 'doughnut',
+      data: {
+        labels: labels,
+        datasets: [{
+          data: values,
+          backgroundColor: values.map((_, index) => {
+            const colors = [
+              'rgba(239, 68, 68, 0.8)',
+              'rgba(59, 130, 246, 0.8)',
+              'rgba(34, 197, 94, 0.8)',
+              'rgba(251, 146, 60, 0.8)',
+              'rgba(107, 114, 128, 0.8)'
+            ];
+            return colors[index % colors.length];
+          }),
+          borderColor: '#fff',
+          borderWidth: 3
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'right',
+            labels: {
+              padding: 15,
+              font: { size: 13 },
+              usePointStyle: true,
+              pointStyle: 'circle'
+            }
+          },
+          tooltip: {
+            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+            padding: 12,
+            titleFont: { size: 14, weight: 'bold' },
+            bodyFont: { size: 13 },
+            borderColor: 'rgba(255, 255, 255, 0.1)',
+            borderWidth: 1,
+            callbacks: {
+              label: function(context) {
+                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                const porcentaje = ((context.parsed / total) * 100).toFixed(1);
+                return context.label + ': ' + context.parsed + ' (' + porcentaje + '%)';
+              }
             }
           }
         }
       }
+    });
+  }
+
+  // Función para exportar a PDF
+  function exportarPDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    // Título del reporte
+    doc.setFontSize(20);
+    doc.text('Reporte de Métricas MTTR', 20, 30);
+
+    // Fecha de generación
+    doc.setFontSize(12);
+    doc.text(`Generado el: ${new Date().toLocaleDateString()}`, 20, 45);
+
+    // Métricas principales
+    doc.setFontSize(14);
+    doc.text('Métricas Principales:', 20, 65);
+
+    doc.setFontSize(11);
+    const mttrGlobal = document.getElementById('mttr-global').textContent.split(' ')[0];
+    const totalIncidentes = document.getElementById('total-incidentes').textContent;
+    const mejorCategoria = document.getElementById('mejor-categoria').textContent;
+    const categoriaCritica = document.getElementById('categoria-critica').textContent;
+
+    doc.text(`• MTTR Global: ${mttrGlobal} horas`, 25, 80);
+    doc.text(`• Total de Incidentes: ${totalIncidentes}`, 25, 95);
+    doc.text(`• Mejor Categoría: ${mejorCategoria}`, 25, 110);
+    doc.text(`• Categoría Crítica: ${categoriaCritica}`, 25, 125);
+
+    // Tabla de detalles
+    doc.setFontSize(14);
+    doc.text('Detalles por Categoría:', 20, 145);
+
+    doc.setFontSize(11);
+    let yPos = 160;
+    const rows = document.querySelectorAll('#tabla-body tr');
+    
+    if (rows.length > 0 && !rows[0].querySelector('td[colspan]')) {
+      doc.text('Categoría', 25, yPos);
+      doc.text('MTTR (hrs)', 80, yPos);
+      doc.text('Incidentes', 130, yPos);
+      yPos += 10;
+
+      rows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        if (cells.length === 3) {
+          doc.text(cells[0].textContent, 25, yPos);
+          doc.text(cells[1].textContent, 80, yPos);
+          doc.text(cells[2].textContent, 130, yPos);
+          yPos += 15;
+        }
+      });
+    } else {
+      doc.text('No hay datos disponibles', 25, yPos);
     }
+
+    // Guardar el PDF
+    doc.save('reporte-mttr.pdf');
+  }
+
+  // Inicializar la página
+  document.addEventListener('DOMContentLoaded', function() {
+    console.log('Inicializando métricas MTTR con datos reales...');
+    console.log('Datos MTTR:', datosOriginales);
+    console.log('Estadísticas:', estadisticasOriginales);
+    console.log('Tendencia:', tendenciaOriginales);
+    console.log('Distribución:', distribucionOriginales);
+    
+    // Crear gráficos iniciales si hay datos
+    if (datosOriginales && datosOriginales.length > 0) {
+      crearGraficoBarras(datosOriginales);
+      if (tendenciaOriginales && tendenciaOriginales.length > 0) {
+        crearGraficoLinea(datosOriginales);
+      }
+      if (distribucionOriginales && distribucionOriginales.length > 0) {
+        crearGraficoCircular(datosOriginales);
+      }
+    } else {
+      console.log('No hay datos reales para mostrar gráficos');
+    }
+
+    // Configurar eventos de filtros
+    document.getElementById('filtroPeriodo').addEventListener('change', filtrarDatos);
+    document.getElementById('filtroCategoria').addEventListener('change', filtrarDatos);
   });
 </script>
 {% endblock scripts %}

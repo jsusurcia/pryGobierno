@@ -95,9 +95,6 @@ class ControlIncidentes:
                 if inc.get('fecha_reporte'):
                     inc['fecha_reporte'] = inc['fecha_reporte'].strftime('%Y-%m-%d')
 
-            
-            
-
             conexion.close()
             return incidentes
 
@@ -114,7 +111,7 @@ class ControlIncidentes:
                     descripcion = %s,
                     id_categoria = %s,
                     id_usuario = %s,
-                    estado = %s,
+                    estado = %s
                 WHERE id_incidente = %s;
             """
             conexion = get_connection()
@@ -194,4 +191,382 @@ class ControlIncidentes:
 
         except Exception as e:
             print("Error al obtener incidentes =>", e)
+            return []
+
+    def obtener_mttr_por_categoria(self):
+        """Calcula el MTTR (Mean Time To Repair) por categoría SOLO con datos reales"""
+        try:
+            conexion = get_connection()
+            if not conexion:
+                print("❌ No se pudo conectar a la base de datos.")
+                return []
+
+            # Consulta que calcula MTTR usando el campo tiempo_reparacion o calculándolo
+            sql = """
+                SELECT 
+                    COALESCE(c.nombre, 'Sin categoría') AS categoria,
+                    CASE 
+                        WHEN COUNT(CASE WHEN i.tiempo_reparacion IS NOT NULL THEN 1 END) > 0 THEN
+                            ROUND(AVG(EXTRACT(EPOCH FROM i.tiempo_reparacion) / 3600), 2)
+                        WHEN COUNT(CASE WHEN i.fecha_resolucion IS NOT NULL AND i.fecha_reporte IS NOT NULL THEN 1 END) > 0 THEN
+                            ROUND(AVG(EXTRACT(EPOCH FROM (i.fecha_resolucion - i.fecha_reporte)) / 3600), 2)
+                        ELSE 0
+                    END AS mttr_horas,
+                    COUNT(i.id_incidente) AS total_incidentes
+                FROM 
+                    incidentes i
+                LEFT JOIN 
+                    categorias c ON i.id_categoria = c.id_categoria
+                WHERE 
+                    i.estado IN ('R', 'C', 'resuelto', 'cerrado')
+                GROUP BY 
+                    c.nombre
+                ORDER BY 
+                    mttr_horas ASC;
+            """
+
+            with conexion.cursor() as cursor:
+                cursor.execute(sql)
+                resultados = cursor.fetchall()
+
+            conexion.close()
+
+            mttr_list = []
+            for fila in resultados:
+                mttr_list.append({
+                    'categoria': fila[0] or 'Sin categoría',
+                    'mttr_horas': float(fila[1]) if fila[1] else 0.0,
+                    'total_incidentes': int(fila[2]) if fila[2] else 0
+                })
+            
+            return mttr_list
+
+        except Exception as e:
+            print(f"⚠️ Error al calcular MTTR => {e}")
+            return []
+
+    def obtener_estadisticas_mttr(self):
+        """Obtiene las métricas de MTTR global y por categoría SOLO con datos reales"""
+        try:
+            conexion = get_connection()
+            if not conexion:
+                print("❌ No se pudo conectar a la base de datos.")
+                return self._estadisticas_vacias()
+
+            with conexion.cursor() as cursor:
+                # MTTR Global usando tiempo_reparacion o calculando
+                cursor.execute("""
+                    SELECT 
+                        CASE 
+                            WHEN COUNT(CASE WHEN tiempo_reparacion IS NOT NULL THEN 1 END) > 0 THEN
+                                ROUND(AVG(EXTRACT(EPOCH FROM tiempo_reparacion) / 3600), 2)
+                            WHEN COUNT(CASE WHEN fecha_resolucion IS NOT NULL AND fecha_reporte IS NOT NULL THEN 1 END) > 0 THEN
+                                ROUND(AVG(EXTRACT(EPOCH FROM (fecha_resolucion - fecha_reporte)) / 3600), 2)
+                            ELSE 0
+                        END AS mttr_global
+                    FROM incidentes
+                    WHERE estado IN ('R', 'C', 'resuelto', 'cerrado');
+                """)
+                resultado = cursor.fetchone()
+                mttr_global = float(resultado[0]) if resultado and resultado[0] else 0.0
+
+                # Total de incidentes
+                cursor.execute("SELECT COUNT(*) FROM incidentes;")
+                total_incidentes = cursor.fetchone()[0] or 0
+
+                # Mejor categoría (menor MTTR) con datos reales
+                cursor.execute("""
+                    SELECT 
+                        COALESCE(c.nombre, 'Sin categoría') AS nombre, 
+                        CASE 
+                            WHEN COUNT(CASE WHEN i.tiempo_reparacion IS NOT NULL THEN 1 END) > 0 THEN
+                                ROUND(AVG(EXTRACT(EPOCH FROM i.tiempo_reparacion) / 3600), 2)
+                            WHEN COUNT(CASE WHEN i.fecha_resolucion IS NOT NULL AND i.fecha_reporte IS NOT NULL THEN 1 END) > 0 THEN
+                                ROUND(AVG(EXTRACT(EPOCH FROM (i.fecha_resolucion - i.fecha_reporte)) / 3600), 2)
+                            ELSE 999999
+                        END AS mttr
+                    FROM incidentes i
+                    LEFT JOIN categorias c ON i.id_categoria = c.id_categoria
+                    WHERE i.estado IN ('R', 'C', 'resuelto', 'cerrado')
+                    GROUP BY c.nombre
+                    HAVING COUNT(i.id_incidente) > 0
+                    ORDER BY mttr ASC
+                    LIMIT 1;
+                """)
+                mejor_categoria = cursor.fetchone()
+                mejor_nombre = mejor_categoria[0] if mejor_categoria else "N/A"
+                mejor_mttr = float(mejor_categoria[1]) if mejor_categoria and mejor_categoria[1] < 999999 else 0.0
+
+                # Categoría crítica (mayor MTTR) con datos reales
+                cursor.execute("""
+                    SELECT 
+                        COALESCE(c.nombre, 'Sin categoría') AS nombre, 
+                        CASE 
+                            WHEN COUNT(CASE WHEN i.tiempo_reparacion IS NOT NULL THEN 1 END) > 0 THEN
+                                ROUND(AVG(EXTRACT(EPOCH FROM i.tiempo_reparacion) / 3600), 2)
+                            WHEN COUNT(CASE WHEN i.fecha_resolucion IS NOT NULL AND i.fecha_reporte IS NOT NULL THEN 1 END) > 0 THEN
+                                ROUND(AVG(EXTRACT(EPOCH FROM (i.fecha_resolucion - i.fecha_reporte)) / 3600), 2)
+                            ELSE 0
+                        END AS mttr
+                    FROM incidentes i
+                    LEFT JOIN categorias c ON i.id_categoria = c.id_categoria
+                    WHERE i.estado IN ('R', 'C', 'resuelto', 'cerrado')
+                    GROUP BY c.nombre
+                    HAVING COUNT(i.id_incidente) > 0
+                    ORDER BY mttr DESC
+                    LIMIT 1;
+                """)
+                categoria_critica = cursor.fetchone()
+                crit_nombre = categoria_critica[0] if categoria_critica else "N/A"
+                crit_mttr = float(categoria_critica[1]) if categoria_critica and categoria_critica[1] else 0.0
+
+            conexion.close()
+
+            return {
+                "mttr_global": mttr_global,
+                "total_incidentes": total_incidentes,
+                "mejor_categoria": mejor_nombre,
+                "mejor_mttr": mejor_mttr,
+                "categoria_critica": crit_nombre,
+                "crit_mttr": crit_mttr
+            }
+
+        except Exception as e:
+            print(f"⚠️ Error al obtener estadísticas MTTR => {e}")
+            return self._estadisticas_vacias()
+
+    def obtener_mttr_completo_por_categoria(self):
+        """Obtiene MTTR y conteo de incidentes por categoría SOLO con datos reales"""
+        try:
+            conexion = get_connection()
+            if not conexion:
+                print("❌ No se pudo conectar a la base de datos.")
+                return []
+
+            sql = """
+                SELECT 
+                    COALESCE(c.nombre, 'Sin categoría') AS categoria,
+                    CASE 
+                        WHEN COUNT(CASE WHEN i.tiempo_reparacion IS NOT NULL THEN 1 END) > 0 THEN
+                            ROUND(AVG(EXTRACT(EPOCH FROM i.tiempo_reparacion) / 3600), 2)
+                        WHEN COUNT(CASE WHEN i.fecha_resolucion IS NOT NULL AND i.fecha_reporte IS NOT NULL THEN 1 END) > 0 THEN
+                            ROUND(AVG(EXTRACT(EPOCH FROM (i.fecha_resolucion - i.fecha_reporte)) / 3600), 2)
+                        ELSE 0
+                    END AS mttr_horas,
+                    COUNT(i.id_incidente) AS total_incidentes
+                FROM 
+                    incidentes i
+                LEFT JOIN 
+                    categorias c ON i.id_categoria = c.id_categoria
+                WHERE 
+                    i.estado IN ('R', 'C', 'resuelto', 'cerrado')
+                GROUP BY 
+                    c.nombre
+                ORDER BY 
+                    mttr_horas ASC;
+            """
+
+            with conexion.cursor() as cursor:
+                cursor.execute(sql)
+                resultados = cursor.fetchall()
+
+            conexion.close()
+
+            mttr_list = [{
+                'categoria': fila[0] or 'Sin categoría', 
+                'mttr_horas': float(fila[1]) if fila[1] else 0.0, 
+                'total_incidentes': int(fila[2]) if fila[2] else 0
+            } for fila in resultados]
+            
+            return mttr_list
+
+        except Exception as e:
+            print(f"⚠️ Error al calcular MTTR completo => {e}")
+            return []
+
+    def obtener_tendencia_mttr(self, meses=6):
+        """Obtiene la tendencia de MTTR por mes SOLO con datos reales"""
+        try:
+            conexion = get_connection()
+            if not conexion:
+                print("❌ No se pudo conectar a la base de datos.")
+                return []
+
+            sql = """
+                SELECT 
+                    TO_CHAR(COALESCE(fecha_resolucion, fecha_reporte), 'YYYY-MM') AS mes,
+                    CASE 
+                        WHEN COUNT(CASE WHEN tiempo_reparacion IS NOT NULL THEN 1 END) > 0 THEN
+                            ROUND(AVG(EXTRACT(EPOCH FROM tiempo_reparacion) / 3600), 2)
+                        WHEN COUNT(CASE WHEN fecha_resolucion IS NOT NULL AND fecha_reporte IS NOT NULL THEN 1 END) > 0 THEN
+                            ROUND(AVG(EXTRACT(EPOCH FROM (fecha_resolucion - fecha_reporte)) / 3600), 2)
+                        ELSE 0
+                    END AS mttr_horas
+                FROM 
+                    incidentes
+                WHERE 
+                    estado IN ('R', 'C', 'resuelto', 'cerrado')
+                    AND COALESCE(fecha_resolucion, fecha_reporte) >= CURRENT_DATE - INTERVAL '%s months'
+                GROUP BY 
+                    TO_CHAR(COALESCE(fecha_resolucion, fecha_reporte), 'YYYY-MM')
+                ORDER BY 
+                    mes;
+            """
+
+            with conexion.cursor() as cursor:
+                cursor.execute(sql, (meses,))
+                resultados = cursor.fetchall()
+
+            conexion.close()
+
+            tendencia = [{
+                'mes': fila[0], 
+                'mttr_horas': float(fila[1]) if fila[1] else 0.0
+            } for fila in resultados]
+            
+            return tendencia
+
+        except Exception as e:
+            print(f"⚠️ Error al obtener tendencia MTTR => {e}")
+            return []
+
+    def obtener_distribucion_incidentes(self):
+        """Obtiene la distribución de incidentes por categoría SOLO con datos reales"""
+        try:
+            conexion = get_connection()
+            if not conexion:
+                print("❌ No se pudo conectar a la base de datos.")
+                return []
+
+            sql = """
+                SELECT 
+                    COALESCE(c.nombre, 'Sin categoría') AS categoria,
+                    COUNT(i.id_incidente) AS cantidad,
+                    ROUND((COUNT(i.id_incidente) * 100.0 / (SELECT COUNT(*) FROM incidentes)), 2) AS porcentaje
+                FROM 
+                    incidentes i
+                LEFT JOIN 
+                    categorias c ON i.id_categoria = c.id_categoria
+                GROUP BY 
+                    c.nombre
+                ORDER BY 
+                    cantidad DESC;
+            """
+
+            with conexion.cursor() as cursor:
+                cursor.execute(sql)
+                resultados = cursor.fetchall()
+
+            conexion.close()
+
+            distribucion = [{
+                'categoria': fila[0] or 'Sin categoría', 
+                'cantidad': int(fila[1]) if fila[1] else 0,
+                'porcentaje': float(fila[2]) if fila[2] else 0.0
+            } for fila in resultados]
+            
+            return distribucion
+
+        except Exception as e:
+            print(f"⚠️ Error al obtener distribución => {e}")
+            return []
+
+    def obtener_mttr_filtrado(self, categoria=None, periodo_meses=6):
+        """Obtiene MTTR filtrado por categoría y período SOLO con datos reales"""
+        try:
+            conexion = get_connection()
+            if not conexion:
+                print("❌ No se pudo conectar a la base de datos.")
+                return []
+
+            # Construir query dinámicamente
+            where_conditions = ["i.estado IN ('R', 'C', 'resuelto', 'cerrado')"]
+            params = []
+
+            if categoria and categoria.strip() and categoria.lower() != 'todas':
+                where_conditions.append("c.nombre = %s")
+                params.append(categoria)
+
+            if periodo_meses:
+                where_conditions.append("COALESCE(i.fecha_resolucion, i.fecha_reporte) >= CURRENT_DATE - INTERVAL '%s months'")
+                params.append(periodo_meses)
+
+            where_clause = " AND ".join(where_conditions)
+
+            sql = f"""
+                SELECT 
+                    COALESCE(c.nombre, 'Sin categoría') AS categoria,
+                    CASE 
+                        WHEN COUNT(CASE WHEN i.tiempo_reparacion IS NOT NULL THEN 1 END) > 0 THEN
+                            ROUND(AVG(EXTRACT(EPOCH FROM i.tiempo_reparacion) / 3600), 2)
+                        WHEN COUNT(CASE WHEN i.fecha_resolucion IS NOT NULL AND i.fecha_reporte IS NOT NULL THEN 1 END) > 0 THEN
+                            ROUND(AVG(EXTRACT(EPOCH FROM (i.fecha_resolucion - i.fecha_reporte)) / 3600), 2)
+                        ELSE 0
+                    END AS mttr_horas,
+                    COUNT(i.id_incidente) AS total_incidentes
+                FROM 
+                    incidentes i
+                LEFT JOIN 
+                    categorias c ON i.id_categoria = c.id_categoria
+                WHERE 
+                    {where_clause}
+                GROUP BY 
+                    c.nombre
+                ORDER BY 
+                    mttr_horas ASC;
+            """
+
+            with conexion.cursor() as cursor:
+                cursor.execute(sql, params)
+                resultados = cursor.fetchall()
+
+            conexion.close()
+
+            mttr_list = [{
+                'categoria': fila[0] or 'Sin categoría', 
+                'mttr_horas': float(fila[1]) if fila[1] else 0.0, 
+                'total_incidentes': int(fila[2]) if fila[2] else 0
+            } for fila in resultados]
+            
+            return mttr_list
+
+        except Exception as e:
+            print(f"⚠️ Error al obtener MTTR filtrado => {e}")
+            return []
+
+    def _estadisticas_vacias(self):
+        """Retorna estadísticas vacías cuando no hay conexión"""
+        return {
+            "mttr_global": 0,
+            "total_incidentes": 0,
+            "mejor_categoria": "N/A",
+            "mejor_mttr": 0,
+            "categoria_critica": "N/A",
+            "crit_mttr": 0
+        }
+
+    def obtener_categorias_disponibles(self):
+        """Obtiene lista de categorías disponibles en la BD"""
+        try:
+            conexion = get_connection()
+            if not conexion:
+                return []
+
+            sql = """
+                SELECT DISTINCT COALESCE(c.nombre, 'Sin categoría') AS categoria
+                FROM incidentes i
+                LEFT JOIN categorias c ON i.id_categoria = c.id_categoria
+                WHERE c.nombre IS NOT NULL
+                ORDER BY categoria;
+            """
+
+            with conexion.cursor() as cursor:
+                cursor.execute(sql)
+                resultados = cursor.fetchall()
+
+            conexion.close()
+            return [fila[0] for fila in resultados]
+
+        except Exception as e:
+            print(f"⚠️ Error al obtener categorías => {e}")
             return []

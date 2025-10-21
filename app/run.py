@@ -534,8 +534,123 @@ def inject_user():
         current_user_role=session.get('user_role'),
         current_user_role_name=session.get('user_role_name')
     )
+@app.route('/gestion_mttr')
+def gestion_mttr():
+    """Ruta principal para mostrar métricas MTTR - SOLO DATOS REALES"""
+    try:
+        print("🔍 Cargando métricas MTTR desde base de datos...")
+        
+        control_incidentes = ControlIncidentes()
+        
+        # Obtener datos reales de MTTR
+        mttr_data = control_incidentes.obtener_mttr_completo_por_categoria()
+        print(f"✅ Datos MTTR obtenidos: {len(mttr_data)} categorías")
+        
+        # Obtener estadísticas reales
+        estadisticas = control_incidentes.obtener_estadisticas_mttr()
+        print(f"✅ Estadísticas calculadas: MTTR global = {estadisticas.get('mttr_global', 0)}")
+        
+        # Obtener categorías disponibles directamente de la BD
+        categorias_disponibles = control_incidentes.obtener_categorias_disponibles()
+        print(f"📋 Categorías en BD: {categorias_disponibles}")
+        
+        # Obtener datos adicionales para gráficos
+        tendencia_data = control_incidentes.obtener_tendencia_mttr()
+        distribucion_data = control_incidentes.obtener_distribucion_incidentes()
+        
+        return render_template(
+            'reportesMTTR.html', 
+            mttr_data=mttr_data,
+            estadisticas=estadisticas,
+            categorias_disponibles=categorias_disponibles,
+            tendencia_data=tendencia_data,
+            distribucion_data=distribucion_data
+        )
+        
+    except Exception as e:
+        print(f"❌ Error al cargar métricas MTTR => {e}")
+        import traceback
+        traceback.print_exc()
+        
+        # En caso de error, mostrar datos vacíos en lugar de datos de ejemplo
+        flash('Error al cargar datos. Verifica la conexión a la base de datos.', 'error')
+        
+        return render_template(
+            'reportesMTTR.html', 
+            mttr_data=[],
+            estadisticas={
+                'mttr_global': 0,
+                'total_incidentes': 0,
+                'mejor_categoria': 'N/A',
+                'mejor_mttr': 0,
+                'categoria_critica': 'N/A',
+                'crit_mttr': 0
+            },
+            categorias_disponibles=[],
+            tendencia_data=[],
+            distribucion_data=[]
+        )
 
-
+# Tu ruta API también se mantiene igual, ya funciona correctamente
+@app.route('/api/mttr/filtrar')
+def api_filtrar_mttr():
+    """API para filtrar datos de MTTR dinámicamente - SOLO DATOS REALES"""
+    try:
+        # Obtener parámetros de filtro
+        categoria = request.args.get('categoria', '').strip()
+        periodo = int(request.args.get('periodo', 6))
+        
+        control_incidentes = ControlIncidentes()
+        
+        # Obtener datos filtrados de la BD
+        if categoria and categoria != 'Todas':
+            mttr_data = control_incidentes.obtener_mttr_filtrado(
+                categoria=categoria, 
+                periodo_meses=periodo
+            )
+        else:
+            mttr_data = control_incidentes.obtener_mttr_filtrado(
+                periodo_meses=periodo
+            )
+        
+        # Calcular estadísticas de los datos filtrados
+        if mttr_data:
+            mttr_global = sum(float(item['mttr_horas']) for item in mttr_data) / len(mttr_data)
+            total_incidentes = sum(item['total_incidentes'] for item in mttr_data)
+            
+            mejor = min(mttr_data, key=lambda x: float(x['mttr_horas']))
+            critica = max(mttr_data, key=lambda x: float(x['mttr_horas']))
+            
+            estadisticas = {
+                'mttr_global': round(mttr_global, 2),
+                'total_incidentes': total_incidentes,
+                'mejor_categoria': mejor['categoria'],
+                'mejor_mttr': mejor['mttr_horas'],
+                'categoria_critica': critica['categoria'],
+                'crit_mttr': critica['mttr_horas']
+            }
+        else:
+            estadisticas = {
+                'mttr_global': 0,
+                'total_incidentes': 0,
+                'mejor_categoria': 'N/A',
+                'mejor_mttr': 0,
+                'categoria_critica': 'N/A',
+                'crit_mttr': 0
+            }
+        
+        return jsonify({
+            'success': True,
+            'mttr_data': mttr_data,
+            'estadisticas': estadisticas
+        })
+   
+    except Exception as e:
+        print(f"Error en API filtrar MTTR => {e}")
+        return jsonify({
+            'success': False, 
+            'error': 'Error al filtrar los datos'
+        }), 500
 
 if __name__ == '__main__':
     app.run(debug=True)

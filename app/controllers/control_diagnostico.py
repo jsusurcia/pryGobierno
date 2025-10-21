@@ -107,43 +107,36 @@ class ControlDiagnosticos:
             return -1
         
     def obtener_diagnosticos_filtrados(self, titulo='', causa=''):
-        conn = get_connection()
-        if not conn:
-            print("No se pudo conectar a la base de datos.")
-            return []
+        conexion = get_connection()
+        cursor = conexion.cursor()
 
-        try:
-            cursor = conn.cursor()
-            query = """
-                SELECT d.id_diagnosticos, d.id_incidente, i.descripcion, 
-                    d.fecha_diagnostico, d.fecha_actualizacion, 
-                    d.causa_raiz, d.solucion_propuesta
-                FROM diagnosticos d
-                JOIN incidentes i ON d.id_incidente = i.id_incidente
-                WHERE (%s = '' OR i.descripcion ILIKE %s)
-                AND (%s = '' OR d.causa_raiz ILIKE %s)
-                ORDER BY d.fecha_diagnostico DESC;
-            """
-            valores = (titulo, f"%{titulo}%", causa, f"%{causa}%")
-            cursor.execute(query, valores)
-            diagnosticos = cursor.fetchall()
+        query = """
+            SELECT d.id_diagnosticos, d.id_incidente, i.descripcion, 
+                d.fecha_diagnostico, d.fecha_actualizacion, 
+                d.causa_raiz, d.solucion_propuesta
+            FROM diagnosticos d
+            JOIN incidentes i ON d.id_incidente = i.id_incidente
+            WHERE (%s = '' OR i.descripcion ILIKE %s)
+            AND (%s = '' OR d.causa_raiz ILIKE %s)
+            ORDER BY d.fecha_diagnostico DESC;
+        """
+        valores = (titulo, f"%{titulo}%", causa, f"%{causa}%")
+        cursor.execute(query, valores)
+        diagnosticos = cursor.fetchall()
 
-            return [
-                {
-                    "id_diagnosticos": d[0],
-                    "id_incidente": d[1],
-                    "descripcion": d[2],
-                    "fecha_diagnostico": d[3],
-                    "fecha_actualizacion": d[4],
-                    "causa_raiz": d[5],
-                    "solucion_propuesta": d[6]
-                }
-                for d in diagnosticos
-            ]
+        conexion.close()
 
-        except Exception as e:
-            print(f"Error en obtener_diagnosticos_filtrados => {e}")
-            return []
+        lista = []
+        for d in diagnosticos:
+            lista.append({
+                "id_diagnosticos": d[0],
+                "id_incidente": d[1],
+                "descripcion": d[2],
+                # 🔹 formatear fechas para no mostrar horas
+                "fecha_diagnostico": d[3].strftime('%Y-%m-%d') if d[3] else '',
+                "fecha_actualizacion": d[4].strftime('%Y-%m-%d') if d[4] else '',
+                "causa_raiz": d[5],
+                "solucion_propuesta": d[6]
+            })
+        return lista
 
-        finally:
-            conn.close()

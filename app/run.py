@@ -198,6 +198,32 @@ def gestion_incidentes():
 def mostrar_formulario_incidente():
     return render_template('formRegistrarIncidente.html')
 
+@app.route('/revision_diagnostico', methods=['GET'])
+def revision_diagnostico():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    control_diag = ControlDiagnosticos()
+    diagnosticos = control_diag.listado_diagnosticos_revision()
+
+    # Agrupar por incidente
+    incidentes = {}
+    for d in diagnosticos:
+        id_inc = d['id_incidente']
+        if id_inc not in incidentes:
+            incidentes[id_inc] = {
+                'titulo': d['titulo_incidente'] or f'Incidente {id_inc}',
+                'diagnosticos': []
+            }
+        incidentes[id_inc]['diagnosticos'].append(d)
+
+    return render_template('revisionDiagnostico.html', incidentes=incidentes)
+
+
+
+
+
+
 @app.route('/registrar_incidente', methods=['POST'])
 def registrar_incidente():
     try:

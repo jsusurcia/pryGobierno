@@ -78,6 +78,54 @@ class ControlDiagnosticos:
         except Exception as e:
             print(f"⚠️ Error en listar_diagnosticos => {e}")
             return None
+        
+    
+    @staticmethod
+    def listado_diagnosticos_revision():
+        """
+        Lista todos los diagnósticos con su incidente asociado,
+        para la vista de revisión de diagnósticos.
+        """
+        try:
+            conexion = get_connection()
+            if not conexion:
+                print("No se pudo conectar a la base de datos.")
+                return []
+
+            sql = """
+                SELECT d.id_diagnosticos, 
+                    d.id_incidente,
+                    i.titulo AS titulo_incidente,
+                    d.descripcion, 
+                    d.causa_raiz, 
+                    d.solucion_propuesta,
+                    d.comentario_usuario,
+                    d.fecha_diagnostico,
+                    d.fecha_actualizacion
+                FROM diagnosticos d
+                LEFT JOIN incidentes i ON d.id_incidente = i.id_incidente
+                ORDER BY d.id_diagnosticos DESC;
+            """
+
+            with conexion.cursor() as cursor:
+                cursor.execute(sql)
+                diagnosticos = cursor.fetchall()
+
+            conexion.close()
+
+            columnas = [
+                'id_diagnosticos', 'id_incidente', 'titulo_incidente',
+                'descripcion', 'causa_raiz', 'solucion_propuesta',
+                'comentario_usuario', 'fecha_diagnostico', 'fecha_actualizacion'
+            ]
+
+            return [dict(zip(columnas, fila)) for fila in diagnosticos]
+
+        except Exception as e:
+            print(f"Error en listado_diagnosticos_revision => {e}")
+            return []
+
+
     
     def actualizar_diagnostico(id_diagnosticos, descripcion, causa_raiz, solucion_propuesta, comentario_usuario):
         try:
@@ -147,3 +195,55 @@ class ControlDiagnosticos:
 
         finally:
             conn.close()
+
+    def aceptar_revision(id_diagnostico, id_incidente):
+    
+        try:
+            conexion = get_connection()
+            if not conexion:
+                print("No se pudo conectar a la base de datos.")
+                return False
+
+            sql = """
+                UPDATE incidentes
+                SET estado = 'R',
+                id_diagnosticos = %s
+                WHERE id_incidente = %s;
+            """
+
+            with conexion.cursor() as cursor:
+                cursor.execute(sql, (id_diagnostico, id_incidente))
+                conexion.commit()
+
+            conexion.close()
+            return True
+
+        except Exception as e:
+            print(f"Error en actualizar_revision => {e}")
+            return False
+    
+    def cancelar_revision(id_diagnostico, id_incidente):
+    
+        try:
+            conexion = get_connection()
+            if not conexion:
+                print("No se pudo conectar a la base de datos.")
+                return False
+
+            sql = """
+                UPDATE incidentes
+                SET estado = 'C',
+                id_diagnosticos = %s
+                WHERE id_incidente = %s;
+            """
+
+            with conexion.cursor() as cursor:
+                cursor.execute(sql, (id_diagnostico, id_incidente))
+                conexion.commit()
+
+            conexion.close()
+            return True
+
+        except Exception as e:
+            print(f"Error en actualizar_revision => {e}")
+            return False

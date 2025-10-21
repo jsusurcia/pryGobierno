@@ -354,74 +354,41 @@ def registro():
 
 @app.route('/asignar_diagnostico', methods=['GET', 'POST'])
 def asignar_diagnostico():
-    """Ruta para asignar diagnóstico a incidentes"""
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-    
-    # Solo técnicos y administradores pueden asignar diagnósticos
-    if session.get('user_role') not in [2, 3]:  # 2 = Técnico, 3 = Administrador
-        flash('No tiene permisos para asignar diagnósticos', 'error')
-        return redirect(url_for('dashboard'))
-    
+    # Verificación de sesión
+
+    # Mostrar formulario
+    control_incidentes = ControlIncidentes()
+    incidentes = control_incidentes.obtener_incidentes_sin_diagnostico()
+
+    # Procesar formulario
     if request.method == 'POST':
-        incidente_id = request.form.get('id_incidente')
+        id_incidente = request.form.get('id_incidente')
         descripcion = request.form.get('descripcion')
         causa_raiz = request.form.get('causa_raiz')
         solucion = request.form.get('solucion')
-        observaciones = request.form.get('comentario', '')
-        
-        # Validaciones
-        if not all([incidente_id, descripcion, causa_raiz, solucion]):
-            flash('Todos los campos requeridos deben ser completados', 'error')
-            return render_template('asignar_diagnostico.html')
-        
-        try:
-            resultado = ControlDiagnosticos.insertar_diagnostico(
-                incidente_id, session['user_id'], descripcion, 
-                causa_raiz, solucion, observaciones
-            )
-            
-            if resultado:
-                # Cambiar estado del incidente a "En Progreso" si está abierto
-                incidente = ControlIncidentes.buscar_por_id(incidente_id)
-                if incidente and incidente['estado_nombre'] == 'Abierto':
-                    ControlIncidentes.actualizar_estado(incidente_id, 2, session['user_id'])
-                
-                flash('Diagnóstico asignado correctamente', 'success')
-                return redirect(url_for('gestion_incidentes'))
-            else:
-                flash('Error al asignar diagnóstico', 'error')
-            
-        except Exception as e:
-            print(f"Error al procesar el diagnóstico: {e}")
-            flash(f'Error al procesar el diagnóstico: {str(e)}', 'error')
-    
-    # Obtener incidente específico si se pasa como parámetro
-    incidente_seleccionado = request.args.get('incidente')
-    
-    # Obtener lista de incidentes abiertos y en progreso
-    try:
-        todos_incidentes = ControlIncidentes.listar_incidentes()
-        incidentes_disponibles = [
-            inc for inc in todos_incidentes 
-            if inc['estado'] in ['Abierto', 'En Progreso']
-        ]
-        
-        # Convertir a formato esperado por el template
-        incidentes_para_template = []
-        for inc in incidentes_disponibles:
-            incidentes_para_template.append({
-                'id_incidente': str(inc['id']),
-                'titulo': inc['titulo']
-            })
-            
-    except Exception as e:
-        print(f"Error al obtener incidentes: {e}")
-        incidentes_para_template = []
-    
-    return render_template('asignar_diagnostico.html', 
-                         incidentes=incidentes_para_template,
-                         incidente_seleccionado=incidente_seleccionado)
+        comentario = request.form.get('comentario')
+
+        if not (id_incidente and descripcion and causa_raiz and solucion):
+            flash('Completa todos los campos obligatorios.', 'error')
+            return redirect(url_for('asignar_diagnostico'))
+
+        control_diagnostico = ControlDiagnosticos()
+        exito = control_diagnostico.insertar_diagnostico(
+            id_incidente=id_incidente,
+            descripcion=descripcion,
+            causa_raiz=causa_raiz,
+            solucion=solucion,
+            comentario=comentario,
+            usuario_id=session.get('id_usuario')  # registra quién lo hizo
+        )
+
+        if exito:
+            flash('Diagnóstico asignado correctamente.', 'success')
+            return redirect(url_for('dashboard'))
+        else:
+            flash('Error al asignar el diagnóstico.', 'error')
+
+    return render_template('agregarDiagnostico.html', incidentes=incidentes)
 
 @app.route('/gestion_diagnosticos')
 def gestion_diagnosticos():

@@ -196,7 +196,7 @@
               <td class="px-6 py-4">
                 <div class="flex items-center justify-center gap-2">
                   <!-- Botón Ver Detalles -->
-                  <button onclick="abrirModalDetalle('{{ incidente.id_incidente }}', '{{ incidente.titulo }}', '{{ incidente.descripcion or '' }}', '{{ incidente.categoria or 'No asignada' }}', '{{ incidente.estado }}', '{{ incidente.fecha_creacion.strftime('%Y-%m-%d') if incidente.fecha_creacion else 'N/A' }}')"
+                  <button onclick="abrirModalDetalle('{{ incidente.id_incidente }}', '{{ incidente.titulo }}')"
                           class="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
                           title="Ver detalles"
                           aria-label="Ver detalles del incidente">

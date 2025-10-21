@@ -166,3 +166,23 @@ class ControlIncidentes:
         except Exception as e:
             print(f"Error en actualizar_estado => {e}")
             return -1
+        
+    def obtener_incidentes_sin_diagnostico(self):
+        try:
+            conn = self.conexion.conectar()
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT id_incidente, titulo
+                FROM incidentes
+                WHERE estado != 'Diagnosticado'
+            """)
+            resultado = cursor.fetchall()
+            incidentes = [
+                {'id_incidente': row[0], 'titulo': row[1]} for row in resultado
+            ]
+            return incidentes
+        except Exception as e:
+            print("Error al obtener incidentes =>", e)
+            return []
+        finally:
+            self.conexion.cerrar(conn, cursor)

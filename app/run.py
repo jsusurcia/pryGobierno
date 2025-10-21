@@ -119,11 +119,18 @@ def gestion_incidentes():
             titulo = str(inc.get('titulo', '')).lower()
             categoria = str(inc.get('categoria', '')).lower()
             estado = str(inc.get('estado', '')).lower()
-            fecha = str(inc.get('fecha_reporte', ''))
+            
+            # Manejar fecha correctamente
+            fecha = inc.get('fecha_reporte', '')
+            if isinstance(fecha, datetime):
+                fecha = fecha.strftime('%Y-%m-%d')
+            else:
+                fecha = str(fecha)
 
             # Buscar texto en ID o título
             if filtros['buscar']:
-                if filtros['buscar'] not in titulo and filtros['buscar'] not in str(inc['id_incidente']).lower():
+                id_str = str(inc.get('id_incidente', '')).lower()
+                if filtros['buscar'] not in titulo and filtros['buscar'] not in id_str:
                     cumple = False
 
             # Filtrar por categoría
@@ -146,25 +153,38 @@ def gestion_incidentes():
         # Convertir incidentes a objetos para el template
         class IncidenteObj:
             def __init__(self, data):
-                for key, value in data.items():
-                    setattr(self, key, value)
-                if hasattr(self, 'fecha_reporte'):
-                    self.fecha_creacion = self.fecha_reporte
-                if hasattr(self, 'id_incidente'):
-                    self.id = self.id_incidente
+                self.id_incidente = data.get('id_incidente') or data.get('id')
+                self.titulo = data.get('titulo', '')
+                self.descripcion = data.get('descripcion', '')
+                self.categoria = data.get('categoria', 'No asignada')
+                self.estado = data.get('estado', 'abierto')
+                
+                # Manejar fecha_creacion
+                fecha_reporte = data.get('fecha_reporte')
+                if isinstance(fecha_reporte, datetime):
+                    self.fecha_creacion = fecha_reporte
+                elif fecha_reporte:
+                    try:
+                        self.fecha_creacion = datetime.strptime(str(fecha_reporte), '%Y-%m-%d')
+                    except:
+                        self.fecha_creacion = None
+                else:
+                    self.fecha_creacion = None
 
         incidentes_obj = [IncidenteObj(inc) for inc in incidentes]
         print(f"✅ Filtrados: {len(incidentes_obj)} incidentes que cumplen los filtros")
 
     except Exception as e:
-        print(f"Error al obtener incidentes: {e}")
+        print(f"❌ Error al obtener incidentes: {e}")
+        import traceback
+        traceback.print_exc()
         incidentes_obj = []
         flash('Error al cargar los incidentes', 'error')
 
     return render_template('gestionIncidente.html',
                            incidentes=incidentes_obj,
                            user_role=session.get('user_role'))
-
+    
 @app.route('/registrar_incidente', methods=['GET'])
 def mostrar_formulario_incidente():
     return render_template('formRegistrarIncidente.html')

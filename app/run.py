@@ -455,9 +455,10 @@ def asignar_diagnostico():
 def gestion_diagnostico():
     titulo = request.args.get('titulo', '')
     causa = request.args.get('causa', '')
+    id_usuario = session.get('user_id')
 
     control_diag = ControlDiagnosticos()
-    diagnosticos = control_diag.obtener_diagnosticos_filtrados(titulo, causa)
+    diagnosticos = control_diag.obtener_diagnosticos_filtrados(id_usuario, titulo, causa)
 
     return render_template('gestionDiagnostico.html', diagnosticos=diagnosticos, titulo=titulo, causa=causa)
 

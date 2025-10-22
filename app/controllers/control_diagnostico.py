@@ -79,6 +79,40 @@ class ControlDiagnosticos:
             print(f"⚠️ Error en listar_diagnosticos => {e}")
             return None
         
+    @staticmethod
+    def listar_diagnosticos_usuario(id_usuario):
+        """
+        Lista todos los diagnósticos realizados por un usuario específico.
+        """
+        try:
+            conexion = get_connection()
+            if not conexion:
+                print("No se pudo conectar a la base de datos.")
+                return []
+
+            sql = """
+                SELECT * FROM diagnosticos
+                WHERE id_usuario = %s
+                ORDER BY id_diagnosticos DESC;
+            """
+
+            with conexion.cursor() as cursor:
+                cursor.execute(sql, (id_usuario,))
+                diagnosticos = cursor.fetchall()
+
+            conexion.close()
+
+            columnas = [
+                'id_diagnosticos', 'id_incidente', 'id_usuario',
+                'descripcion', 'causa_raiz', 'solucion_propuesta',
+                'comentario_usuario', 'fecha_diagnostico', 'fecha_actualizacion'
+            ]
+
+            return [dict(zip(columnas, fila)) for fila in diagnosticos]
+
+        except Exception as e:
+            print(f"Error en listar_diagnosticos_usuario => {e}")
+            return []
     
     @staticmethod
     def listado_diagnosticos_revision():
@@ -207,7 +241,7 @@ class ControlDiagnosticos:
             print(f"Error en actualizar_revision => {e}")
             return False
         
-    def obtener_diagnosticos_filtrados(self, titulo='', causa=''):
+    def obtener_diagnosticos_filtrados(self, id_usuario, titulo='', causa=''):
         conexion = get_connection()
         cursor = conexion.cursor()
 
@@ -219,9 +253,10 @@ class ControlDiagnosticos:
             JOIN incidentes i ON d.id_incidente = i.id_incidente
             WHERE (%s = '' OR i.descripcion ILIKE %s)
             AND (%s = '' OR d.causa_raiz ILIKE %s)
+            AND d.id_usuario = %s
             ORDER BY d.fecha_diagnostico DESC;
         """
-        valores = (titulo, f"%{titulo}%", causa, f"%{causa}%")
+        valores = (titulo, f"%{titulo}%", causa, f"%{causa}%", id_usuario)
         cursor.execute(query, valores)
         diagnosticos = cursor.fetchall()
 

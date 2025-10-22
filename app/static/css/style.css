@@ -1,0 +1,64 @@
+/* === Variables de color ENSA (azules) === */
+:root {
+    --ensa-blue-primary: #0067b8;  /* Azul ENSA base */
+    --ensa-blue-light: #1a88e1;    /* Azul claro para hover */
+    --ensa-blue-dark: #003d73;     /* Azul oscuro para acentos */
+    --ensa-gray-bg: #f8fafc;       /* Fondo claro */
+}
+
+/* === Sidebar general === */
+#logo-sidebar {
+    background: var(--ensa-blue-dark);
+    color: white;
+    transition: all 0.3s ease-in-out;
+}
+
+/* === Links del menú === */
+#logo-sidebar ul li a {
+    color: var(--ensa-blue-dark); /* gris claro para contraste */
+    border-radius: 0.5rem;
+    transition: all 0.2s ease-in-out;
+}
+
+#logo-sidebar ul li a:hover {
+    background-color: var(--ensa-blue-light);
+    color: #ffffff;
+    transform: translateX(4px);
+}
+
+/* === Link activo (puedes aplicar la clase active desde Flask) === */
+#logo-sidebar ul li a.active {
+    background-color: var(--ensa-blue-primary);
+    color: #ffffff;
+}
+
+/* === Íconos === */
+#logo-sidebar svg {
+    color: var(--ensa-blue-dark);
+    transition: color 0.2s ease-in-out;
+}
+
+#logo-sidebar a:hover svg {
+    color: white;
+}
+
+/* === Logout especial === */
+#logo-sidebar a[href*="logout"] {
+    background-color: transparent; /* Fondo transparente */
+    color: #b91c1c; /* Color de texto rojo */
+    border-radius: 0.5rem;
+    transition: all 0.2s ease-in-out;
+}
+
+#logo-sidebar a[href*="logout"]:hover {
+    background-color: #fca5a5; /* Fondo rojo suave en hover */
+    color: #b91c1c; /* Mantener el color de texto rojo en hover */
+}
+
+#logo-sidebar a[href*="logout"] svg {
+    color: #b91c1c; /* Color rojo para el SVG */
+}
+
+#logo-sidebar a[href*="logout"]:hover svg {
+    color: white; /* El SVG se vuelve blanco en hover */
+}

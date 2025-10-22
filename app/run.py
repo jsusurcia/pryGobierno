@@ -12,7 +12,11 @@ app.secret_key = 'tu_clave_secreta_aqui'
 def index():
     """Ruta principal que redirige al login"""
     if 'user_id' in session:
-        return redirect(url_for('gestion_incidentes'))
+        print(session.get('user_role'))
+        if session.get('user_role') == 1:
+            return redirect(url_for('revision_diagnostico'))
+        elif session.get('user_role'):
+            return redirect(url_for('gestion_incidentes'))
     return redirect(url_for('login'))
 
 
@@ -37,7 +41,7 @@ def login():
                 session['user_role'] = usuario['id_rol']
                 session['user_role_name'] = usuario.get('rol_nombre', 'Usuario')
                 flash('Inicio de sesión exitoso', 'success')
-                return redirect(url_for('gestion_incidentes'))
+                return redirect(url_for('index'))
             else:
                 flash('Usuario inactivo. Contacte al administrador', 'error')
         else:

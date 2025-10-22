@@ -80,6 +80,7 @@ class controlUsuarios:
         except Exception as e:
             print(f"Error al buscar_todos => {e}")
             return None
+    
     @staticmethod
     def editar_usuario(id_usuario, nombre, ape_pat, ape_mat, correo, contrasena, id_rol, estado):
         try:
@@ -111,6 +112,7 @@ class controlUsuarios:
         except Exception as e:
             print(f"Error al editar_usuario => {e}")
             return False
+    
     @staticmethod
     def buscar_por_correo(correo, contrasena):
         try:

@@ -4,7 +4,7 @@
 
 {% block nav_links %}
 <li>
-  <a href="#" class="flex items-center p-2 text-gray-900 rounded-lg hover:bg-gray-100 group">
+  <a href="{{ url_for('gestion_incidentes') }}" class="flex items-center p-2 text-gray-900 rounded-lg hover:bg-gray-100 group">
     <svg class="w-5 h-5 text-gray-500 transition duration-75 group-hover:text-gray-900" 
          aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 22 21">
       <path d="M16.975 11H10V4.025a1 1 0 0 0-1.066-.998 8.5 8.5 0 1 0 9.039 9.039.999.999 0 0 0-1-1.066h.002Z"/>
@@ -14,22 +14,12 @@
   </a>
 </li>
 <li>
-  <a href="#" class="flex items-center p-2 text-gray-900 rounded-lg hover:bg-gray-100 group">
+  <a href="{{ url_for('gestion_diagnostico') }}" class="flex items-center p-2 text-gray-900 rounded-lg hover:bg-gray-100 group">
     <svg class="shrink-0 w-5 h-5 text-gray-500 transition duration-75 group-hover:text-gray-900" 
          aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 18 18">
       <path d="M6.143 0H1.857A1.857 1.857 0 0 0 0 1.857v4.286C0 7.169.831 8 1.857 8h4.286A1.857 1.857 0 0 0 8 6.143V1.857A1.857 1.857 0 0 0 6.143 0Zm10 0h-4.286A1.857 1.857 0 0 0 10 1.857v4.286C10 7.169 10.831 8 11.857 8h4.286A1.857 1.857 0 0 0 18 6.143V1.857A1.857 1.857 0 0 0 16.143 0Zm-10 10H1.857A1.857 1.857 0 0 0 0 11.857v4.286C0 17.169.831 18 1.857 18h4.286A1.857 1.857 0 0 0 8 16.143v-4.286A1.857 1.857 0 0 0 6.143 10Zm10 0h-4.286A1.857 1.857 0 0 0 10 11.857v4.286c0 1.026.831 1.857 1.857 1.857h4.286A1.857 1.857 0 0 0 18 16.143v-4.286A1.857 1.857 0 0 0 16.143 10Z"/>
     </svg>
     <span class="flex-1 ms-3 whitespace-nowrap">Diagnósticos</span>
-  </a>
-</li>
-<li>
-  <a href="#" class="flex items-center p-2 text-gray-900 rounded-lg hover:bg-gray-100 group">
-    <svg class="shrink-0 w-5 h-5 text-red-500 transition duration-75 group-hover:text-red-700" 
-         aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 18 16">
-      <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-            d="M1 8h11m0 0L8 4m4 4-4 4m4-11h3a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-3"/>
-    </svg>
-    <span class="flex-1 ms-3 whitespace-nowrap text-red-700">Cerrar Sesión</span>
   </a>
 </li>
 {% endblock nav_links %}
@@ -40,8 +30,8 @@
   <!-- Encabezado -->
   <header class="flex items-center justify-between mb-6">
     <h1 class="text-3xl font-bold text-gray-900">Gestión de Diagnósticos</h1>
-    <button onclick="alert('Crear nuevo diagnóstico')"
-            class="bg-gradient-to-r from-gray-800 to-gray-900 hover:from-gray-900 hover:to-black 
+    <button onclick="window.location.href='/asignar_diagnostico';"
+            class="bg-[#1a88e1] hover:bg-[#0067b8] 
                    text-white px-6 py-3 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl 
                    flex items-center gap-2 text-sm">
       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -52,29 +42,32 @@
   </header>
 
   <!-- Filtros de Búsqueda -->
- <form method="GET" action="/gestion_diagnostico" class="mb-6">
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-    <div>
-      <input type="text" name="titulo" placeholder="Buscar por título..."
-             value="{{ titulo }}" 
-             class="w-full pl-3 pr-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg 
-                    focus:outline-none focus:ring-2 focus:ring-blue-500 transition">
-    </div>
-    <div>
-      <input type="text" name="causa" placeholder="Buscar por causa..."
-             value="{{ causa }}" 
-             class="w-full pl-3 pr-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg 
-                    focus:outline-none focus:ring-2 focus:ring-blue-500 transition">
-    </div>
+  <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-6 mb-6">
+    <form method="GET" action="/gestion_diagnostico">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <input type="text" name="titulo" placeholder="Buscar por título..."
+                value="{{ titulo }}" 
+                class="w-full pl-3 pr-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg 
+                        focus:outline-none focus:ring-2 focus:ring-blue-500 transition">
+        </div>
+        <div>
+          <input type="text" name="causa" placeholder="Buscar por causa..."
+                value="{{ causa }}" 
+                class="w-full pl-3 pr-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg 
+                        focus:outline-none focus:ring-2 focus:ring-blue-500 transition">
+        </div>
+      </div>
+
+      <div class="flex justify-end mt-4">
+        <button type="submit"
+                class="px-4 py-2 text-sm text-white font-medium flex items-center gap-1 bg-[#0067b8] hover:bg-[#003d73] rounded-lg transition">
+          Aplicar filtros
+        </button>
+      </div>
+    </form>    
   </div>
 
-  <div class="flex justify-end mt-4">
-    <button type="submit"
-            class="px-4 py-2 text-white bg-blue-600 hover:bg-blue-800 rounded-lg transition">
-      Buscar
-    </button>
-  </div>
-</form>
 
 
 

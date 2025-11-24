@@ -4,9 +4,9 @@ def get_connection():
     try:
         conexion = psycopg2.connect(
             host="localhost",
-            database="gobierno",
+            database="Gobierno1",
             user="postgres",
-            password="200605"
+            password="070905"
         )
         return conexion
     except Exception as e:

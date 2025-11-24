@@ -2,27 +2,67 @@ from ConexionBD import get_connection
 class ControlIncidentes:
     @staticmethod
 
-    def insertar_incidentes(titulo, descripcion, id_categoria, id_usuario, nivel='M'):
+    def insertar_incidentes(titulo, descripcion, id_categoria, id_usuario, nivel=None):
         try:
-            sql = """
-                INSERT INTO INCIDENTE (titulo, descripcion, id_categoria, id_usuario, nivel, estado)
-                VALUES (%s, %s, %s, %s, %s, 'P')
-                RETURNING id_incidente;
-            """
             conexion = get_connection()
             if not conexion:
                 print("No se pudo conectar a la base de datos.")
                 return -2
 
-            with conexion.cursor() as cursor:
-                cursor.execute(sql, (titulo, descripcion, id_categoria, id_usuario, nivel))
-                id_incidente = cursor.fetchone()[0]
-                conexion.commit()
-
-            conexion.close()
-            return id_incidente  # Retorna el ID del incidente creado
+            # Intentar insertar sin nivel primero (si la BD lo permite)
+            if nivel is None:
+                try:
+                    sql = """
+                        INSERT INTO INCIDENTE (titulo, descripcion, id_categoria, id_usuario, estado)
+                        VALUES (%s, %s, %s, %s, 'P')
+                        RETURNING id_incidente;
+                    """
+                    with conexion.cursor() as cursor:
+                        cursor.execute(sql, (titulo, descripcion, id_categoria, id_usuario))
+                        id_incidente = cursor.fetchone()[0]
+                        conexion.commit()
+                    conexion.close()
+                    print(f"✅ Incidente creado sin nivel (será asignado por el jefe de TI)")
+                    return id_incidente
+                except Exception as e1:
+                    # Si falla porque nivel es NOT NULL, intentar con NULL
+                    print(f"⚠️ No se pudo insertar sin nivel, intentando con NULL: {e1}")
+                    try:
+                        sql = """
+                            INSERT INTO INCIDENTE (titulo, descripcion, id_categoria, id_usuario, nivel, estado)
+                            VALUES (%s, %s, %s, %s, NULL, 'P')
+                            RETURNING id_incidente;
+                        """
+                        with conexion.cursor() as cursor:
+                            cursor.execute(sql, (titulo, descripcion, id_categoria, id_usuario))
+                            id_incidente = cursor.fetchone()[0]
+                            conexion.commit()
+                        conexion.close()
+                        print(f"✅ Incidente creado con nivel NULL")
+                        return id_incidente
+                    except Exception as e2:
+                        print(f"❌ Error al insertar con NULL: {e2}")
+                        # Si también falla, la BD requiere un valor, pero no lo asignaremos aquí
+                        conexion.close()
+                        raise e2
+            else:
+                # Si se proporciona nivel, insertarlo normalmente
+                sql = """
+                    INSERT INTO INCIDENTE (titulo, descripcion, id_categoria, id_usuario, nivel, estado)
+                    VALUES (%s, %s, %s, %s, %s, 'P')
+                    RETURNING id_incidente;
+                """
+                with conexion.cursor() as cursor:
+                    cursor.execute(sql, (titulo, descripcion, id_categoria, id_usuario, nivel))
+                    id_incidente = cursor.fetchone()[0]
+                    conexion.commit()
+                conexion.close()
+                return id_incidente
+                
         except Exception as e:
-            print(f"Error en insertar => {e}")
+            print(f"❌ Error en insertar => {e}")
+            import traceback
+            traceback.print_exc()
             return -1
         
     def buscar_por_IDIncidente(id_incidente):
@@ -413,7 +453,7 @@ class ControlIncidentes:
 
     @staticmethod
     def obtener_incidentes_pendientes_jefe_ti():
-        """Obtiene incidentes pendientes para el jefe de TI"""
+        """Obtiene incidentes pendientes para el jefe de TI con información del área"""
         try:
             conexion = get_connection()
             if not conexion:
@@ -426,10 +466,14 @@ class ControlIncidentes:
                     i.descripcion,
                     c.nombre as categoria,
                     u.nombre || ' ' || u.ape_pat || ' ' || u.ape_mat as reportado_por,
-                    i.fecha_reporte
+                    a.nombre as area,
+                    i.fecha_reporte,
+                    i.nivel
                 FROM INCIDENTE i
                 LEFT JOIN CATEGORIA c ON i.id_categoria = c.id_categoria
                 LEFT JOIN USUARIO u ON i.id_usuario = u.id_usuario
+                LEFT JOIN ROL r ON u.id_rol = r.id_rol
+                LEFT JOIN AREA a ON r.id_area = a.id_area
                 WHERE i.estado = 'P'
                 ORDER BY i.fecha_reporte ASC
             """
@@ -447,12 +491,48 @@ class ControlIncidentes:
                     'descripcion': r[2],
                     'categoria': r[3],
                     'reportado_por': r[4],
-                    'fecha_reporte': r[5]
+                    'area': r[5],
+                    'fecha_reporte': r[6],
+                    'nivel': r[7]
                 }
                 for r in resultados
             ]
         except Exception as e:
             print(f"Error en obtener_incidentes_pendientes_jefe_ti => {e}")
+            return []
+    
+    @staticmethod
+    def obtener_evidencias_incidente(id_incidente):
+        """Obtiene las evidencias de un incidente"""
+        try:
+            from controllers.control_evidencias import controlEvidencias
+            conexion = get_connection()
+            if not conexion:
+                return []
+            
+            sql = """
+                SELECT id_evidencias, url_archivo, fecha_subida
+                FROM EVIDENCIAS
+                WHERE id_incidente = %s
+                ORDER BY fecha_subida DESC
+            """
+            
+            with conexion.cursor() as cursor:
+                cursor.execute(sql, (id_incidente,))
+                resultados = cursor.fetchall()
+            
+            conexion.close()
+            
+            return [
+                {
+                    'id_evidencias': r[0],
+                    'url_archivo': r[1],
+                    'fecha_subida': r[2]
+                }
+                for r in resultados
+            ]
+        except Exception as e:
+            print(f"Error en obtener_evidencias_incidente => {e}")
             return []
 
     @staticmethod

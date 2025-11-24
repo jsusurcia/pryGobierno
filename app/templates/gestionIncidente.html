@@ -200,9 +200,9 @@ document.addEventListener('DOMContentLoaded', function() {
                   </button>
 
 
-                  {% if session.user_role in [1, 3] %}
+                  {% if es_tecnico_area_1 %}
                     {% if incidente.estado not in ['cerrado', 'resuelto', 'C', 'R'] %}
-                      <!-- Botón Asignar Diagnóstico -->
+                      <!-- Botón Asignar Diagnóstico - Solo para técnicos del área 1 -->
                       <a href="{{ url_for('asignar_diagnostico') }}?incidente={{ incidente.id_incidente }}"
                         class="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition"
                         title="Asignar diagnóstico"
@@ -306,7 +306,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     <!-- Footer del Modal -->
     <div class="flex gap-3 p-6 border-t border-gray-200 justify-end">
-      {% if session.user_role in [1, 3] %}
+      {% if es_tecnico_area_1 %}
       <a href="{{ url_for('asignar_diagnostico') }}" 
          id="modal-boton-asignar"
          class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition">

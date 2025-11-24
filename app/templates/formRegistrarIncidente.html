@@ -66,6 +66,7 @@
             <!-- Formulario -->
             <form method="POST" 
                   action="{{ url_for('registrar_incidente') }}" 
+                  enctype="multipart/form-data"
                   class="space-y-6 max-w-2xl mx-auto" 
                   id="formIncidente">
                 
@@ -106,13 +107,11 @@
                                        group-hover:border-gray-300 transition-all duration-200 
                                        appearance-none cursor-pointer">
                             <option value="">Selecciona una categoría</option>
-                            <option value="1">🖥️ Hardware</option>
-                            <option value="2">💻 Software</option>
-                            <option value="3">🌐 Red/Conectividad</option>
-                            <option value="4">🔒 Seguridad</option>
-                            <option value="5">🖨️ Impresoras</option>
-                            <option value="6">📞 Telefonía</option>
-                            <option value="7">📋 Otro</option>
+                            {% if categorias %}
+                                {% for categoria in categorias %}
+                                <option value="{{ categoria.id_categoria }}">{{ categoria.nombre }}</option>
+                                {% endfor %}
+                            {% endif %}
                         </select>
                         <svg class="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" 
                              fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -140,19 +139,58 @@
                     </p>
                 </div>
 
-                <!-- Botón de Envío -->
-                <button type="submit"
-                        class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 
-                               hover:from-blue-700 hover:to-indigo-700 text-white font-bold 
-                               py-4 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl 
-                               transform hover:scale-[1.02] active:scale-[0.98] 
-                               flex items-center justify-center gap-2">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                              d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                    Registrar Incidente
-                </button>
+                <!-- Campo: Evidencias (Imágenes) -->
+                <div class="group">
+                    <label for="evidencias" class="block text-sm font-semibold text-gray-700 mb-2">
+                        Evidencias - Imágenes (Opcional)
+                    </label>
+                    <div class="relative">
+                        <input type="file" 
+                               id="evidencias"
+                               name="evidencias"
+                               multiple
+                               accept="image/*"
+                               max="5"
+                               class="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl 
+                                      focus:outline-none focus:border-blue-500 focus:bg-white 
+                                      group-hover:border-gray-300 transition-all duration-200 
+                                      file:mr-4 file:py-2 file:px-4 file:rounded-lg 
+                                      file:border-0 file:text-sm file:font-semibold
+                                      file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                    </div>
+                    <p class="text-xs text-gray-500 mt-2">
+                        Puedes subir hasta 5 imágenes. Formatos: JPG, PNG, GIF. Máximo 10MB por imagen.
+                    </p>
+                    <div id="archivosSeleccionados" class="mt-2 space-y-2"></div>
+                    <div id="errorArchivos" class="mt-2 text-red-600 text-xs hidden"></div>
+                </div>
+
+                <!-- Botones de Acción -->
+                <div class="flex gap-4">
+                    <button type="button"
+                            onclick="window.location.href='{{ url_for('gestion_incidentes') }}'"
+                            class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold 
+                                   py-4 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl 
+                                   transform hover:scale-[1.02] active:scale-[0.98] 
+                                   flex items-center justify-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                        Cancelar
+                    </button>
+                    <button type="submit"
+                            class="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 
+                                   hover:from-blue-700 hover:to-indigo-700 text-white font-bold 
+                                   py-4 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl 
+                                   transform hover:scale-[1.02] active:scale-[0.98] 
+                                   flex items-center justify-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        Registrar Incidente
+                    </button>
+                </div>
             </form>
         </div>
 
@@ -184,10 +222,131 @@
     </div>
 
     <script>
-        // Animación al enviar el formulario
-        document.getElementById('formIncidente').addEventListener('submit', function(e) {
-            const botonEnvio = this.querySelector('button[type="submit"]');
+        const MAX_ARCHIVOS = 5;
+        const TAMAÑO_MAXIMO = 10 * 1024 * 1024; // 10MB
+        
+        // Mostrar archivos seleccionados y validar
+        document.getElementById('evidencias').addEventListener('change', function(e) {
+            const archivos = e.target.files;
+            const contenedor = document.getElementById('archivosSeleccionados');
+            const errorDiv = document.getElementById('errorArchivos');
             
+            // Limpiar errores anteriores
+            errorDiv.classList.add('hidden');
+            errorDiv.textContent = '';
+            
+            // Validar cantidad
+            if (archivos.length > MAX_ARCHIVOS) {
+                errorDiv.textContent = `Solo puedes subir máximo ${MAX_ARCHIVOS} imágenes. Se seleccionaron ${archivos.length}.`;
+                errorDiv.classList.remove('hidden');
+                this.value = ''; // Limpiar selección
+                contenedor.innerHTML = '';
+                return;
+            }
+            
+            // Validar que sean imágenes
+            let archivosInvalidos = [];
+            for (let i = 0; i < archivos.length; i++) {
+                if (!archivos[i].type.startsWith('image/')) {
+                    archivosInvalidos.push(archivos[i].name);
+                }
+            }
+            
+            if (archivosInvalidos.length > 0) {
+                errorDiv.textContent = `Los siguientes archivos no son imágenes: ${archivosInvalidos.join(', ')}`;
+                errorDiv.classList.remove('hidden');
+                this.value = '';
+                contenedor.innerHTML = '';
+                return;
+            }
+            
+            // Validar tamaño
+            let archivosGrandes = [];
+            for (let i = 0; i < archivos.length; i++) {
+                if (archivos[i].size > TAMAÑO_MAXIMO) {
+                    archivosGrandes.push(archivos[i].name);
+                }
+            }
+            
+            if (archivosGrandes.length > 0) {
+                errorDiv.textContent = `Los siguientes archivos exceden 10MB: ${archivosGrandes.join(', ')}`;
+                errorDiv.classList.remove('hidden');
+                this.value = '';
+                contenedor.innerHTML = '';
+                return;
+            }
+            
+            // Mostrar archivos válidos
+            if (archivos.length > 0) {
+                let html = `<div class="text-xs font-semibold text-gray-700 mb-2">Imágenes seleccionadas (${archivos.length}/${MAX_ARCHIVOS}):</div>`;
+                for (let i = 0; i < archivos.length; i++) {
+                    const archivo = archivos[i];
+                    const tamañoMB = (archivo.size / (1024 * 1024)).toFixed(2);
+                    // Vista previa de imagen
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const preview = document.getElementById(`preview-${i}`);
+                        if (preview) {
+                            preview.src = e.target.result;
+                        }
+                    };
+                    reader.readAsDataURL(archivo);
+                    
+                    html += `
+                        <div class="flex items-center justify-between p-2 bg-gray-50 rounded-lg border border-gray-200">
+                            <div class="flex items-center gap-3">
+                                <img id="preview-${i}" src="" alt="Preview" class="w-12 h-12 object-cover rounded border border-gray-200 hidden">
+                                <div>
+                                    <span class="text-sm text-gray-700">${archivo.name}</span>
+                                    <span class="text-xs text-gray-500 block">${tamañoMB} MB</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+                contenedor.innerHTML = html;
+                
+                // Cargar previews
+                for (let i = 0; i < archivos.length; i++) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const preview = document.getElementById(`preview-${i}`);
+                        if (preview) {
+                            preview.src = e.target.result;
+                            preview.classList.remove('hidden');
+                        }
+                    };
+                    reader.readAsDataURL(archivos[i]);
+                }
+            } else {
+                contenedor.innerHTML = '';
+            }
+        });
+
+        // Validar antes de enviar
+        document.getElementById('formIncidente').addEventListener('submit', function(e) {
+            const archivos = document.getElementById('evidencias').files;
+            const errorDiv = document.getElementById('errorArchivos');
+            
+            // Validar cantidad
+            if (archivos.length > MAX_ARCHIVOS) {
+                e.preventDefault();
+                errorDiv.textContent = `Solo puedes subir máximo ${MAX_ARCHIVOS} imágenes.`;
+                errorDiv.classList.remove('hidden');
+                return false;
+            }
+            
+            // Validar tamaño
+            for (let i = 0; i < archivos.length; i++) {
+                if (archivos[i].size > TAMAÑO_MAXIMO) {
+                    e.preventDefault();
+                    errorDiv.textContent = `El archivo "${archivos[i].name}" excede el tamaño máximo de 10MB.`;
+                    errorDiv.classList.remove('hidden');
+                    return false;
+                }
+            }
+            
+            const botonEnvio = this.querySelector('button[type="submit"]');
             botonEnvio.innerHTML = `
                 <svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>

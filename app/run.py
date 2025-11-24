@@ -1,13 +1,79 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
+from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify, send_from_directory
 from controllers.control_Usuarios import controlUsuarios
 from controllers.control_incidentes import ControlIncidentes
 from controllers.control_categorias import controlCategorias
 from controllers.control_diagnostico import ControlDiagnosticos
 from controllers.control_notificaciones import ControlNotificaciones
+from controllers.control_evidencias import controlEvidencias
 from datetime import datetime
+import os
+from werkzeug.utils import secure_filename
+import cloudinary
+import cloudinary.uploader
+import cloudinary.api
 
 app = Flask(__name__, template_folder="./templates")
-app.secret_key = 'tu_clave_secreta_aqui'  
+app.secret_key = 'tu_clave_secreta_aqui'
+
+# Configuración de Cloudinary
+cloudinary.config(
+    cloud_name='dazo1emme',
+    api_key='162899849954513',
+    api_secret='SQM5RA1S0F1v7RDXLdbQhDIwfIw'
+)
+
+# Configuración para archivos (backup local si Cloudinary falla)
+UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'evidencias')
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'txt'}
+MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
+
+# Crear carpeta de evidencias si no existe
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['MAX_CONTENT_LENGTH'] = MAX_FILE_SIZE * 10  # Máximo 10 archivos de 10MB cada uno
+
+def allowed_file(filename):
+    """Verifica si el archivo tiene una extensión permitida"""
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def subir_a_cloudinary(archivo, id_incidente):
+    """Sube un archivo a Cloudinary y retorna la URL"""
+    try:
+        # Asegurarse de que el archivo esté al inicio
+        archivo.seek(0)
+        
+        # Leer el contenido del archivo en memoria para evitar problemas con el stream
+        from io import BytesIO
+        archivo_data = archivo.read()
+        archivo.seek(0)  # Volver al inicio
+        
+        # Crear un nuevo stream desde los datos
+        archivo_stream = BytesIO(archivo_data)
+        
+        # Generar nombre único
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_%f')
+        nombre_seguro = secure_filename(archivo.filename)
+        nombre_base = nombre_seguro.rsplit('.', 1)[0] if '.' in nombre_seguro else nombre_seguro
+        public_id = f"incidentes_{id_incidente}_{timestamp}_{nombre_base}"
+        
+        # Subir a Cloudinary (solo imágenes)
+        resultado = cloudinary.uploader.upload(
+            archivo_stream,
+            public_id=public_id,
+            resource_type="image",  # Solo imágenes
+            folder="evidencias_incidentes",
+            overwrite=False
+        )
+        
+        url = resultado.get('secure_url')
+        print(f"✅ Archivo '{archivo.filename}' subido exitosamente a Cloudinary")
+        return url
+    except Exception as e:
+        print(f"❌ Error al subir '{archivo.filename}' a Cloudinary: {e}")
+        import traceback
+        traceback.print_exc()
+        return None  
 
 @app.route('/')
 def index():
@@ -321,33 +387,109 @@ def registrar_incidente():
     try:
         # Obtener datos del formulario
         titulo = request.form.get('titulo')
-        id_categoria = int(request.form.get('categoria'))
+        categoria = request.form.get('categoria')
         descripcion = request.form.get('descripcion')
         
         # Validar campos
-        if not titulo or not id_categoria or not descripcion:
+        if not titulo or not categoria or not descripcion:
             flash('Todos los campos son obligatorios', 'error')
             return redirect(url_for('mostrar_formulario_incidente'))
         
+        id_categoria = int(categoria)
         id_usuario = int(session['user_id'])
         
         # Insertar incidente (estado P por defecto)
+        # El nivel de prioridad será asignado por el jefe de TI (id_rol=1) cuando acepte el incidente
         resultado = ControlIncidentes.insertar_incidentes(
-            titulo, descripcion, id_categoria, id_usuario
+            titulo, descripcion, id_categoria, id_usuario, None  # Sin nivel, será asignado por el jefe de TI
         )
         
         if resultado > 0:  # Retorna el ID del incidente
+            id_incidente = resultado
+            
+            # Procesar archivos de evidencias si existen (máximo 5 imágenes)
+            if 'evidencias' in request.files:
+                archivos = request.files.getlist('evidencias')
+                archivos_subidos = 0
+                archivos_procesados = 0
+                
+                # Limitar a máximo 5 archivos
+                archivos_limite = archivos[:5]
+                
+                for idx, archivo in enumerate(archivos_limite):
+                    if not archivo or not archivo.filename:
+                        print(f"Archivo {idx + 1} vacío o sin nombre, saltando...")
+                        continue
+                    
+                    # Validar que sea imagen
+                    if not archivo.filename.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.webp')):
+                        print(f"Archivo {archivo.filename} no es una imagen válida")
+                        continue
+                    
+                    # Validar tamaño (10MB)
+                    try:
+                        archivo.seek(0, os.SEEK_END)
+                        tamaño = archivo.tell()
+                        archivo.seek(0)  # Volver al inicio
+                        
+                        if tamaño > MAX_FILE_SIZE:
+                            print(f"Archivo {archivo.filename} excede 10MB ({tamaño / (1024*1024):.2f}MB)")
+                            continue
+                    except Exception as e:
+                        print(f"Error al validar tamaño de {archivo.filename}: {e}")
+                        continue
+                    
+                    try:
+                        # Asegurarse de que el archivo esté al inicio antes de subir
+                        archivo.seek(0)
+                        
+                        print(f"Subiendo archivo {idx + 1}/{len(archivos_limite)}: {archivo.filename}")
+                        
+                        # Subir a Cloudinary
+                        url_archivo = subir_a_cloudinary(archivo, id_incidente)
+                        
+                        if url_archivo:
+                            # Guardar URL de Cloudinary en la base de datos
+                            if controlEvidencias.insertar(id_incidente, url_archivo):
+                                archivos_subidos += 1
+                                print(f"✅ Evidencia {archivos_subidos} guardada: {archivo.filename}")
+                            else:
+                                print(f"❌ Error al guardar URL en BD: {archivo.filename}")
+                        else:
+                            print(f"❌ Error: No se pudo subir {archivo.filename} a Cloudinary")
+                    except Exception as e:
+                        print(f"❌ Error al procesar evidencia {archivo.filename}: {e}")
+                        import traceback
+                        traceback.print_exc()
+                        continue
+                    finally:
+                        archivos_procesados += 1
+                        # Asegurarse de cerrar el archivo
+                        try:
+                            archivo.close()
+                        except:
+                            pass
+                
+                if archivos_subidos > 0:
+                    flash(f'¡Incidente registrado exitosamente con {archivos_subidos} evidencia(s)! Será revisado por el Jefe de TI.', 'success')
+                else:
+                    flash('¡Incidente registrado exitosamente! Será revisado por el Jefe de TI.', 'success')
+            else:
+                flash('¡Incidente registrado exitosamente! Será revisado por el Jefe de TI.', 'success')
+            
             # Notificar al jefe de TI
-            ControlNotificaciones.notificar_incidente_creado(resultado, id_usuario)
-            flash('¡Incidente registrado exitosamente! Será revisado por el Jefe de TI.', 'success')
+            ControlNotificaciones.notificar_incidente_creado(id_incidente, id_usuario)
             return redirect(url_for('gestion_incidentes'))
         elif resultado == -2:
             flash('Error de conexión a la base de datos', 'error')
         else:
             flash('Error al registrar el incidente', 'error')
 
+    except ValueError:
+        flash('Error: La categoría seleccionada no es válida', 'error')
     except Exception as e:
         flash(f'Error inesperado: {str(e)}', 'error')
+        print(f"Error en registrar_incidente: {e}")
     
     return redirect(url_for('mostrar_formulario_incidente'))
 
@@ -813,6 +955,70 @@ def gestion_pendientes():
     return render_template('gestionPendientes.html', 
                          incidentes=incidentes_pendientes,
                          user_name=session.get('user_name'))
+
+@app.route('/api/incidente/<int:id_incidente>/detalles', methods=['GET'])
+def api_detalles_incidente(id_incidente):
+    """Obtener detalles completos de un incidente incluyendo evidencias"""
+    if 'user_id' not in session:
+        return jsonify({'error': 'No autorizado'}), 401
+    
+    if not controlUsuarios.es_jefe_ti(int(session['user_id'])):
+        return jsonify({'error': 'No tiene permisos'}), 403
+    
+    try:
+        # Obtener incidente con área directamente de la consulta
+        from ConexionBD import get_connection
+        conexion = get_connection()
+        if not conexion:
+            return jsonify({'error': 'Error de conexión'}), 500
+        
+        sql = """
+            SELECT 
+                i.id_incidente,
+                i.titulo,
+                i.descripcion,
+                i.fecha_reporte,
+                i.nivel,
+                a.nombre as area,
+                u.nombre || ' ' || u.ape_pat || ' ' || u.ape_mat as reportado_por,
+                c.nombre as categoria
+            FROM INCIDENTE i
+            LEFT JOIN USUARIO u ON i.id_usuario = u.id_usuario
+            LEFT JOIN ROL r ON u.id_rol = r.id_rol
+            LEFT JOIN AREA a ON r.id_area = a.id_area
+            LEFT JOIN CATEGORIA c ON i.id_categoria = c.id_categoria
+            WHERE i.id_incidente = %s
+        """
+        
+        with conexion.cursor() as cursor:
+            cursor.execute(sql, (id_incidente,))
+            resultado = cursor.fetchone()
+        
+        conexion.close()
+        
+        if not resultado:
+            return jsonify({'error': 'Incidente no encontrado'}), 404
+        
+        evidencias = ControlIncidentes.obtener_evidencias_incidente(id_incidente)
+        
+        return jsonify({
+            'success': True,
+            'incidente': {
+                'id_incidente': resultado[0],
+                'titulo': resultado[1],
+                'descripcion': resultado[2],
+                'fecha_reporte': resultado[3].isoformat() if resultado[3] else None,
+                'area': resultado[5],
+                'reportado_por': resultado[6],
+                'categoria': resultado[7]
+            },
+            'evidencias': evidencias
+        })
+    except Exception as e:
+        print(f"Error en api_detalles_incidente: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': 'Error al obtener detalles'}), 500
 
 @app.route('/api/incidente/<int:id_incidente>/aceptar', methods=['POST'])
 def api_aceptar_incidente(id_incidente):

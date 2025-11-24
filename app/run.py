@@ -3,6 +3,7 @@ from controllers.control_Usuarios import controlUsuarios
 from controllers.control_incidentes import ControlIncidentes
 from controllers.control_categorias import controlCategorias
 from controllers.control_diagnostico import ControlDiagnosticos
+from controllers.control_notificaciones import ControlNotificaciones
 from datetime import datetime
 
 app = Flask(__name__, template_folder="./templates")
@@ -322,7 +323,9 @@ def registrar_incidente():
             titulo, descripcion, id_categoria, id_usuario
         )
         
-        if resultado == 0:
+        if resultado > 0:  # Retorna el ID del incidente
+            # Notificar al jefe de TI
+            ControlNotificaciones.notificar_incidente_creado(resultado, id_usuario)
             flash('¡Incidente registrado exitosamente! Será revisado por el Jefe de TI.', 'success')
             return redirect(url_for('gestion_incidentes'))
         elif resultado == -2:
@@ -607,11 +610,43 @@ def crear_admin():
 # Context processor para hacer variables disponibles en todos los templates
 @app.context_processor
 def inject_user():
+    user_id = session.get('user_id')
+    user_role = session.get('user_role')
+    
+    # Obtener información del rol si hay usuario logueado
+    es_jefe = False
+    es_jefe_ti = False
+    es_tecnico = False
+    tipo_rol = None
+    notificaciones_no_leidas = 0
+    
+    if user_id and user_role:
+        try:
+            usuario = controlUsuarios.buscar_por_ID(int(user_id))
+            if usuario:
+                from controllers.controlador_rol import ControlRol
+                rol = ControlRol.buscar_por_IDRol(usuario['id_rol'])
+                if rol:
+                    tipo_rol = rol.get('tipo')
+                    es_jefe = tipo_rol == 'J'
+                    es_jefe_ti = controlUsuarios.es_jefe_ti(int(user_id))
+                    es_tecnico = tipo_rol == 'T'
+                
+                # Contar notificaciones no leídas
+                notificaciones_no_leidas = ControlNotificaciones.contar_no_leidas(int(user_id))
+        except Exception as e:
+            print(f"Error en context processor: {e}")
+    
     return dict(
-        current_user_id=session.get('user_id'),
+        current_user_id=user_id,
         current_user_name=session.get('user_name'),
-        current_user_role=session.get('user_role'),
-        current_user_role_name=session.get('user_role_name')
+        current_user_role=user_role,
+        current_user_role_name=session.get('user_role_name'),
+        es_jefe=es_jefe,
+        es_jefe_ti=es_jefe_ti,
+        es_tecnico=es_tecnico,
+        tipo_rol=tipo_rol,
+        notificaciones_no_leidas=notificaciones_no_leidas
     )
 @app.route('/gestion_mttr')
 def gestion_mttr():
@@ -761,6 +796,10 @@ def api_aceptar_incidente(id_incidente):
     
     exito = ControlIncidentes.cambiar_estado_jefe_ti(id_incidente, 'A')
     if exito:
+        # Notificar al jefe que reportó
+        incidente = ControlIncidentes.buscar_por_IDIncidente(id_incidente)
+        if incidente:
+            ControlNotificaciones.notificar_estado_incidente(id_incidente, 'A', incidente['id_usuario'])
         return jsonify({'success': True, 'message': 'Incidente aceptado correctamente'})
     else:
         return jsonify({'success': False, 'message': 'Error al aceptar incidente'}), 500
@@ -776,6 +815,10 @@ def api_cancelar_incidente(id_incidente):
     
     exito = ControlIncidentes.cambiar_estado_jefe_ti(id_incidente, 'C')
     if exito:
+        # Notificar al jefe que reportó
+        incidente = ControlIncidentes.buscar_por_IDIncidente(id_incidente)
+        if incidente:
+            ControlNotificaciones.notificar_estado_incidente(id_incidente, 'C', incidente['id_usuario'])
         return jsonify({'success': True, 'message': 'Incidente cancelado correctamente'})
     else:
         return jsonify({'success': False, 'message': 'Error al cancelar incidente'}), 500
@@ -837,6 +880,8 @@ def asignar_tecnicos(id_incidente):
             if id_tecnico:
                 exito = ControlIncidentes.asignar_tecnico_individual(id_incidente, int(id_tecnico))
                 if exito:
+                    # Notificar al técnico
+                    ControlNotificaciones.notificar_asignacion_tecnico(id_incidente, int(id_tecnico), False)
                     flash('Técnico asignado correctamente', 'success')
                 else:
                     flash('Error al asignar técnico', 'error')
@@ -850,7 +895,10 @@ def asignar_tecnicos(id_incidente):
                 exito = True
                 for id_tecnico in tecnicos:
                     es_responsable = (id_tecnico == responsable)
-                    if not ControlIncidentes.agregar_a_equipo_tecnico(id_incidente, int(id_tecnico), es_responsable):
+                    if ControlIncidentes.agregar_a_equipo_tecnico(id_incidente, int(id_tecnico), es_responsable):
+                        # Notificar a cada técnico
+                        ControlNotificaciones.notificar_asignacion_tecnico(id_incidente, int(id_tecnico), True)
+                    else:
                         exito = False
                 
                 if exito:
@@ -921,9 +969,94 @@ def api_terminar_incidente(id_incidente):
     
     exito = ControlIncidentes.actualizar_estado(id_incidente, 'T')
     if exito == 0:
+        # Notificar al jefe que reportó y a los técnicos asignados
+        incidente = ControlIncidentes.buscar_por_IDIncidente(id_incidente)
+        if incidente:
+            # Notificar al jefe que reportó
+            ControlNotificaciones.notificar_estado_incidente(id_incidente, 'T', incidente['id_usuario'])
+            
+            # Notificar a técnicos asignados
+            equipo = ControlIncidentes.obtener_equipo_tecnico(id_incidente)
+            for miembro in equipo:
+                ControlNotificaciones.crear_notificacion(
+                    id_usuario=miembro['id_usuario'],
+                    titulo=f"Incidente #{id_incidente} Terminado",
+                    mensaje=f"El incidente '{incidente['titulo']}' ha sido terminado",
+                    tipo="incidente",
+                    id_referencia=id_incidente
+                )
+            
+            # Si hay técnico asignado directamente
+            if incidente.get('id_tecnico_asignado'):
+                ControlNotificaciones.crear_notificacion(
+                    id_usuario=incidente['id_tecnico_asignado'],
+                    titulo=f"Incidente #{id_incidente} Terminado",
+                    mensaje=f"El incidente '{incidente['titulo']}' ha sido terminado",
+                    tipo="incidente",
+                    id_referencia=id_incidente
+                )
+        
         return jsonify({'success': True, 'message': 'Incidente terminado correctamente'})
     else:
         return jsonify({'success': False, 'message': 'Error al terminar incidente'}), 500
+
+# ========== RUTAS PARA NOTIFICACIONES ==========
+
+@app.route('/notificaciones')
+def ver_notificaciones():
+    """Vista para ver todas las notificaciones del usuario"""
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    user_id = int(session['user_id'])
+    notificaciones = ControlNotificaciones.obtener_notificaciones_usuario(user_id)
+    
+    return render_template('notificaciones.html', 
+                         notificaciones=notificaciones,
+                         user_name=session.get('user_name'))
+
+@app.route('/api/notificaciones')
+def api_notificaciones():
+    """API para obtener notificaciones no leídas (para AJAX)"""
+    if 'user_id' not in session:
+        return jsonify({'notificaciones': [], 'count': 0})
+    
+    user_id = int(session['user_id'])
+    notificaciones = ControlNotificaciones.obtener_notificaciones_usuario(user_id, no_leidas=True)
+    
+    # Formatear fechas para JSON
+    for notif in notificaciones:
+        if notif.get('fecha'):
+            notif['fecha'] = notif['fecha'].isoformat() if hasattr(notif['fecha'], 'isoformat') else str(notif['fecha'])
+    
+    return jsonify({
+        'notificaciones': notificaciones,
+        'count': len(notificaciones)
+    })
+
+@app.route('/api/notificacion/<int:id_notificacion>/leer', methods=['POST'])
+def api_marcar_leida(id_notificacion):
+    """Marca una notificación como leída"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'No autorizado'}), 401
+    
+    exito = ControlNotificaciones.marcar_como_leida(id_notificacion, int(session['user_id']))
+    if exito:
+        return jsonify({'success': True, 'message': 'Notificación marcada como leída'})
+    else:
+        return jsonify({'success': False, 'message': 'Error al marcar notificación'}), 500
+
+@app.route('/api/notificaciones/leer-todas', methods=['POST'])
+def api_marcar_todas_leidas():
+    """Marca todas las notificaciones como leídas"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'No autorizado'}), 401
+    
+    exito = ControlNotificaciones.marcar_todas_como_leidas(int(session['user_id']))
+    if exito:
+        return jsonify({'success': True, 'message': 'Todas las notificaciones marcadas como leídas'})
+    else:
+        return jsonify({'success': False, 'message': 'Error al marcar notificaciones'}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)

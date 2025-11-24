@@ -1,0 +1,134 @@
+{% extends "sidebar.html" %}
+
+{% block title %}Notificaciones{% endblock %}
+
+{% block nav_links %}
+{{ super() }}
+{% endblock nav_links %}
+
+{% block content %}
+
+<div class="max-w-4xl mx-auto">
+  
+  <!-- Encabezado -->
+  <header class="mb-6 flex justify-between items-center">
+    <div>
+      <h1 class="text-3xl font-bold text-gray-900">Notificaciones</h1>
+      <p class="text-gray-600 mt-2">Gestiona tus notificaciones del sistema</p>
+    </div>
+    {% if notificaciones|length > 0 %}
+    <button onclick="marcarTodasLeidas()" 
+            class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium">
+      Marcar todas como leídas
+    </button>
+    {% endif %}
+  </header>
+
+  <!-- Lista de Notificaciones -->
+  {% if notificaciones %}
+  <div class="space-y-3">
+    {% for notif in notificaciones %}
+    <div class="bg-white rounded-xl shadow-sm border {% if not notif.leida %}border-blue-200 bg-blue-50{% else %}border-gray-200{% endif %} p-4 hover:shadow-md transition">
+      <div class="flex items-start justify-between">
+        <div class="flex-1">
+          <div class="flex items-center space-x-2 mb-2">
+            {% if not notif.leida %}
+            <span class="w-2 h-2 bg-blue-600 rounded-full"></span>
+            {% endif %}
+            <h3 class="font-semibold text-gray-900 {% if not notif.leida %}text-blue-900{% endif %}">
+              {{ notif.titulo }}
+            </h3>
+            {% if notif.tipo %}
+            <span class="px-2 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-700">
+              {{ notif.tipo }}
+            </span>
+            {% endif %}
+          </div>
+          <p class="text-gray-700 mb-3">{{ notif.mensaje }}</p>
+          <div class="flex items-center space-x-4 text-sm text-gray-500">
+            <span>
+              <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+              {{ notif.fecha.strftime('%d/%m/%Y %H:%M') if notif.fecha else 'N/A' }}
+            </span>
+            {% if notif.id_referencia and notif.tipo == 'incidente' %}
+            <a href="{{ url_for('gestion_incidentes') }}?buscar={{ notif.id_referencia }}" 
+               class="text-blue-600 hover:text-blue-800 font-medium">
+              Ver incidente #{{ notif.id_referencia }}
+            </a>
+            {% endif %}
+          </div>
+        </div>
+        {% if not notif.leida %}
+        <button onclick="marcarLeida({{ notif.id_notificacion }})" 
+                class="ml-4 px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition">
+          Marcar como leída
+        </button>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
+    <svg class="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+    </svg>
+    <h3 class="text-lg font-medium text-gray-900 mb-2">No hay notificaciones</h3>
+    <p class="text-gray-500">No tienes notificaciones pendientes</p>
+  </div>
+  {% endif %}
+
+</div>
+
+{% endblock content %}
+
+{% block scripts %}
+<script>
+function marcarLeida(id) {
+    fetch(`/api/notificacion/${id}/leer`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error al procesar la solicitud');
+    });
+}
+
+function marcarTodasLeidas() {
+    if (!confirm('¿Marcar todas las notificaciones como leídas?')) return;
+    
+    fetch('/api/notificaciones/leer-todas', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error al procesar la solicitud');
+    });
+}
+</script>
+{% endblock scripts %}
+

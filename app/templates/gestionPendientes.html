@@ -3,24 +3,17 @@
 {% block title %}Gestión de Incidentes Pendientes{% endblock %}
 
 {% block nav_links %}
-<li>
-  <a href="{{ url_for('gestion_pendientes') }}" class="flex items-center p-2 text-gray-900 rounded-lg hover:bg-gray-100 group bg-blue-50">
-    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-    </svg>
-    <span class="ms-3">Pendientes</span>
-  </a>
-</li>
-<li>
-  <a href="{{ url_for('gestion_incidentes') }}" class="flex items-center p-2 text-gray-900 rounded-lg hover:bg-gray-100 group">
-    <svg class="w-5 h-5 text-gray-500 transition duration-75 group-hover:text-gray-900" 
-         aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 22 21">
-      <path d="M16.975 11H10V4.025a1 1 0 0 0-1.066-.998 8.5 8.5 0 1 0 9.039 9.039.999.999 0 0 0-1-1.066h.002Z"/>
-      <path d="M12.5 0c-.157 0-.311.01-.565.027A1 1 0 0 0 11 1.02V10h8.975a1 1 0 0 0 1-.935c.013-.188.028-.374.028-.565A8.51 8.51 0 0 0 12.5 0Z"/>
-    </svg>
-    <span class="ms-3">Todos los Incidentes</span>
-  </a>
-</li>
+{{ super() }}
+<script>
+// Marcar el enlace activo
+document.addEventListener('DOMContentLoaded', function() {
+    const links = document.querySelectorAll('aside a[href="{{ url_for("gestion_pendientes") }}"]');
+    links.forEach(link => {
+        link.classList.add('bg-blue-50', 'text-blue-600');
+        link.classList.remove('text-gray-900');
+    });
+});
+</script>
 {% endblock nav_links %}
 
 {% block content %}

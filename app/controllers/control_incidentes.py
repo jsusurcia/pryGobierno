@@ -6,7 +6,8 @@ class ControlIncidentes:
         try:
             sql = """
                 INSERT INTO INCIDENTE (titulo, descripcion, id_categoria, id_usuario, nivel, estado)
-                VALUES (%s, %s, %s, %s, %s, 'P');
+                VALUES (%s, %s, %s, %s, %s, 'P')
+                RETURNING id_incidente;
             """
             conexion = get_connection()
             if not conexion:
@@ -15,10 +16,11 @@ class ControlIncidentes:
 
             with conexion.cursor() as cursor:
                 cursor.execute(sql, (titulo, descripcion, id_categoria, id_usuario, nivel))
+                id_incidente = cursor.fetchone()[0]
                 conexion.commit()
 
             conexion.close()
-            return 0  
+            return id_incidente  # Retorna el ID del incidente creado
         except Exception as e:
             print(f"Error en insertar => {e}")
             return -1

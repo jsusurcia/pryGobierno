@@ -36,8 +36,118 @@
                 <img src="{{ url_for('static', filename='img/logo_ensa.png') }}" class="me-3  w-32" alt="Logo Ensa" />
             </a>
             
+            <!-- Notificaciones -->
+            {% if current_user_id %}
+            <div class="mb-4 px-2">
+                <a href="{{ url_for('ver_notificaciones') }}" 
+                   class="flex items-center justify-between p-2 text-gray-900 rounded-lg hover:bg-gray-100 group relative">
+                    <div class="flex items-center">
+                        <svg class="w-5 h-5 text-gray-500 transition duration-75 group-hover:text-gray-900" 
+                             fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                  d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                        </svg>
+                        <span class="ms-3">Notificaciones</span>
+                    </div>
+                    {% if notificaciones_no_leidas > 0 %}
+                    <span class="bg-red-500 text-white text-xs font-bold rounded-full px-2 py-0.5 min-w-[20px] text-center">
+                        {{ notificaciones_no_leidas }}
+                    </span>
+                    {% endif %}
+                </a>
+            </div>
+            {% endif %}
+            
             <ul class="space-y-2 font-medium">
                 {% block nav_links %}
+                <!-- Menú por defecto según rol -->
+                
+                <!-- Para Jefes (incluyendo Jefe de TI) -->
+                {% if es_jefe %}
+                <li>
+                    <a href="{{ url_for('registrar_incidente') }}" class="flex items-center p-2 text-gray-900 rounded-lg hover:bg-gray-100 group">
+                        <svg class="w-5 h-5 text-gray-500 transition duration-75 group-hover:text-gray-900" 
+                             fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                        </svg>
+                        <span class="ms-3">Registrar Incidente</span>
+                    </a>
+                </li>
+                {% endif %}
+                
+                <!-- Solo para Jefe de TI -->
+                {% if es_jefe_ti %}
+                <li>
+                    <a href="{{ url_for('gestion_pendientes') }}" class="flex items-center p-2 text-gray-900 rounded-lg hover:bg-gray-100 group">
+                        <svg class="w-5 h-5 text-gray-500 transition duration-75 group-hover:text-gray-900" 
+                             fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        <span class="ms-3">Pendientes</span>
+                    </a>
+                </li>
+                {% endif %}
+                
+                <!-- Para Técnicos -->
+                {% if es_tecnico %}
+                <li>
+                    <a href="{{ url_for('incidentes_disponibles') }}" class="flex items-center p-2 text-gray-900 rounded-lg hover:bg-gray-100 group">
+                        <svg class="w-5 h-5 text-gray-500 transition duration-75 group-hover:text-gray-900" 
+                             fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                        </svg>
+                        <span class="ms-3">Incidentes Disponibles</span>
+                    </a>
+                </li>
+                {% endif %}
+                
+                <!-- Para todos los usuarios -->
+                <li>
+                    <a href="{{ url_for('gestion_incidentes') }}" class="flex items-center p-2 text-gray-900 rounded-lg hover:bg-gray-100 group">
+                        <svg class="w-5 h-5 text-gray-500 transition duration-75 group-hover:text-gray-900" 
+                             aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 22 21">
+                            <path d="M16.975 11H10V4.025a1 1 0 0 0-1.066-.998 8.5 8.5 0 1 0 9.039 9.039.999.999 0 0 0-1-1.066h.002Z"/>
+                            <path d="M12.5 0c-.157 0-.311.01-.565.027A1 1 0 0 0 11 1.02V10h8.975a1 1 0 0 0 1-.935c.013-.188.028-.374.028-.565A8.51 8.51 0 0 0 12.5 0Z"/>
+                        </svg>
+                        <span class="ms-3">Mis Incidentes</span>
+                    </a>
+                </li>
+                
+                <!-- Para técnicos y jefes -->
+                {% if es_tecnico or es_jefe %}
+                <li>
+                    <a href="{{ url_for('gestion_diagnostico') }}" class="flex items-center p-2 text-gray-900 rounded-lg hover:bg-gray-100 group">
+                        <svg class="shrink-0 w-5 h-5 text-gray-500 transition duration-75 group-hover:text-gray-900" 
+                             aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 18 18">
+                            <path d="M6.143 0H1.857A1.857 1.857 0 0 0 0 1.857v4.286C0 7.169.831 8 1.857 8h4.286A1.857 1.857 0 0 0 8 6.143V1.857A1.857 1.857 0 0 0 6.143 0Zm10 0h-4.286A1.857 1.857 0 0 0 10 1.857v4.286C10 7.169 10.831 8 11.857 8h4.286A1.857 1.857 0 0 0 18 6.143V1.857A1.857 1.857 0 0 0 16.143 0Zm-10 10H1.857A1.857 1.857 0 0 0 0 11.857v4.286C0 17.169.831 18 1.857 18h4.286A1.857 1.857 0 0 0 8 16.143v-4.286A1.857 1.857 0 0 0 6.143 10Zm10 0h-4.286A1.857 1.857 0 0 0 10 11.857v4.286c0 1.026.831 1.857 1.857 1.857h4.286A1.857 1.857 0 0 0 18 16.143v-4.286A1.857 1.857 0 0 0 16.143 10Z"/>
+                        </svg>
+                        <span class="flex-1 ms-3 whitespace-nowrap">Diagnósticos</span>
+                    </a>
+                </li>
+                {% endif %}
+                
+                <!-- Solo para Jefe de TI -->
+                {% if es_jefe_ti %}
+                <li>
+                    <a href="{{ url_for('revision_diagnostico') }}" class="flex items-center p-2 text-gray-900 rounded-lg hover:bg-gray-100 group">
+                        <svg class="w-5 h-5 text-gray-500 transition duration-75 group-hover:text-gray-900" 
+                             fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                        </svg>
+                        <span class="ms-3">Revisar Diagnósticos</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('gestion_mttr') }}" class="flex items-center p-2 text-gray-900 rounded-lg hover:bg-gray-100 group">
+                        <svg class="w-5 h-5 text-gray-500 transition duration-75 group-hover:text-gray-900" 
+                             fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                        </svg>
+                        <span class="ms-3">Reportes MTTR</span>
+                    </a>
+                </li>
+                {% endif %}
+                
                 {% endblock nav_links %}
                 <li>
                     <a href="{{ url_for('logout') }}" class="flex items-center p-2 text-gray-900 rounded-lg hover:bg-gray-100 group">

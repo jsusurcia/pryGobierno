@@ -190,30 +190,9 @@ def gestion_incidentes():
     }
 
     try:
-        # Obtener incidentes según el rol
-        if tipo_rol == 'J' and controlUsuarios.es_jefe_ti(usuario_id):
-            # Jefe de TI: ver todos los incidentes
-            todos = ControlIncidentes.listar_incidentes()
-        elif tipo_rol == 'J':
-            # Otros jefes: ver solo los que ellos reportaron
-            todos = ControlIncidentes.listar_incidentes()
-            todos = [i for i in todos if i.get('id_usuario') == usuario_id]
-        elif tipo_rol == 'T':
-            # Técnicos: ver incidentes asignados o en los que están en el equipo
-            todos = ControlIncidentes.listar_incidentes()
-            # Filtrar por asignación
-            incidentes_filtrados = []
-            for inc in todos:
-                if inc.get('id_tecnico_asignado') == usuario_id:
-                    incidentes_filtrados.append(inc)
-                else:
-                    # Verificar si está en el equipo
-                    equipo = ControlIncidentes.obtener_equipo_tecnico(inc.get('id_incidente'))
-                    if any(m['id_usuario'] == usuario_id for m in equipo):
-                        incidentes_filtrados.append(inc)
-            todos = incidentes_filtrados
-        else:
-            todos = []
+        # Obtener incidentes según el rol usando el método simplificado
+        id_rol_usuario = usuario.get('id_rol')
+        todos = ControlIncidentes.listar_incidentes(id_usuario=usuario_id, id_rol=id_rol_usuario)
         
         if not todos:
             todos = []
@@ -244,9 +223,20 @@ def gestion_incidentes():
             if filtros['categoria'] and filtros['categoria'] != categoria:
                 cumple = False
 
-            # Filtrar por estado
-            if filtros['estado'] and filtros['estado'] != estado:
-                cumple = False
+            # Filtrar por estado (normalizar para comparación)
+            if filtros['estado']:
+                estado_filtro = filtros['estado'].lower()
+                estado_normalizado = estado.lower()
+                # Mapear estados del filtro a estados de BD
+                estado_map_filtro = {
+                    'pendiente': 'pendiente',
+                    'activo': 'activo',
+                    'cancelado': 'cancelado',
+                    'terminado': 'terminado'
+                }
+                estado_filtro_normalizado = estado_map_filtro.get(estado_filtro, estado_filtro)
+                if estado_filtro_normalizado != estado_normalizado:
+                    cumple = False
 
             # Filtrar por fechas
             if filtros['fecha_desde'] and fecha < filtros['fecha_desde']:
@@ -291,8 +281,12 @@ def gestion_incidentes():
         incidentes_obj = []
         flash('Error al cargar los incidentes', 'error')
 
+    # Obtener categorías para el combo box
+    categorias = controlCategorias.buscar_todos() or []
+    
     return render_template('gestionIncidente.html',
                            incidentes=incidentes_obj,
+                           categorias=categorias,
                            user_role=session.get('user_role'),
                            tipo_rol=tipo_rol,
                            es_jefe_ti=controlUsuarios.es_jefe_ti(usuario_id) if usuario else False)
@@ -351,10 +345,50 @@ def api_aceptar_revision(id_diagnostico, id_incidente):
 
     exito = ControlDiagnosticos.aceptar_revision(id_diagnostico, id_incidente)
     if exito:
-        return jsonify({'success': True, 'message': 'Diagnóstico aceptado correctamente'})
+        return jsonify({'success': True, 'message': 'Diagnóstico aceptado correctamente. El incidente ha sido terminado y se notificó a todos los involucrados.'})
     else:
         return jsonify({'success': False, 'message': 'Error al aceptar diagnóstico'}), 500
 
+
+@app.route('/api/diagnostico/<int:id_diagnostico>/actualizar', methods=['POST'])
+def api_actualizar_diagnostico(id_diagnostico):
+    """API para actualizar un diagnóstico"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'No autorizado'}), 401
+    
+    usuario_id = int(session['user_id'])
+    
+    try:
+        data = request.get_json()
+        descripcion = data.get('descripcion', '').strip()
+        causa_raiz = data.get('causa_raiz', '').strip()
+        solucion_propuesta = data.get('solucion_propuesta', '').strip()
+        
+        if not descripcion or not causa_raiz:
+            return jsonify({'success': False, 'message': 'Descripción y Causa Raíz son obligatorios'}), 400
+        
+        # Si solucion_propuesta está vacío, establecer como None
+        if not solucion_propuesta:
+            solucion_propuesta = None
+        
+        resultado = ControlDiagnosticos.actualizar_diagnostico(
+            id_diagnosticos=id_diagnostico,
+            descripcion=descripcion,
+            causa_raiz=causa_raiz,
+            solucion_propuesta=solucion_propuesta,
+            id_usuario=usuario_id
+        )
+        
+        if resultado == 0:
+            return jsonify({'success': True, 'message': 'Diagnóstico actualizado correctamente'})
+        else:
+            return jsonify({'success': False, 'message': 'Error al actualizar el diagnóstico'}), 500
+            
+    except Exception as e:
+        print(f"Error en api_actualizar_diagnostico: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'message': f'Error: {str(e)}'}), 500
 
 @app.route('/api/diagnostico/<int:id_diagnostico>/cancelar/<int:id_incidente>', methods=['POST'])
 def api_cancelar_revision(id_diagnostico, id_incidente):
@@ -365,9 +399,10 @@ def api_cancelar_revision(id_diagnostico, id_incidente):
     if not controlUsuarios.es_jefe_ti_rol_1(int(session['user_id'])):
         return jsonify({'success': False, 'message': 'No tiene permisos'}), 403
 
-    exito = ControlDiagnosticos.cancelar_revision(id_diagnostico, id_incidente)
+    usuario_id = int(session['user_id'])
+    exito = ControlDiagnosticos.cancelar_revision(id_diagnostico, id_incidente, usuario_id)
     if exito:
-        return jsonify({'success': True, 'message': 'Diagnóstico rechazado correctamente'})
+        return jsonify({'success': True, 'message': 'Diagnóstico rechazado correctamente. El técnico podrá actualizarlo y volverá a aparecer para revisión.'})
     else:
         return jsonify({'success': False, 'message': 'Error al rechazar diagnóstico'}), 500
 
@@ -627,9 +662,15 @@ def registro():
 def asignar_diagnostico():
     # Verificación de sesión
 
-    # Mostrar formulario
+    # Verificar que sea técnico
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    usuario_id = int(session['user_id'])
+    
+    # Mostrar formulario - solo incidentes en estado 'A' asignados al técnico
     control_incidentes = ControlIncidentes()
-    incidentes = control_incidentes.obtener_incidentes_sin_diagnostico()
+    incidentes = control_incidentes.obtener_incidentes_sin_diagnostico(id_usuario=usuario_id)
 
     # Procesar formulario
     if request.method == 'POST':
@@ -639,10 +680,35 @@ def asignar_diagnostico():
         solucion = request.form.get('solucion')
         comentario = request.form.get('comentario')
 
-        if not (id_incidente and descripcion and causa_raiz and solucion):
-            flash('Completa todos los campos obligatorios.', 'error')
+        if not (id_incidente and descripcion and causa_raiz):
+            flash('Completa todos los campos obligatorios (Descripción y Causa Raíz).', 'error')
             return redirect(url_for('asignar_diagnostico'))
+        
+        # Solución propuesta es opcional, puede ser None o vacío
+        if not solucion:
+            solucion = None
 
+        # Verificar que el técnico esté en el equipo técnico, si no, agregarlo
+        usuario_id = int(session.get('user_id'))
+        equipo = ControlIncidentes.obtener_equipo_tecnico(id_incidente)
+        esta_en_equipo = any(m['id_usuario'] == usuario_id for m in equipo)
+        
+        if not esta_en_equipo:
+            # Verificar si el incidente está asignado directamente al técnico
+            incidente = ControlIncidentes.buscar_por_IDIncidente(id_incidente)
+            if incidente and incidente.get('id_tecnico_asignado') == usuario_id:
+                # Si está asignado directamente, agregarlo directamente a EQUIPO_TECNICO
+                exito_equipo = ControlIncidentes.agregar_a_equipo_tecnico(id_incidente, usuario_id, es_responsable=False)
+                if not exito_equipo:
+                    flash('Error al agregar al equipo técnico', 'error')
+                    return redirect(url_for('asignar_diagnostico'))
+            else:
+                # Si no está asignado directamente, usar tomar_incidente_disponible (solo para M y B)
+                resultado_tomar = ControlIncidentes.tomar_incidente_disponible(id_incidente, usuario_id)
+                if not resultado_tomar.get('exito'):
+                    flash(f'Error: {resultado_tomar.get("mensaje", "No se pudo agregar al equipo técnico")}', 'error')
+                    return redirect(url_for('asignar_diagnostico'))
+        
         control_diagnostico = ControlDiagnosticos()
         exito = control_diagnostico.insertar_diagnostico(
             id_incidente=id_incidente,
@@ -650,7 +716,7 @@ def asignar_diagnostico():
             causa_raiz=causa_raiz,
             solucion=solucion,
             comentario=comentario,
-            usuario_id=session.get('user_id')  # registra quién lo hizo
+            usuario_id=usuario_id  # registra quién lo hizo
         )
 
         if exito:
@@ -803,13 +869,27 @@ def inject_user():
                 
                 # Contar notificaciones no leídas
                 notificaciones_no_leidas = ControlNotificaciones.contar_no_leidas(int(user_id))
+                
+                # Obtener id_rol para el sidebar
+                current_user_role = usuario.get('id_rol')
         except Exception as e:
             print(f"Error en context processor: {e}")
+    
+    # Obtener id_rol para el sidebar
+    id_rol_usuario = None
+    if user_id and user_role:
+        try:
+            usuario = controlUsuarios.buscar_por_ID(int(user_id))
+            if usuario:
+                id_rol_usuario = usuario.get('id_rol')
+        except:
+            pass
     
     return dict(
         current_user_id=user_id,
         current_user_name=session.get('user_name'),
         current_user_role=user_role,
+        current_user_role_id=id_rol_usuario,
         current_user_role_name=session.get('user_role_name'),
         es_jefe=es_jefe,
         es_jefe_ti=es_jefe_ti,
@@ -958,12 +1038,11 @@ def gestion_pendientes():
 
 @app.route('/api/incidente/<int:id_incidente>/detalles', methods=['GET'])
 def api_detalles_incidente(id_incidente):
-    """Obtener detalles completos de un incidente incluyendo evidencias"""
+    """Obtener detalles completos de un incidente incluyendo evidencias e historial"""
     if 'user_id' not in session:
         return jsonify({'error': 'No autorizado'}), 401
     
-    if not controlUsuarios.es_jefe_ti(int(session['user_id'])):
-        return jsonify({'error': 'No tiene permisos'}), 403
+    # Permitir acceso a cualquier usuario autenticado que pueda ver incidentes
     
     try:
         # Obtener incidente con área directamente de la consulta
@@ -1000,6 +1079,17 @@ def api_detalles_incidente(id_incidente):
             return jsonify({'error': 'Incidente no encontrado'}), 404
         
         evidencias = ControlIncidentes.obtener_evidencias_incidente(id_incidente)
+        historial = ControlIncidentes.obtener_historial_incidente(id_incidente)
+        
+        # Obtener estado actual del incidente
+        estado_actual = resultado[4] if len(resultado) > 4 else None
+        estado_map = {
+            'P': 'Pendiente',
+            'A': 'Activo',
+            'T': 'Terminado',
+            'C': 'Cancelado'
+        }
+        estado_actual_texto = estado_map.get(estado_actual, estado_actual) if estado_actual else 'Desconocido'
         
         return jsonify({
             'success': True,
@@ -1008,11 +1098,15 @@ def api_detalles_incidente(id_incidente):
                 'titulo': resultado[1],
                 'descripcion': resultado[2],
                 'fecha_reporte': resultado[3].isoformat() if resultado[3] else None,
+                'nivel': resultado[4] if len(resultado) > 4 else None,
+                'estado': estado_actual_texto,
+                'estado_corto': estado_actual,
                 'area': resultado[5],
                 'reportado_por': resultado[6],
                 'categoria': resultado[7]
             },
-            'evidencias': evidencias
+            'evidencias': evidencias,
+            'historial': historial
         })
     except Exception as e:
         print(f"Error en api_detalles_incidente: {e}")

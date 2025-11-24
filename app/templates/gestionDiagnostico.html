@@ -94,8 +94,8 @@ document.addEventListener('DOMContentLoaded', function() {
     {% for diag in diagnosticos %}
       <tr class="hover:bg-gray-50 transition">
         <td class="px-6 py-4">
-          <p class="text-sm font-semibold text-gray-900">INC{{ diag.id_incidente }}</p>
-          <p class="text-xs text-gray-500">{{ diag.descripcion }}</p>
+          <p class="text-sm font-semibold text-gray-900">{{ diag.titulo_incidente or 'INC-' + diag.id_incidente|string }}</p>
+          <p class="text-xs text-gray-500">Creado por: {{ diag.creado_por }}</p>
         </td>
         <td class="px-6 py-4 text-sm text-gray-600">{{ diag.fecha_diagnostico }}</td>
         <td class="px-6 py-4 text-sm text-gray-600">
@@ -105,9 +105,18 @@ document.addEventListener('DOMContentLoaded', function() {
         <td class="px-6 py-4 text-sm text-gray-600">{{ diag.solucion_propuesta }}</td>
         <td class="px-6 py-4">
           <div class="flex items-center justify-center gap-2">
-            <button onclick="abrirModalEditar('{{ diag.id_diagnosticos }}', '{{ diag.id_incidente }}', '{{ diag.descripcion }}', '{{ diag.fecha_diagnostico }}', '{{ diag.fecha_actualizacion }}', '{{ diag.causa_raiz }}', '{{ diag.solucion_propuesta }}')"
+            <button onclick="abrirModalEditarDesdeData(this)"
                     class="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
-                    title="Editar diagnóstico">
+                    title="Editar diagnóstico"
+                    data-id="{{ diag.id_diagnosticos }}"
+                    data-id-incidente="{{ diag.id_incidente }}"
+                    data-titulo="{{ diag.titulo_incidente or '' }}"
+                    data-creado-por="{{ diag.creado_por or '' }}"
+                    data-descripcion="{{ diag.descripcion or '' }}"
+                    data-fecha-registro="{{ diag.fecha_diagnostico or '' }}"
+                    data-fecha-actualizacion="{{ diag.fecha_actualizacion or '' }}"
+                    data-causa-raiz="{{ diag.causa_raiz or '' }}"
+                    data-solucion="{{ diag.solucion_propuesta or '' }}">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                       d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
@@ -149,85 +158,88 @@ document.addEventListener('DOMContentLoaded', function() {
 
     <!-- Contenido del Modal -->
     <div class="p-6">
-      <form class="space-y-5">
-        <div class="grid grid-cols-2 gap-4">
-          <!-- ID -->
+      <form class="space-y-5" id="formEditarDiagnostico">
+        <!-- Información del Incidente (Solo lectura) -->
+        <div class="bg-gray-50 rounded-lg p-4 space-y-3">
           <div>
-            <label for="editar-id" class="block text-sm font-semibold text-gray-700 mb-2">ID</label>
-            <input type="text" 
-                   id="editar-id" 
-                   readonly 
-                   class="w-full px-4 py-2.5 bg-gray-100 border border-gray-300 rounded-lg 
-                          text-gray-600 cursor-not-allowed">
+            <label class="block text-xs font-semibold text-gray-500 mb-1">Incidente</label>
+            <p id="editar-titulo-incidente" class="text-sm font-semibold text-gray-900"></p>
           </div>
-
-          <!-- ID de Incidente -->
           <div>
-            <label for="editar-id-incidente" class="block text-sm font-semibold text-gray-700 mb-2">
-              ID de Incidente
-            </label>
-            <input type="text" 
-                   id="editar-id-incidente" 
-                   class="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg 
-                          focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <label class="block text-xs font-semibold text-gray-500 mb-1">Creado por</label>
+            <p id="editar-creado-por" class="text-sm text-gray-700"></p>
           </div>
         </div>
 
-        <!-- Título del Incidente -->
+        <!-- Descripción del Diagnóstico -->
         <div>
-          <label for="editar-titulo" class="block text-sm font-semibold text-gray-700 mb-2">
-            Título del Incidente
+          <label for="editar-descripcion" class="block text-sm font-semibold text-gray-700 mb-2">
+            Descripción <span class="text-red-500">*</span>
           </label>
-          <input type="text" 
-                 id="editar-titulo" 
-                 class="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg 
-                        focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <textarea id="editar-descripcion" 
+                    name="descripcion"
+                    required
+                    rows="4" 
+                    placeholder="Describe el diagnóstico del incidente..."
+                    class="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl 
+                           focus:outline-none focus:border-blue-500 focus:bg-white 
+                           transition-all duration-200 resize-none"></textarea>
         </div>
 
         <div class="grid grid-cols-2 gap-4">
-          <!-- Fecha de Registro -->
+          <!-- Fecha de Registro (Solo lectura) -->
           <div>
             <label for="editar-fecha-registro" class="block text-sm font-semibold text-gray-700 mb-2">
               Fecha de Registro
             </label>
-            <input type="date" 
+            <input type="text" 
                    id="editar-fecha-registro" 
-                   class="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg 
-                          focus:outline-none focus:ring-2 focus:ring-blue-500">
+                   readonly
+                   class="w-full px-4 py-2.5 bg-gray-100 border border-gray-300 rounded-lg 
+                          text-gray-600 cursor-not-allowed">
           </div>
 
-          <!-- Última Actualización -->
+          <!-- Última Actualización (Solo lectura) -->
           <div>
             <label for="editar-fecha-actualizacion" class="block text-sm font-semibold text-gray-700 mb-2">
               Última Actualización
             </label>
-            <input type="date" 
+            <input type="text" 
                    id="editar-fecha-actualizacion" 
-                   class="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg 
-                          focus:outline-none focus:ring-2 focus:ring-blue-500">
+                   readonly
+                   class="w-full px-4 py-2.5 bg-gray-100 border border-gray-300 rounded-lg 
+                          text-gray-600 cursor-not-allowed">
           </div>
         </div>
 
         <!-- Causa Raíz -->
         <div>
           <label for="editar-causa-raiz" class="block text-sm font-semibold text-gray-700 mb-2">
-            Causa Raíz
+            Causa Raíz <span class="text-red-500">*</span>
           </label>
           <textarea id="editar-causa-raiz" 
-                    rows="3" 
-                    class="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg 
-                           focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"></textarea>
+                    name="causa_raiz"
+                    required
+                    rows="4" 
+                    placeholder="Identifica la causa raíz del problema..."
+                    class="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl 
+                           focus:outline-none focus:border-blue-500 focus:bg-white 
+                           transition-all duration-200 resize-none"></textarea>
         </div>
 
-        <!-- Solución -->
+        <!-- Solución Propuesta (Opcional) -->
         <div>
           <label for="editar-solucion" class="block text-sm font-semibold text-gray-700 mb-2">
-            Solución
+            Solución Propuesta 
+            <span class="text-gray-400 text-xs font-normal">(opcional)</span>
           </label>
           <textarea id="editar-solucion" 
-                    rows="3" 
-                    class="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg 
-                           focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"></textarea>
+                    name="solucion_propuesta"
+                    rows="4" 
+                    placeholder="Detalla la solución aplicada o recomendada..."
+                    class="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl 
+                           focus:outline-none focus:border-blue-500 focus:bg-white 
+                           transition-all duration-200 resize-none"></textarea>
         </div>
       </form>
     </div>
@@ -291,30 +303,91 @@ document.addEventListener('DOMContentLoaded', function() {
 {% block scripts %}
 <script>
   // Funciones para el Modal de Edición
-  function abrirModalEditar(id, idIncidente, titulo, fechaRegistro, fechaActualizacion, causaRaiz, solucion) {
+  let idDiagnosticoActual = null;
+  
+  function abrirModalEditarDesdeData(button) {
+    // Obtener datos de los atributos data
+    const id = button.getAttribute('data-id');
+    const idIncidente = button.getAttribute('data-id-incidente');
+    const tituloIncidente = button.getAttribute('data-titulo') || '';
+    const creadoPor = button.getAttribute('data-creado-por') || '';
+    const descripcion = button.getAttribute('data-descripcion') || '';
+    const fechaRegistro = button.getAttribute('data-fecha-registro') || '';
+    const fechaActualizacion = button.getAttribute('data-fecha-actualizacion') || '';
+    const causaRaiz = button.getAttribute('data-causa-raiz') || '';
+    const solucion = button.getAttribute('data-solucion') || '';
+    
+    abrirModalEditar(id, idIncidente, tituloIncidente, creadoPor, descripcion, fechaRegistro, fechaActualizacion, causaRaiz, solucion);
+  }
+  
+  function abrirModalEditar(id, idIncidente, tituloIncidente, creadoPor, descripcion, fechaRegistro, fechaActualizacion, causaRaiz, solucion) {
     document.getElementById('modalEditar').classList.remove('hidden');
     document.body.style.overflow = 'hidden';
+    
+    idDiagnosticoActual = id;
 
     // Llenar los campos del formulario
-    document.getElementById('editar-id').value = id;
-    document.getElementById('editar-id-incidente').value = idIncidente;
-    document.getElementById('editar-titulo').value = titulo;
-    document.getElementById('editar-fecha-registro').value = fechaRegistro;
-    document.getElementById('editar-fecha-actualizacion').value = fechaActualizacion;
-    document.getElementById('editar-causa-raiz').value = causaRaiz;
-    document.getElementById('editar-solucion').value = solucion;
+    document.getElementById('editar-titulo-incidente').textContent = tituloIncidente || ('INC-' + idIncidente);
+    document.getElementById('editar-creado-por').textContent = creadoPor || 'N/A';
+    document.getElementById('editar-descripcion').value = descripcion || '';
+    document.getElementById('editar-fecha-registro').value = fechaRegistro || '';
+    document.getElementById('editar-fecha-actualizacion').value = fechaActualizacion || '—';
+    document.getElementById('editar-causa-raiz').value = causaRaiz || '';
+    document.getElementById('editar-solucion').value = solucion || '';
   }
 
   function cerrarModalEditar() {
     document.getElementById('modalEditar').classList.add('hidden');
     document.body.style.overflow = 'auto';
+    idDiagnosticoActual = null;
+    // Limpiar formulario
+    document.getElementById('formEditarDiagnostico').reset();
   }
 
   function guardarCambios() {
-    const id = document.getElementById('editar-id').value;
-    alert('Cambios guardados para el diagnóstico: ' + id);
-    cerrarModalEditar();
-    // Aquí iría la lógica para guardar los cambios en la base de datos
+    if (!idDiagnosticoActual) {
+      alert('Error: No se ha seleccionado un diagnóstico');
+      return;
+    }
+
+    const descripcion = document.getElementById('editar-descripcion').value.trim();
+    const causaRaiz = document.getElementById('editar-causa-raiz').value.trim();
+    const solucionPropuesta = document.getElementById('editar-solucion').value.trim();
+
+    // Validar campos obligatorios
+    if (!descripcion || !causaRaiz) {
+      alert('Por favor completa los campos obligatorios: Descripción y Causa Raíz');
+      return;
+    }
+
+    // Enviar datos a la API
+    fetch(`/api/diagnostico/${idDiagnosticoActual}/actualizar`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest'
+      },
+      body: JSON.stringify({
+        descripcion: descripcion,
+        causa_raiz: causaRaiz,
+        solucion_propuesta: solucionPropuesta || null
+      })
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        alert('Diagnóstico actualizado correctamente');
+        cerrarModalEditar();
+        // Recargar la página para mostrar los cambios
+        window.location.reload();
+      } else {
+        alert('Error: ' + (data.message || 'No se pudo actualizar el diagnóstico'));
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      alert('Error de conexión al guardar los cambios');
+    });
   }
 
   // Funciones para el Modal de Eliminación

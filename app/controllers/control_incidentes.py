@@ -90,52 +90,126 @@ class ControlIncidentes:
             print(f"Error en buscar_por_ID => {e}")
             return None
         
-    def listar_incidentes():
+    def listar_incidentes(id_usuario=None, id_rol=None):
+        """
+        Lista incidentes según el usuario y rol.
+        - Si id_rol == 1 (Jefe de TI): todos los incidentes
+        - Si es jefe (tipo J): solo los que creó (id_usuario)
+        - Si es técnico (tipo T): solo los asignados (id_tecnico_asignado) o en equipo técnico
+        """
         try:
             conexion = get_connection()
             if not conexion:
                 print("No se pudo conectar a la base de datos.")
                 return []
 
-            sql = """
-                SELECT 
-                    i.id_incidente,
-                    i.titulo,
-                    i.descripcion,
-                    COALESCE(c.nombre, 'Sin categoría') AS categoria,
-                    i.estado,
-                    i.nivel,
-                    i.fecha_reporte,
-                    i.fecha_resolucion,
-                    i.tiempo_reparacion
-                FROM INCIDENTE i
-                LEFT JOIN CATEGORIA c ON i.id_categoria = c.id_categoria
-                ORDER BY i.id_incidente DESC;
-            """
+            # Construir la consulta según el rol
+            if id_rol == 1:
+                # Jefe de TI: ver todos los incidentes
+                sql = """
+                    SELECT 
+                        i.id_incidente,
+                        i.titulo,
+                        i.descripcion,
+                        COALESCE(c.nombre, 'Sin categoría') AS categoria,
+                        i.estado,
+                        i.nivel,
+                        i.fecha_reporte,
+                        i.fecha_resolucion,
+                        i.tiempo_reparacion,
+                        i.id_usuario,
+                        i.id_tecnico_asignado
+                    FROM INCIDENTE i
+                    LEFT JOIN CATEGORIA c ON i.id_categoria = c.id_categoria
+                    ORDER BY i.id_incidente DESC;
+                """
+                params = ()
+            elif id_usuario:
+                # Para jefes o técnicos: filtrar según corresponda
+                # Primero verificamos si es jefe o técnico consultando el rol
+                from controllers.controlador_rol import ControlRol
+                if id_rol:
+                    rol = ControlRol.buscar_por_IDRol(id_rol)
+                    tipo_rol = rol.get('tipo') if rol else None
+                    
+                    if tipo_rol == 'J':
+                        # Jefe: solo los que creó
+                        sql = """
+                            SELECT 
+                                i.id_incidente,
+                                i.titulo,
+                                i.descripcion,
+                                COALESCE(c.nombre, 'Sin categoría') AS categoria,
+                                i.estado,
+                                i.nivel,
+                                i.fecha_reporte,
+                                i.fecha_resolucion,
+                                i.tiempo_reparacion,
+                                i.id_usuario,
+                                i.id_tecnico_asignado
+                            FROM INCIDENTE i
+                            LEFT JOIN CATEGORIA c ON i.id_categoria = c.id_categoria
+                            WHERE i.id_usuario = %s
+                            ORDER BY i.id_incidente DESC;
+                        """
+                        params = (id_usuario,)
+                    elif tipo_rol == 'T':
+                        # Técnico: los asignados directamente o en equipo técnico
+                        sql = """
+                            SELECT DISTINCT
+                                i.id_incidente,
+                                i.titulo,
+                                i.descripcion,
+                                COALESCE(c.nombre, 'Sin categoría') AS categoria,
+                                i.estado,
+                                i.nivel,
+                                i.fecha_reporte,
+                                i.fecha_resolucion,
+                                i.tiempo_reparacion,
+                                i.id_usuario,
+                                i.id_tecnico_asignado
+                            FROM INCIDENTE i
+                            LEFT JOIN CATEGORIA c ON i.id_categoria = c.id_categoria
+                            LEFT JOIN EQUIPO_TECNICO et ON i.id_incidente = et.id_incidente
+                            WHERE i.id_tecnico_asignado = %s OR et.id_usuario = %s
+                            ORDER BY i.id_incidente DESC;
+                        """
+                        params = (id_usuario, id_usuario)
+                    else:
+                        # Otro tipo de rol: sin incidentes
+                        return []
+                else:
+                    # Sin rol definido: sin incidentes
+                    return []
+            else:
+                # Sin usuario: sin incidentes
+                return []
 
             with conexion.cursor() as cursor:
-                cursor.execute(sql)
+                cursor.execute(sql, params)
                 filas = cursor.fetchall()
 
             atributos = [
                 'id_incidente', 'titulo', 'descripcion',
                 'categoria', 'estado', 'nivel', 'fecha_reporte',
-                'fecha_resolucion', 'tiempo_reparacion'
+                'fecha_resolucion', 'tiempo_reparacion', 'id_usuario', 'id_tecnico_asignado'
             ]
 
             incidentes = [dict(zip(atributos, fila)) for fila in filas]
 
-            # 🔹 Traducir estado corto a texto completo
+            # Traducir estado corto a texto completo
             estado_map = {
-                'P': 'pendiente',
-                'A': 'abierto',
-                'T': 'en_tratamiento',
-                'C': 'cerrado'
+                'P': 'Pendiente',
+                'A': 'Activo',
+                'T': 'Terminado',
+                'C': 'Cancelado'
             }
 
             for inc in incidentes:
                 if inc.get('estado'):
-                    inc['estado'] = estado_map.get(inc['estado'].upper(), inc['estado'])
+                    estado_corto = inc['estado'].upper()
+                    inc['estado'] = estado_map.get(estado_corto, inc['estado'])
+                    inc['estado_corto'] = estado_corto  # Guardar también el código corto
                 if inc.get('fecha_reporte'):
                     inc['fecha_reporte'] = inc['fecha_reporte'].strftime('%Y-%m-%d')
 
@@ -144,6 +218,8 @@ class ControlIncidentes:
 
         except Exception as e:
             print(f"Error en listar_incidentes => {e}")
+            import traceback
+            traceback.print_exc()
             return []
 
         
@@ -189,6 +265,10 @@ class ControlIncidentes:
         
     def actualizar_estado(id_incidente, nuevo_estado):
         try:
+            # Obtener estado anterior antes de actualizar
+            incidente_anterior = ControlIncidentes.buscar_por_IDIncidente(id_incidente)
+            estado_anterior = incidente_anterior.get('estado') if incidente_anterior else None
+            
             sql = """
                 UPDATE INCIDENTE
                 SET estado = %s,
@@ -213,6 +293,16 @@ class ControlIncidentes:
                 conexion.commit()
 
             conexion.close()
+            
+            # Registrar en historial si cambió el estado
+            if estado_anterior != nuevo_estado:
+                ControlIncidentes.insertar_historial(
+                    id_incidente=id_incidente,
+                    estado_anterior=estado_anterior,
+                    estado_nuevo=nuevo_estado,
+                    observacion=f"Estado cambiado de {estado_anterior} a {nuevo_estado}"
+                )
+            
             return 0  
 
         except Exception as e:
@@ -223,6 +313,10 @@ class ControlIncidentes:
     def cambiar_estado_jefe_ti(id_incidente, nuevo_estado):
         """Cambia el estado de un incidente (A o C) por el jefe de TI"""
         try:
+            # Obtener estado anterior antes de actualizar
+            incidente_anterior = ControlIncidentes.buscar_por_IDIncidente(id_incidente)
+            estado_anterior = incidente_anterior.get('estado') if incidente_anterior else None
+            
             sql = """
                 UPDATE INCIDENTE
                 SET estado = %s
@@ -238,6 +332,17 @@ class ControlIncidentes:
                 afectadas = cursor.rowcount
             
             conexion.close()
+            
+            # Registrar en historial si se actualizó correctamente
+            if afectadas > 0 and estado_anterior != nuevo_estado:
+                estado_texto = "Aceptado" if nuevo_estado == 'A' else "Cancelado"
+                ControlIncidentes.insertar_historial(
+                    id_incidente=id_incidente,
+                    estado_anterior=estado_anterior,
+                    estado_nuevo=nuevo_estado,
+                    observacion=f"Incidente {estado_texto} por el Jefe de TI"
+                )
+            
             return afectadas > 0
         except Exception as e:
             print(f"Error en cambiar_estado_jefe_ti => {e}")
@@ -247,6 +352,10 @@ class ControlIncidentes:
     def asignar_nivel_prioridad(id_incidente, nivel):
         """Asigna nivel de prioridad a un incidente aceptado"""
         try:
+            # Obtener prioridad anterior antes de actualizar
+            incidente_anterior = ControlIncidentes.buscar_por_IDIncidente(id_incidente)
+            prioridad_anterior = incidente_anterior.get('nivel') if incidente_anterior else None
+            
             sql = """
                 UPDATE INCIDENTE
                 SET nivel = %s
@@ -262,6 +371,19 @@ class ControlIncidentes:
                 afectadas = cursor.rowcount
             
             conexion.close()
+            
+            # Registrar en historial si se actualizó correctamente
+            if afectadas > 0 and prioridad_anterior != nivel:
+                nivel_map = {'B': 'Bajo', 'M': 'Medio', 'A': 'Alto', 'C': 'Crítico'}
+                nivel_anterior_texto = nivel_map.get(prioridad_anterior, prioridad_anterior) if prioridad_anterior else 'Sin prioridad'
+                nivel_nuevo_texto = nivel_map.get(nivel, nivel)
+                ControlIncidentes.insertar_historial(
+                    id_incidente=id_incidente,
+                    prioridad_anterior=prioridad_anterior,
+                    prioridad_nueva=nivel,
+                    observacion=f"Prioridad cambiada de {nivel_anterior_texto} a {nivel_nuevo_texto}"
+                )
+            
             return afectadas > 0
         except Exception as e:
             print(f"Error en asignar_nivel_prioridad => {e}")
@@ -271,6 +393,10 @@ class ControlIncidentes:
     def asignar_tecnico_individual(id_incidente, id_tecnico):
         """Asigna un técnico individual como responsable"""
         try:
+            # Obtener técnico anterior antes de actualizar
+            incidente_anterior = ControlIncidentes.buscar_por_IDIncidente(id_incidente)
+            tecnico_anterior = incidente_anterior.get('id_tecnico_asignado') if incidente_anterior else None
+            
             sql = """
                 UPDATE INCIDENTE
                 SET id_tecnico_asignado = %s
@@ -283,8 +409,19 @@ class ControlIncidentes:
             with conexion.cursor() as cursor:
                 cursor.execute(sql, (id_tecnico, id_incidente))
                 conexion.commit()
+                afectadas = cursor.rowcount
             
             conexion.close()
+            
+            # Registrar en historial si se actualizó correctamente
+            if afectadas > 0 and tecnico_anterior != id_tecnico:
+                ControlIncidentes.insertar_historial(
+                    id_incidente=id_incidente,
+                    tecnico_anterior=tecnico_anterior,
+                    tecnico_nuevo=id_tecnico,
+                    observacion="Técnico asignado al incidente"
+                )
+            
             return True
         except Exception as e:
             print(f"Error en asignar_tecnico_individual => {e}")
@@ -534,6 +671,97 @@ class ControlIncidentes:
         except Exception as e:
             print(f"Error en obtener_evidencias_incidente => {e}")
             return []
+    
+    @staticmethod
+    def insertar_historial(id_incidente, estado_anterior=None, estado_nuevo=None, 
+                          tecnico_anterior=None, tecnico_nuevo=None,
+                          prioridad_anterior=None, prioridad_nueva=None, 
+                          observacion=None):
+        """Inserta un registro en el historial de incidentes"""
+        try:
+            conexion = get_connection()
+            if not conexion:
+                return False
+            
+            sql = """
+                INSERT INTO HISTORIAL_INCIDENTE 
+                (id_incidente, estado_anterior, estado_nuevo, tecnico_anterior, tecnico_nuevo,
+                 prioridad_anterior, prioridad_nueva, observacion, fecha)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW())
+            """
+            
+            with conexion.cursor() as cursor:
+                cursor.execute(sql, (
+                    id_incidente, estado_anterior, estado_nuevo,
+                    tecnico_anterior, tecnico_nuevo,
+                    prioridad_anterior, prioridad_nueva, observacion
+                ))
+                conexion.commit()
+            
+            conexion.close()
+            return True
+        except Exception as e:
+            print(f"Error en insertar_historial => {e}")
+            return False
+    
+    @staticmethod
+    def obtener_historial_incidente(id_incidente):
+        """Obtiene el historial de cambios de un incidente"""
+        try:
+            conexion = get_connection()
+            if not conexion:
+                return []
+            
+            sql = """
+                SELECT 
+                    h.id_historial,
+                    h.estado_anterior,
+                    h.estado_nuevo,
+                    h.prioridad_anterior,
+                    h.prioridad_nueva,
+                    h.fecha,
+                    h.observacion,
+                    u_anterior.nombre || ' ' || u_anterior.ape_pat as tecnico_anterior_nombre,
+                    u_nuevo.nombre || ' ' || u_nuevo.ape_pat as tecnico_nuevo_nombre
+                FROM HISTORIAL_INCIDENTE h
+                LEFT JOIN USUARIO u_anterior ON h.tecnico_anterior = u_anterior.id_usuario
+                LEFT JOIN USUARIO u_nuevo ON h.tecnico_nuevo = u_nuevo.id_usuario
+                WHERE h.id_incidente = %s
+                ORDER BY h.fecha DESC
+            """
+            
+            with conexion.cursor() as cursor:
+                cursor.execute(sql, (id_incidente,))
+                resultados = cursor.fetchall()
+            
+            conexion.close()
+            
+            # Mapear estados
+            estado_map = {
+                'P': 'Pendiente',
+                'A': 'Activo',
+                'T': 'Terminado',
+                'C': 'Cancelado'
+            }
+            
+            historial = []
+            for r in resultados:
+                historial.append({
+                    'id_historial': r[0],
+                    'estado_anterior': estado_map.get(r[1], r[1]) if r[1] else None,
+                    'estado_nuevo': estado_map.get(r[2], r[2]) if r[2] else None,
+                    'prioridad_anterior': r[3],
+                    'prioridad_nueva': r[4],
+                    'fecha': r[5],
+                    'observacion': r[6],
+                    'tecnico_anterior_nombre': r[7],
+                    'tecnico_nuevo_nombre': r[8]
+                })
+            
+            return historial
+        except Exception as e:
+            print(f"Error en obtener_historial_incidente => {e}")
+            return []
 
     @staticmethod
     def obtener_equipo_tecnico(id_incidente):
@@ -578,21 +806,54 @@ class ControlIncidentes:
             return []
         
     @staticmethod
-    def obtener_incidentes_sin_diagnostico():
+    def obtener_incidentes_sin_diagnostico(id_usuario=None):
+        """
+        Obtiene incidentes sin diagnóstico que están en estado 'A' (Activo)
+        y que fueron asignados al técnico (id_tecnico_asignado) o que el técnico está en EQUIPO_TECNICO.
+        """
         try:
             conexion = get_connection()
             if not conexion:
                 print("No se pudo conectar a la base de datos.")
                 return []
 
-            sql = """
-                SELECT id_incidente, titulo
-                FROM INCIDENTE
-                WHERE estado NOT IN ('C');
-            """
+            if id_usuario:
+                # Consulta que verifica ambas condiciones:
+                # 1. Incidentes asignados directamente (id_tecnico_asignado)
+                # 2. Incidentes donde el técnico está en EQUIPO_TECNICO
+                # SOLO estado 'A' (Activo) y sin diagnóstico
+                # Usamos UNION para combinar ambas consultas de manera explícita
+                sql = """
+                    SELECT DISTINCT
+                        i.id_incidente, 
+                        i.titulo
+                    FROM INCIDENTE i
+                    LEFT JOIN DIAGNOSTICO d ON i.id_incidente = d.id_incidente
+                    WHERE i.estado = 'A'
+                        AND d.id_diagnosticos IS NULL
+                        AND i.id_tecnico_asignado = %s
+                    
+                    UNION
+                    
+                    SELECT DISTINCT
+                        i.id_incidente, 
+                        i.titulo
+                    FROM EQUIPO_TECNICO et
+                    INNER JOIN INCIDENTE i ON et.id_incidente = i.id_incidente
+                    LEFT JOIN DIAGNOSTICO d ON i.id_incidente = d.id_incidente
+                    WHERE et.id_usuario = %s
+                        AND i.estado = 'A'
+                        AND d.id_diagnosticos IS NULL
+                    
+                    ORDER BY id_incidente DESC;
+                """
+                params = (id_usuario, id_usuario)
+            else:
+                # Sin usuario: sin incidentes
+                return []
 
             with conexion.cursor() as cursor:
-                cursor.execute(sql)
+                cursor.execute(sql, params)
                 resultado = cursor.fetchall()
 
             incidentes = [
@@ -604,6 +865,8 @@ class ControlIncidentes:
 
         except Exception as e:
             print("Error al obtener incidentes =>", e)
+            import traceback
+            traceback.print_exc()
             return []
 
     def obtener_mttr_por_categoria(self):

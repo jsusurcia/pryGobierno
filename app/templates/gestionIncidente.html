@@ -95,13 +95,13 @@ document.addEventListener('DOMContentLoaded', function() {
                   class="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg 
                          focus:outline-none focus:ring-2 focus:ring-blue-500">
             <option value="">Todas las categorías</option>
-            <option value="Red/Conectividad" {% if request.args.get('categoria') == 'Red/Conectividad' %}selected{% endif %}>Red/Conectividad</option>
-            <option value="Software" {% if request.args.get('categoria') == 'Software' %}selected{% endif %}>Software</option>
-            <option value="Hardware" {% if request.args.get('categoria') == 'Hardware' %}selected{% endif %}>Hardware</option>
-            <option value="Seguridad" {% if request.args.get('categoria') == 'Seguridad' %}selected{% endif %}>Seguridad</option>
-            <option value="Impresoras" {% if request.args.get('categoria') == 'Impresoras' %}selected{% endif %}>Impresoras</option>
-            <option value="Telefonía" {% if request.args.get('categoria') == 'Telefonía' %}selected{% endif %}>Telefonía</option>
-            <option value="Otro" {% if request.args.get('categoria') == 'Otro' %}selected{% endif %}>Otro</option>
+            {% if categorias %}
+              {% for categoria in categorias %}
+              <option value="{{ categoria.nombre|lower }}" {% if request.args.get('categoria')|lower == categoria.nombre|lower %}selected{% endif %}>
+                {{ categoria.nombre }}
+              </option>
+              {% endfor %}
+            {% endif %}
           </select>
         </div>
 
@@ -113,21 +113,14 @@ document.addEventListener('DOMContentLoaded', function() {
                   class="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg 
                          focus:outline-none focus:ring-2 focus:ring-blue-500">
             <option value="">Todos los estados</option>
-            <option value="abierto" {% if request.args.get('estado') == 'abierto' %}selected{% endif %}>Abierto</option>
-            <option value="en_proceso" {% if request.args.get('estado') == 'en_proceso' %}selected{% endif %}>En Progreso</option>
-            <option value="resuelto" {% if request.args.get('estado') == 'resuelto' %}selected{% endif %}>Resuelto</option>
-            <option value="cerrado" {% if request.args.get('estado') == 'cerrado' %}selected{% endif %}>Cerrado</option>
+            <option value="pendiente" {% if request.args.get('estado') == 'pendiente' %}selected{% endif %}>Pendiente</option>
+            <option value="activo" {% if request.args.get('estado') == 'activo' %}selected{% endif %}>Activo</option>
+            <option value="cancelado" {% if request.args.get('estado') == 'cancelado' %}selected{% endif %}>Cancelado</option>
+            <option value="terminado" {% if request.args.get('estado') == 'terminado' %}selected{% endif %}>Terminado</option>
           </select>
         </div>
       </div>
 
-      <!-- Botón Aplicar Filtros -->
-      <div class="mt-4 flex justify-end">
-        <button type="submit"
-                class="px-4 py-2 text-sm text-white font-medium flex items-center gap-1 bg-[#0067b8] hover:bg-[#003d73] rounded-lg transition">
-          Aplicar filtros
-        </button>
-      </div>
     </form>
   </div>
 
@@ -164,14 +157,16 @@ document.addEventListener('DOMContentLoaded', function() {
               </td>
               <td class="px-6 py-4 text-sm text-gray-600">{{ incidente.categoria or 'No asignada' }}</td>
               <td class="px-6 py-4">
-                {% if incidente.estado == 'abierto' %}
-                  <span class="px-3 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-700">Abierto</span>
-                {% elif incidente.estado == 'en_proceso' %}
-                  <span class="px-3 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-700">En Progreso</span>
-                {% elif incidente.estado == 'resuelto' %}
-                  <span class="px-3 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-700">Resuelto</span>
-                {% elif incidente.estado == 'cerrado' %}
-                  <span class="px-3 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-700">Cerrado</span>
+                {% if incidente.estado == 'Pendiente' %}
+                  <span class="px-3 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-700">Pendiente</span>
+                {% elif incidente.estado == 'Activo' %}
+                  <span class="px-3 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-700">Activo</span>
+                {% elif incidente.estado == 'Cancelado' %}
+                  <span class="px-3 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-700">Cancelado</span>
+                {% elif incidente.estado == 'Terminado' %}
+                  <span class="px-3 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-700">Terminado</span>
+                {% else %}
+                  <span class="px-3 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-700">{{ incidente.estado }}</span>
                 {% endif %}
               </td>
               <td class="px-6 py-4 text-sm text-gray-600">
@@ -200,21 +195,18 @@ document.addEventListener('DOMContentLoaded', function() {
                   </button>
 
 
-                  {% if es_tecnico_area_1 %}
-                    {% if incidente.estado not in ['cerrado', 'resuelto', 'C', 'R'] %}
-                      <!-- Botón Asignar Diagnóstico - Solo para técnicos del área 1 -->
+                  {% if es_tecnico %}
+                    {% if incidente.estado not in ['Terminado', 'Cancelado', 'T', 'C'] %}
+                      <!-- Botón Agregar Diagnóstico - Para todos los técnicos -->
                       <a href="{{ url_for('asignar_diagnostico') }}?incidente={{ incidente.id_incidente }}"
                         class="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition"
-                        title="Asignar diagnóstico"
-                        aria-label="Asignar diagnóstico">
+                        title="Agregar diagnóstico"
+                        aria-label="Agregar diagnóstico">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                         </svg>
                       </a>
-                    {% else %}
-                      <!-- Texto gris en lugar del botón -->
-                      <span class="text-xs text-gray-400 italic"></span>
                     {% endif %}
                   {% endif %}
 
@@ -256,12 +248,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <!-- Modal de Detalle del Incidente -->
  <div id="modalDetalle" 
-     class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-  <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full transform transition-all">
+     class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
+  <div class="bg-white rounded-2xl shadow-2xl max-w-4xl w-full my-8 transform transition-all">
     
     <!-- Header del Modal -->
-    <div class="flex items-center justify-between p-6 border-b border-gray-200">
-      <h3 class="text-xl font-bold text-gray-900">Detalle del Incidente</h3>
+    <div class="flex items-center justify-between p-6 border-b border-gray-200 sticky top-0 bg-white z-10">
+      <h3 class="text-2xl font-bold text-gray-900">Detalle del Incidente</h3>
       <button onclick="cerrarModalDetalle()" 
               class="text-gray-400 hover:text-gray-600 transition"
               aria-label="Cerrar modal">
@@ -272,40 +264,63 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
 
     <!-- Cuerpo del Modal -->
-    <div class="p-6 space-y-3">
-      <div class="flex items-center justify-between">
-        <span class="text-sm text-gray-500 font-medium">Código:</span>
-        <span id="modal-id" class="text-sm font-semibold text-gray-800">-</span>
+    <div class="p-6 space-y-6">
+      <!-- Información Principal -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <span class="block text-sm text-gray-500 font-medium mb-1">Título:</span>
+          <p id="modal-titulo" class="text-gray-800 font-semibold text-lg">-</p>
+        </div>
+        <div>
+          <span class="block text-sm text-gray-500 font-medium mb-1">Estado:</span>
+          <p id="modal-estado" class="text-gray-700">-</p>
+        </div>
+        <div>
+          <span class="block text-sm text-gray-500 font-medium mb-1">Categoría:</span>
+          <p id="modal-categoria" class="text-gray-700">-</p>
+        </div>
+        <div>
+          <span class="block text-sm text-gray-500 font-medium mb-1">Área de Origen:</span>
+          <p id="modal-area" class="text-gray-700">-</p>
+        </div>
+        <div>
+          <span class="block text-sm text-gray-500 font-medium mb-1">Reportado por:</span>
+          <p id="modal-reportado-por" class="text-gray-700">-</p>
+        </div>
+        <div>
+          <span class="block text-sm text-gray-500 font-medium mb-1">Fecha de Registro:</span>
+          <p id="modal-fecha" class="text-gray-700">-</p>
+        </div>
+        <div>
+          <span class="block text-sm text-gray-500 font-medium mb-1">Nivel de Prioridad:</span>
+          <p id="modal-nivel" class="text-gray-700">-</p>
+        </div>
       </div>
 
       <div>
-        <span class="block text-sm text-gray-500 font-medium">Título:</span>
-        <p id="modal-titulo" class="text-gray-800 font-semibold">-</p>
+        <span class="block text-sm text-gray-500 font-medium mb-2">Descripción:</span>
+        <p id="modal-descripcion" class="text-gray-700 bg-gray-50 p-4 rounded-lg">-</p>
       </div>
 
+      <!-- Evidencias -->
       <div>
-        <span class="block text-sm text-gray-500 font-medium">Descripción:</span>
-        <p id="modal-descripcion" class="text-gray-700">-</p>
+        <span class="block text-sm text-gray-500 font-medium mb-3">Evidencias:</span>
+        <div id="modal-evidencia-container" class="space-y-4">
+          <p class="text-gray-500 text-sm">Cargando evidencias...</p>
+        </div>
       </div>
 
+      <!-- Historial -->
       <div>
-        <span class="block text-sm text-gray-500 font-medium">Categoría:</span>
-        <p id="modal-categoria" class="text-gray-700">-</p>
-      </div>
-
-      <div>
-        <span class="block text-sm text-gray-500 font-medium">Estado:</span>
-        <p id="modal-estado" class="text-gray-700">-</p>
-      </div>
-
-      <div>
-        <span class="block text-sm text-gray-500 font-medium">Fecha de Registro:</span>
-        <p id="modal-fecha" class="text-gray-700">-</p>
+        <span class="block text-sm text-gray-500 font-medium mb-3">Historial de Cambios:</span>
+        <div id="modal-historial-container" class="space-y-3 max-h-96 overflow-y-auto">
+          <p class="text-gray-500 text-sm">Cargando historial...</p>
+        </div>
       </div>
     </div>
 
     <!-- Footer del Modal -->
-    <div class="flex gap-3 p-6 border-t border-gray-200 justify-end">
+    <div class="flex gap-3 p-6 border-t border-gray-200 justify-end sticky bottom-0 bg-white">
       {% if es_tecnico_area_1 %}
       <a href="{{ url_for('asignar_diagnostico') }}" 
          id="modal-boton-asignar"
@@ -329,46 +344,267 @@ document.addEventListener('DOMContentLoaded', function() {
 
 {% block scripts %}
 <script>
+  // Filtrado automático - aplicar filtros cuando cambian los campos
+  document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('form[method="GET"]');
+    const inputs = form.querySelectorAll('input, select');
+    
+    inputs.forEach(input => {
+      input.addEventListener('change', function() {
+        // Aplicar filtros automáticamente
+        form.submit();
+      });
+      
+      // Para el campo de búsqueda, usar un debounce para no enviar en cada tecla
+      if (input.name === 'buscar') {
+        let timeout;
+        input.addEventListener('input', function() {
+          clearTimeout(timeout);
+          timeout = setTimeout(function() {
+            form.submit();
+          }, 500); // Esperar 500ms después de que el usuario deje de escribir
+        });
+      }
+    });
+  });
+
   // Funciones para el Modal de Detalle
   function abrirModalDetalle(idIncidente, titulo, descripcion, categoria, estado, fecha) {
     document.getElementById('modalDetalle').classList.remove('hidden');
     document.body.style.overflow = 'hidden';
 
-    // Actualizar contenido del modal
-    document.getElementById('modal-id').textContent = 'INC-' + String(idIncidente).padStart(3, '0');
-    document.getElementById('modal-titulo').textContent = titulo;
-    document.getElementById('modal-descripcion').textContent = descripcion || 'Sin descripción disponible';
-    document.getElementById('modal-categoria').textContent = categoria;
-    document.getElementById('modal-fecha').textContent = fecha;
+    // Cargar detalles completos desde la API
+    fetch(`/api/incidente/${idIncidente}/detalles`)
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          const incidente = data.incidente;
+          
+          // Actualizar información básica
+          document.getElementById('modal-titulo').textContent = incidente.titulo || titulo;
+          document.getElementById('modal-descripcion').textContent = incidente.descripcion || descripcion || 'Sin descripción disponible';
+          document.getElementById('modal-categoria').textContent = incidente.categoria || categoria;
+          document.getElementById('modal-area').textContent = incidente.area || 'N/A';
+          document.getElementById('modal-reportado-por').textContent = incidente.reportado_por || 'N/A';
+          document.getElementById('modal-fecha').textContent = incidente.fecha_reporte ? new Date(incidente.fecha_reporte).toLocaleString('es-ES') : fecha;
+          
+          // Nivel de prioridad
+          const nivelMap = {
+            'M': 'Medio',
+            'B': 'Bajo',
+            'A': 'Alto',
+            'C': 'Crítico'
+          };
+          document.getElementById('modal-nivel').textContent = nivelMap[incidente.nivel] || incidente.nivel || 'N/A';
 
-    // Actualizar estado con el color correcto
-    const estadoElemento = document.getElementById('modal-estado');
-    let estadoHtml = '';
-    
-    switch(estado) {
-      case 'abierto':
-        estadoHtml = '<span class="px-3 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-700 inline-block">Abierto</span>';
-        break;
-      case 'en_proceso':
-        estadoHtml = '<span class="px-3 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-700 inline-block">En Progreso</span>';
-        break;
-      case 'resuelto':
-        estadoHtml = '<span class="px-3 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-700 inline-block">Resuelto</span>';
-        break;
-      case 'cerrado':
-        estadoHtml = '<span class="px-3 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-700 inline-block">Cerrado</span>';
-        break;
-      default:
-        estadoHtml = '<span class="px-3 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-700 inline-block">Desconocido</span>';
-    }
-    
-    estadoElemento.innerHTML = estadoHtml;
+          // Actualizar estado con el color correcto
+          const estadoElemento = document.getElementById('modal-estado');
+          let estadoHtml = '';
+          const estadoTexto = incidente.estado || estado;
+          
+          switch(estadoTexto.toLowerCase()) {
+            case 'pendiente':
+              estadoHtml = '<span class="px-3 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-700 inline-block">Pendiente</span>';
+              break;
+            case 'activo':
+              estadoHtml = '<span class="px-3 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-700 inline-block">Activo</span>';
+              break;
+            case 'cancelado':
+              estadoHtml = '<span class="px-3 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-700 inline-block">Cancelado</span>';
+              break;
+            case 'terminado':
+              estadoHtml = '<span class="px-3 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-700 inline-block">Terminado</span>';
+              break;
+            default:
+              estadoHtml = '<span class="px-3 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-700 inline-block">' + estadoTexto + '</span>';
+          }
+          
+          estadoElemento.innerHTML = estadoHtml;
+
+          // Mostrar evidencias
+          mostrarEvidencias(data.evidencias || []);
+
+          // Mostrar historial
+          mostrarHistorial(data.historial || [], incidente);
+        } else {
+          // Fallback a datos básicos si la API falla
+          document.getElementById('modal-titulo').textContent = titulo;
+          document.getElementById('modal-descripcion').textContent = descripcion || 'Sin descripción disponible';
+          document.getElementById('modal-categoria').textContent = categoria;
+          document.getElementById('modal-fecha').textContent = fecha;
+          document.getElementById('modal-evidencia-container').innerHTML = '<p class="text-gray-500 text-sm">No se pudieron cargar las evidencias</p>';
+          document.getElementById('modal-historial-container').innerHTML = '<p class="text-gray-500 text-sm">No se pudo cargar el historial</p>';
+        }
+      })
+      .catch(error => {
+        console.error('Error al cargar detalles:', error);
+        // Fallback a datos básicos
+        document.getElementById('modal-titulo').textContent = titulo;
+        document.getElementById('modal-descripcion').textContent = descripcion || 'Sin descripción disponible';
+        document.getElementById('modal-categoria').textContent = categoria;
+        document.getElementById('modal-fecha').textContent = fecha;
+        document.getElementById('modal-evidencia-container').innerHTML = '<p class="text-gray-500 text-sm">Error al cargar evidencias</p>';
+        document.getElementById('modal-historial-container').innerHTML = '<p class="text-gray-500 text-sm">Error al cargar historial</p>';
+      });
 
     // Actualizar enlace de asignar diagnóstico
     const botonAsignar = document.getElementById('modal-boton-asignar');
     if (botonAsignar) {
       botonAsignar.href = "{{ url_for('asignar_diagnostico') }}?incidente=" + idIncidente;
     }
+  }
+
+  function mostrarEvidencias(evidencias) {
+    const container = document.getElementById('modal-evidencia-container');
+    
+    if (!evidencias || evidencias.length === 0) {
+      container.innerHTML = '<p class="text-gray-500 text-sm italic">No hay evidencias disponibles</p>';
+      return;
+    }
+
+    if (evidencias.length === 1) {
+      // Una sola imagen
+      container.innerHTML = `
+        <div class="flex justify-center">
+          <img src="${evidencias[0].url_archivo}" 
+               alt="Evidencia" 
+               class="max-w-full h-auto rounded-lg shadow-md object-contain"
+               style="max-height: 400px;">
+        </div>
+      `;
+    } else {
+      // Carrusel para múltiples imágenes
+      let carouselHTML = `
+        <div class="relative">
+          <div id="evidencia-carousel" class="relative overflow-hidden rounded-lg">
+            <div class="flex transition-transform duration-300 ease-in-out" id="evidencia-slides">
+      `;
+      
+      evidencias.forEach((evidencia, index) => {
+        carouselHTML += `
+          <div class="min-w-full flex justify-center ${index === 0 ? '' : 'hidden'}" data-slide="${index}">
+            <img src="${evidencia.url_archivo}" 
+                 alt="Evidencia ${index + 1}" 
+                 class="max-w-full h-auto rounded-lg shadow-md object-contain"
+                 style="max-height: 400px;">
+          </div>
+        `;
+      });
+      
+      carouselHTML += `
+            </div>
+          </div>
+          <div class="flex justify-center items-center mt-4 space-x-2">
+            <button onclick="cambiarEvidencia(-1)" 
+                    class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg transition">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+              </svg>
+            </button>
+            <span id="evidencia-indicador" class="text-sm text-gray-600">1 / ${evidencias.length}</span>
+            <button onclick="cambiarEvidencia(1)" 
+                    class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg transition">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+      `;
+      
+      container.innerHTML = carouselHTML;
+      window.currentEvidenciaIndex = 0;
+      window.totalEvidencias = evidencias.length;
+    }
+  }
+
+  function cambiarEvidencia(direccion) {
+    const slides = document.querySelectorAll('[data-slide]');
+    if (!slides || slides.length === 0) return;
+    
+    window.currentEvidenciaIndex = (window.currentEvidenciaIndex || 0) + direccion;
+    
+    if (window.currentEvidenciaIndex < 0) {
+      window.currentEvidenciaIndex = slides.length - 1;
+    } else if (window.currentEvidenciaIndex >= slides.length) {
+      window.currentEvidenciaIndex = 0;
+    }
+    
+    slides.forEach((slide, index) => {
+      if (index === window.currentEvidenciaIndex) {
+        slide.classList.remove('hidden');
+      } else {
+        slide.classList.add('hidden');
+      }
+    });
+    
+    const indicador = document.getElementById('evidencia-indicador');
+    if (indicador) {
+      indicador.textContent = `${window.currentEvidenciaIndex + 1} / ${slides.length}`;
+    }
+  }
+
+  function mostrarHistorial(historial, incidente) {
+    const container = document.getElementById('modal-historial-container');
+    
+    if (!historial || historial.length === 0) {
+      // Mostrar al menos el estado actual
+      const estadoMap = {
+        'P': 'Pendiente',
+        'A': 'Activo',
+        'T': 'Terminado',
+        'C': 'Cancelado'
+      };
+      const estadoActual = estadoMap[incidente.estado_corto] || incidente.estado || 'Desconocido';
+      const fechaCreacion = incidente.fecha_reporte ? new Date(incidente.fecha_reporte).toLocaleString('es-ES') : 'N/A';
+      
+      container.innerHTML = `
+        <div class="border-l-4 border-blue-500 pl-4 py-2">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="font-semibold text-gray-800">Estado inicial: ${estadoActual}</p>
+              <p class="text-sm text-gray-500">${fechaCreacion}</p>
+            </div>
+          </div>
+        </div>
+        <p class="text-gray-500 text-sm italic mt-2">No hay cambios registrados en el historial</p>
+      `;
+      return;
+    }
+
+    let historialHTML = '';
+    
+    historial.forEach((cambio, index) => {
+      const fecha = cambio.fecha ? new Date(cambio.fecha).toLocaleString('es-ES') : 'N/A';
+      const colorBorde = index === 0 ? 'border-blue-500' : 'border-gray-300';
+      
+      historialHTML += `
+        <div class="border-l-4 ${colorBorde} pl-4 py-3 bg-gray-50 rounded-r-lg">
+          <div class="flex items-start justify-between">
+            <div class="flex-1">
+              ${cambio.estado_anterior && cambio.estado_nuevo ? `
+                <p class="font-semibold text-gray-800">
+                  Estado: <span class="text-gray-600">${cambio.estado_anterior}</span> 
+                  → <span class="text-blue-600">${cambio.estado_nuevo}</span>
+                </p>
+              ` : ''}
+              ${cambio.prioridad_anterior && cambio.prioridad_nueva ? `
+                <p class="text-sm text-gray-700 mt-1">
+                  Prioridad: <span class="text-gray-600">${cambio.prioridad_anterior}</span> 
+                  → <span class="text-blue-600">${cambio.prioridad_nueva}</span>
+                </p>
+              ` : ''}
+              ${cambio.observacion ? `
+                <p class="text-sm text-gray-600 mt-2 italic">${cambio.observacion}</p>
+              ` : ''}
+              <p class="text-xs text-gray-500 mt-2">${fecha}</p>
+            </div>
+          </div>
+        </div>
+      `;
+    });
+    
+    container.innerHTML = historialHTML;
   }
 
   function cerrarModalDetalle() {
@@ -433,6 +669,34 @@ document.addEventListener('DOMContentLoaded', function() {
       cerrarModalDetalle();
       cerrarModalEliminar();
     }
+  });
+
+  // Filtrado automático - aplicar filtros cuando cambian los campos
+  document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('form[method="GET"]');
+    if (!form) return;
+    
+    const inputs = form.querySelectorAll('input, select');
+    
+    inputs.forEach(input => {
+      // Para selects y fechas, aplicar al cambiar
+      if (input.tagName === 'SELECT' || input.type === 'date') {
+        input.addEventListener('change', function() {
+          form.submit();
+        });
+      }
+      
+      // Para el campo de búsqueda, usar un debounce para no enviar en cada tecla
+      if (input.name === 'buscar') {
+        let timeout;
+        input.addEventListener('input', function() {
+          clearTimeout(timeout);
+          timeout = setTimeout(function() {
+            form.submit();
+          }, 500); // Esperar 500ms después de que el usuario deje de escribir
+        });
+      }
+    });
   });
 </script>
 {% endblock %}

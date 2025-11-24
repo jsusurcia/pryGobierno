@@ -2,14 +2,14 @@ from ConexionBD import get_connection
 
 class controlCategorias:
     @staticmethod
-    def agregar(nombre, descripcion):
+    def agregar(nombre):
         """
         Inserta una nueva categoría en la base de datos.
         """
         try:
             sql = """
-                INSERT INTO categorias (nombre, descripcion)
-                VALUES (%s, %s)
+                INSERT INTO CATEGORIA (nombre)
+                VALUES (%s)
             """
             
             conexion = get_connection()
@@ -18,7 +18,7 @@ class controlCategorias:
                 return False
             
             with conexion.cursor() as cursor:
-                cursor.execute(sql, (nombre, descripcion))
+                cursor.execute(sql, (nombre,))
                 conexion.commit()
             
             conexion.close()
@@ -37,9 +37,9 @@ class controlCategorias:
         """
         try:
             sql = """
-                SELECT * FROM categorias WHERE id_categoria = %s
+                SELECT * FROM CATEGORIA WHERE id_categoria = %s
             """
-            atributos = ['id_categoria', 'nombre', 'descripcion']
+            atributos = ['id_categoria', 'nombre']
             
             conexion = get_connection()
             if not conexion:
@@ -67,9 +67,9 @@ class controlCategorias:
         """
         try:
             sql = """
-                SELECT * FROM categorias
+                SELECT * FROM CATEGORIA
             """
-            atributos = ['id_categoria', 'nombre', 'descripcion']
+            atributos = ['id_categoria', 'nombre']
             
             conexion = get_connection()
             if not conexion:
@@ -90,14 +90,14 @@ class controlCategorias:
             return None
 
     @staticmethod
-    def editar(id_categoria, nombre, descripcion):
+    def editar(id_categoria, nombre):
         """
-        Actualiza el nombre y la descripción de una categoría existente.
+        Actualiza el nombre de una categoría existente.
         """
         try:
             sql = """
-                UPDATE categorias
-                SET nombre = %s, descripcion = %s
+                UPDATE CATEGORIA
+                SET nombre = %s
                 WHERE id_categoria = %s
             """
             
@@ -107,7 +107,7 @@ class controlCategorias:
                 return False
             
             with conexion.cursor() as cursor:
-                cursor.execute(sql, (nombre, descripcion, id_categoria))
+                cursor.execute(sql, (nombre, id_categoria))
                 conexion.commit()
             
             conexion.close()
@@ -125,7 +125,7 @@ class controlCategorias:
         """
         try:
             sql = """
-                DELETE FROM categorias
+                DELETE FROM CATEGORIA
                 WHERE id_categoria = %s
             """
             

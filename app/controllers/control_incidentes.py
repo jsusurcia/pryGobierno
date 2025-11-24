@@ -2,11 +2,11 @@ from ConexionBD import get_connection
 class ControlIncidentes:
     @staticmethod
 
-    def insertar_incidentes(titulo, descripcion, id_categoria, id_usuario):
+    def insertar_incidentes(titulo, descripcion, id_categoria, id_usuario, nivel='M'):
         try:
             sql = """
-                INSERT INTO incidentes (titulo, descripcion, id_categoria, id_usuario)
-                VALUES (%s, %s, %s, %s);
+                INSERT INTO INCIDENTE (titulo, descripcion, id_categoria, id_usuario, nivel, estado)
+                VALUES (%s, %s, %s, %s, %s, 'P');
             """
             conexion = get_connection()
             if not conexion:
@@ -14,7 +14,7 @@ class ControlIncidentes:
                 return -2
 
             with conexion.cursor() as cursor:
-                cursor.execute(sql, (titulo, descripcion, id_categoria, id_usuario))
+                cursor.execute(sql, (titulo, descripcion, id_categoria, id_usuario, nivel))
                 conexion.commit()
 
             conexion.close()
@@ -25,10 +25,11 @@ class ControlIncidentes:
         
     def buscar_por_IDIncidente(id_incidente):
         try:
-            sql = "SELECT * FROM incidentes WHERE id_incidente = %s"
+            sql = "SELECT * FROM INCIDENTE WHERE id_incidente = %s"
             atributos = [
                 'id_incidente', 'titulo', 'descripcion', 'id_categoria',
-                'id_usuario', 'estado', 'fecha_reporte', 'fecha_resolucion', 'tiempo_reparacion'
+                'id_usuario', 'id_tecnico_asignado', 'estado', 'nivel', 
+                'fecha_reporte', 'fecha_resolucion', 'tiempo_reparacion'
             ]
 
             conexion = get_connection()
@@ -61,11 +62,12 @@ class ControlIncidentes:
                     i.descripcion,
                     COALESCE(c.nombre, 'Sin categoría') AS categoria,
                     i.estado,
+                    i.nivel,
                     i.fecha_reporte,
                     i.fecha_resolucion,
                     i.tiempo_reparacion
-                FROM incidentes i
-                LEFT JOIN categorias c ON i.id_categoria = c.id_categoria
+                FROM INCIDENTE i
+                LEFT JOIN CATEGORIA c ON i.id_categoria = c.id_categoria
                 ORDER BY i.id_incidente DESC;
             """
 
@@ -75,7 +77,7 @@ class ControlIncidentes:
 
             atributos = [
                 'id_incidente', 'titulo', 'descripcion',
-                'categoria', 'estado', 'fecha_reporte',
+                'categoria', 'estado', 'nivel', 'fecha_reporte',
                 'fecha_resolucion', 'tiempo_reparacion'
             ]
 
@@ -83,9 +85,9 @@ class ControlIncidentes:
 
             # 🔹 Traducir estado corto a texto completo
             estado_map = {
+                'P': 'pendiente',
                 'A': 'abierto',
-                'P': 'en_proceso',
-                'R': 'resuelto',
+                'T': 'en_tratamiento',
                 'C': 'cerrado'
             }
 
@@ -103,27 +105,38 @@ class ControlIncidentes:
             return []
 
         
-    def actualizar_incidentes(id_incidente, titulo, descripcion, id_categoria, id_usuario, estado):
+    def actualizar_incidentes(id_incidente, titulo, descripcion, id_categoria, id_usuario, estado, nivel=None):
         try:
-            sql = """
-                UPDATE incidentes
-                SET titulo = %s,
-                    descripcion = %s,
-                    id_categoria = %s,
-                    id_usuario = %s,
-                    estado = %s
-                WHERE id_incidente = %s;
-            """
+            if nivel:
+                sql = """
+                    UPDATE INCIDENTE
+                    SET titulo = %s,
+                        descripcion = %s,
+                        id_categoria = %s,
+                        id_usuario = %s,
+                        estado = %s,
+                        nivel = %s
+                    WHERE id_incidente = %s;
+                """
+                params = (titulo, descripcion, id_categoria, id_usuario, estado, nivel, id_incidente)
+            else:
+                sql = """
+                    UPDATE INCIDENTE
+                    SET titulo = %s,
+                        descripcion = %s,
+                        id_categoria = %s,
+                        id_usuario = %s,
+                        estado = %s
+                    WHERE id_incidente = %s;
+                """
+                params = (titulo, descripcion, id_categoria, id_usuario, estado, id_incidente)
             conexion = get_connection()
             if not conexion:
                 print("No se pudo conectar a la base de datos.")
                 return -2
 
             with conexion.cursor() as cursor:
-                cursor.execute(sql, (
-                    titulo, descripcion, id_categoria, id_usuario,
-                    estado, id_incidente
-                ))
+                cursor.execute(sql, params)
                 conexion.commit()
 
             conexion.close()
@@ -135,14 +148,14 @@ class ControlIncidentes:
     def actualizar_estado(id_incidente, nuevo_estado):
         try:
             sql = """
-                UPDATE incidentes
+                UPDATE INCIDENTE
                 SET estado = %s,
                     fecha_resolucion = CASE
-                        WHEN %s IN ('R', 'C') THEN NOW()
+                        WHEN %s IN ('C') THEN NOW()
                         ELSE fecha_resolucion
                     END,
                     tiempo_reparacion = CASE
-                        WHEN %s IN ('R', 'C') THEN NOW() - fecha_reporte
+                        WHEN %s IN ('C') THEN NOW() - fecha_reporte
                         ELSE tiempo_reparacion
                     END
                 WHERE id_incidente = %s;
@@ -174,8 +187,8 @@ class ControlIncidentes:
 
             sql = """
                 SELECT id_incidente, titulo
-                FROM incidentes
-                WHERE estado != 'Diagnosticado';
+                FROM INCIDENTE
+                WHERE estado NOT IN ('C');
             """
 
             with conexion.cursor() as cursor:
@@ -264,14 +277,14 @@ class ControlIncidentes:
                                 ROUND(AVG(EXTRACT(EPOCH FROM (fecha_resolucion - fecha_reporte)) / 3600), 2)
                             ELSE 0
                         END AS mttr_global
-                    FROM incidentes
-                    WHERE estado IN ('R', 'C', 'resuelto', 'cerrado');
+                    FROM INCIDENTE
+                    WHERE estado IN ('C');
                 """)
                 resultado = cursor.fetchone()
                 mttr_global = float(resultado[0]) if resultado and resultado[0] else 0.0
 
                 # Total de incidentes
-                cursor.execute("SELECT COUNT(*) FROM incidentes;")
+                cursor.execute("SELECT COUNT(*) FROM INCIDENTE;")
                 total_incidentes = cursor.fetchone()[0] or 0
 
                 # Mejor categoría (menor MTTR) con datos reales
@@ -285,9 +298,9 @@ class ControlIncidentes:
                                 ROUND(AVG(EXTRACT(EPOCH FROM (i.fecha_resolucion - i.fecha_reporte)) / 3600), 2)
                             ELSE 999999
                         END AS mttr
-                    FROM incidentes i
-                    LEFT JOIN categorias c ON i.id_categoria = c.id_categoria
-                    WHERE i.estado IN ('R', 'C', 'resuelto', 'cerrado')
+                    FROM INCIDENTE i
+                    LEFT JOIN CATEGORIA c ON i.id_categoria = c.id_categoria
+                    WHERE i.estado IN ('C')
                     GROUP BY c.nombre
                     HAVING COUNT(i.id_incidente) > 0
                     ORDER BY mttr ASC
@@ -308,9 +321,9 @@ class ControlIncidentes:
                                 ROUND(AVG(EXTRACT(EPOCH FROM (i.fecha_resolucion - i.fecha_reporte)) / 3600), 2)
                             ELSE 0
                         END AS mttr
-                    FROM incidentes i
-                    LEFT JOIN categorias c ON i.id_categoria = c.id_categoria
-                    WHERE i.estado IN ('R', 'C', 'resuelto', 'cerrado')
+                    FROM INCIDENTE i
+                    LEFT JOIN CATEGORIA c ON i.id_categoria = c.id_categoria
+                    WHERE i.estado IN ('C')
                     GROUP BY c.nombre
                     HAVING COUNT(i.id_incidente) > 0
                     ORDER BY mttr DESC
@@ -355,11 +368,11 @@ class ControlIncidentes:
                     END AS mttr_horas,
                     COUNT(i.id_incidente) AS total_incidentes
                 FROM 
-                    incidentes i
+                    INCIDENTE i
                 LEFT JOIN 
-                    categorias c ON i.id_categoria = c.id_categoria
+                    CATEGORIA c ON i.id_categoria = c.id_categoria
                 WHERE 
-                    i.estado IN ('R', 'C', 'resuelto', 'cerrado')
+                    i.estado IN ('C')
                 GROUP BY 
                     c.nombre
                 ORDER BY 
@@ -403,9 +416,9 @@ class ControlIncidentes:
                         ELSE 0
                     END AS mttr_horas
                 FROM 
-                    incidentes
+                    INCIDENTE
                 WHERE 
-                    estado IN ('R', 'C', 'resuelto', 'cerrado')
+                    estado IN ('C')
                     AND COALESCE(fecha_resolucion, fecha_reporte) >= CURRENT_DATE - INTERVAL '%s months'
                 GROUP BY 
                     TO_CHAR(COALESCE(fecha_resolucion, fecha_reporte), 'YYYY-MM')
@@ -442,11 +455,11 @@ class ControlIncidentes:
                 SELECT 
                     COALESCE(c.nombre, 'Sin categoría') AS categoria,
                     COUNT(i.id_incidente) AS cantidad,
-                    ROUND((COUNT(i.id_incidente) * 100.0 / (SELECT COUNT(*) FROM incidentes)), 2) AS porcentaje
+                    ROUND((COUNT(i.id_incidente) * 100.0 / (SELECT COUNT(*) FROM INCIDENTE)), 2) AS porcentaje
                 FROM 
-                    incidentes i
+                    INCIDENTE i
                 LEFT JOIN 
-                    categorias c ON i.id_categoria = c.id_categoria
+                    CATEGORIA c ON i.id_categoria = c.id_categoria
                 GROUP BY 
                     c.nombre
                 ORDER BY 
@@ -480,7 +493,7 @@ class ControlIncidentes:
                 return []
 
             # Construir query dinámicamente
-            where_conditions = ["i.estado IN ('R', 'C', 'resuelto', 'cerrado')"]
+            where_conditions = ["i.estado IN ('C')"]
             params = []
 
             if categoria and categoria.strip() and categoria.lower() != 'todas':
@@ -505,9 +518,9 @@ class ControlIncidentes:
                     END AS mttr_horas,
                     COUNT(i.id_incidente) AS total_incidentes
                 FROM 
-                    incidentes i
+                    INCIDENTE i
                 LEFT JOIN 
-                    categorias c ON i.id_categoria = c.id_categoria
+                    CATEGORIA c ON i.id_categoria = c.id_categoria
                 WHERE 
                     {where_clause}
                 GROUP BY 
@@ -554,8 +567,8 @@ class ControlIncidentes:
 
             sql = """
                 SELECT DISTINCT COALESCE(c.nombre, 'Sin categoría') AS categoria
-                FROM incidentes i
-                LEFT JOIN categorias c ON i.id_categoria = c.id_categoria
+                FROM INCIDENTE i
+                LEFT JOIN CATEGORIA c ON i.id_categoria = c.id_categoria
                 WHERE c.nombre IS NOT NULL
                 ORDER BY categoria;
             """

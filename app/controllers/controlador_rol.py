@@ -5,9 +5,9 @@ class ControlRol:
     def buscar_por_IDRol(id_rol):
         try:
             sql = """
-                SELECT * FROM roles WHERE id_rol = %s
+                SELECT * FROM ROL WHERE id_rol = %s
             """
-            atributos = ['id_rol', 'nombre', 'descripcion']
+            atributos = ['id_rol', 'tipo', 'id_area', 'nombre']
 
             conexion = get_connection()
             if not conexion:
@@ -27,11 +27,11 @@ class ControlRol:
             print(f" Error en buscar_por_IDROL => {e}")
             return None
         
-    def insertar_rol(nombre, descripcion):
+    def insertar_rol(tipo, id_area, nombre):
         try:
             sql = """
-                INSERT INTO roles (nombre, descripcion)
-                VALUES (%s, %s)
+                INSERT INTO ROL (tipo, id_area, nombre)
+                VALUES (%s, %s, %s)
                 RETURNING id_rol;
             """
             conexion = get_connection()
@@ -40,7 +40,7 @@ class ControlRol:
                 return False
 
             with conexion.cursor() as cursor:
-                cursor.execute(sql, (nombre, descripcion))
+                cursor.execute(sql, (tipo, id_area, nombre))
                 id_nuevo = cursor.fetchone()[0]
                 conexion.commit()
 
@@ -48,5 +48,6 @@ class ControlRol:
             return True
 
         except Exception as e:
+            print(f"Error al insertar rol => {e}")
             return False
         

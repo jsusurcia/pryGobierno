@@ -2,11 +2,11 @@ from ConexionBD import get_connection
 class controlEvidencias:
 
     @staticmethod
-    def insertar(id_incidente, nombre, url_archivo, nota):
+    def insertar(id_incidente, url_archivo):
         try:
             sql = """
-                INSERT INTO evidencias (id_incidente, nombre, url_archivo, nota, fecha_subida)
-                VALUES (%s, %s, %s, %s, now())
+                INSERT INTO EVIDENCIAS (id_incidente, url_archivo, fecha_subida)
+                VALUES (%s, %s, NOW())
             """
             
             conexion = get_connection()
@@ -15,11 +15,11 @@ class controlEvidencias:
                 return False
             
             with conexion.cursor() as cursor:
-                cursor.execute(sql, (id_incidente, nombre, url_archivo, nota))
+                cursor.execute(sql, (id_incidente, url_archivo))
                 conexion.commit()
             
             conexion.close()
-            print(f"Evidencia '{nombre}' registrada correctamente para el incidente {id_incidente}.")
+            print(f"Evidencia registrada correctamente para el incidente {id_incidente}.")
             return True
         
         except Exception as e:
@@ -34,9 +34,9 @@ class controlEvidencias:
         """
         try:
             sql = """
-                SELECT * FROM evidencias WHERE id_evidencias = %s
+                SELECT * FROM EVIDENCIAS WHERE id_evidencias = %s
             """
-            atributos = ['id_evidencias', 'id_incidente', 'nombre', 'url_archivo', 'nota', 'fecha_subida']
+            atributos = ['id_evidencias', 'id_incidente', 'url_archivo', 'fecha_subida']
             
             conexion = get_connection()
             if not conexion:
@@ -64,9 +64,9 @@ class controlEvidencias:
         """
         try:
             sql = """
-                SELECT * FROM evidencias ORDER BY fecha_subida DESC
+                SELECT * FROM EVIDENCIAS ORDER BY fecha_subida DESC
             """
-            atributos = ['id_evidencias', 'id_incidente', 'nombre', 'url_archivo', 'nota', 'fecha_subida']
+            atributos = ['id_evidencias', 'id_incidente', 'url_archivo', 'fecha_subida']
             
             conexion = get_connection()
             if not conexion:
@@ -88,14 +88,14 @@ class controlEvidencias:
 
 
     @staticmethod
-    def editar(id_evidencias, nombre, url_archivo, nota):
+    def editar(id_evidencias, url_archivo):
         """
-        Actualiza el nombre, URL o nota de una evidencia.
+        Actualiza la URL de una evidencia.
         """
         try:
             sql = """
-                UPDATE evidencias
-                SET nombre = %s, url_archivo = %s, nota = %s
+                UPDATE EVIDENCIAS
+                SET url_archivo = %s
                 WHERE id_evidencias = %s
             """
             
@@ -105,7 +105,7 @@ class controlEvidencias:
                 return False
             
             with conexion.cursor() as cursor:
-                cursor.execute(sql, (nombre, url_archivo, nota, id_evidencias))
+                cursor.execute(sql, (url_archivo, id_evidencias))
                 conexion.commit()
             
             conexion.close()
@@ -124,7 +124,7 @@ class controlEvidencias:
         """
         try:
             sql = """
-                DELETE FROM evidencias WHERE id_evidencias = %s
+                DELETE FROM EVIDENCIAS WHERE id_evidencias = %s
             """
             
             conexion = get_connection()

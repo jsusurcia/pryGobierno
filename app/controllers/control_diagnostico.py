@@ -2,7 +2,10 @@ from ConexionBD import get_connection
 
 class ControlDiagnosticos:
     @staticmethod
-    def insertar_diagnostico(id_incidente, descripcion, causa_raiz, solucion, comentario, usuario_id):
+    def insertar_diagnostico(id_incidente, descripcion, causa_raiz, solucion, comentario=None, usuario_id=None):
+        """
+        Inserta un diagnóstico. El parámetro comentario se mantiene por compatibilidad pero no se usa.
+        """
         try:
             conexion = get_connection()
             if not conexion:
@@ -10,12 +13,12 @@ class ControlDiagnosticos:
                 return -2
 
             sql = """
-                INSERT INTO diagnosticos (id_incidente, descripcion, causa_raiz, solucion_propuesta, comentario_usuario, id_usuario)
-                VALUES (%s, %s, %s, %s, %s, %s);
+                INSERT INTO DIAGNOSTICO (id_incidente, descripcion, causa_raiz, solucion_propuesta, id_usuario)
+                VALUES (%s, %s, %s, %s, %s);
             """
 
             with conexion.cursor() as cursor:
-                cursor.execute(sql, (id_incidente, descripcion, causa_raiz, solucion, comentario, usuario_id))
+                cursor.execute(sql, (id_incidente, descripcion, causa_raiz, solucion, usuario_id))
                 conexion.commit()
 
             conexion.close()
@@ -28,12 +31,12 @@ class ControlDiagnosticos:
     def buscar_por_IDDiagnostico(id_diagnosticos):
         try:
             sql = """
-                SELECT * FROM diagnosticos WHERE id_diagnosticos = %s
+                SELECT * FROM DIAGNOSTICO WHERE id_diagnosticos = %s
             """
             atributos = [
                 'id_diagnosticos', 'id_incidente', 'id_usuario', 
                 'descripcion', 'causa_raiz', 'solucion_propuesta', 
-                'comentario_usuario', 'fecha_diagnostico', 'fecha_actualizacion'
+                'fecha_diagnostico', 'fecha_actualizacion'
             ]
 
             conexion = get_connection()
@@ -55,11 +58,11 @@ class ControlDiagnosticos:
     
     def listar_diagnosticos(self):
         try:
-            sql = "SELECT * FROM diagnosticos ORDER BY id_diagnosticos DESC"
+            sql = "SELECT * FROM DIAGNOSTICO ORDER BY id_diagnosticos DESC"
             atributos = [
                 'id_diagnosticos', 'id_incidente', 'id_usuario', 
                 'descripcion', 'causa_raiz', 'solucion_propuesta', 
-                'comentario_usuario', 'fecha_diagnostico', 'fecha_actualizacion'
+                'fecha_diagnostico', 'fecha_actualizacion'
             ]
 
             conexion = get_connection()
@@ -91,7 +94,7 @@ class ControlDiagnosticos:
                 return []
 
             sql = """
-                SELECT * FROM diagnosticos
+                SELECT * FROM DIAGNOSTICO
                 WHERE id_usuario = %s
                 ORDER BY id_diagnosticos DESC;
             """
@@ -105,7 +108,7 @@ class ControlDiagnosticos:
             columnas = [
                 'id_diagnosticos', 'id_incidente', 'id_usuario',
                 'descripcion', 'causa_raiz', 'solucion_propuesta',
-                'comentario_usuario', 'fecha_diagnostico', 'fecha_actualizacion'
+                'fecha_diagnostico', 'fecha_actualizacion'
             ]
 
             return [dict(zip(columnas, fila)) for fila in diagnosticos]
@@ -133,11 +136,10 @@ class ControlDiagnosticos:
                     d.descripcion, 
                     d.causa_raiz, 
                     d.solucion_propuesta,
-                    d.comentario_usuario,
                     d.fecha_diagnostico,
                     d.fecha_actualizacion
-                FROM diagnosticos d
-                LEFT JOIN incidentes i ON d.id_incidente = i.id_incidente
+                FROM DIAGNOSTICO d
+                LEFT JOIN INCIDENTE i ON d.id_incidente = i.id_incidente
                 where i.estado = 'P'
                 ORDER BY d.id_diagnosticos DESC;
             """
@@ -151,7 +153,7 @@ class ControlDiagnosticos:
             columnas = [
                 'id_diagnosticos', 'id_incidente', 'titulo_incidente',
                 'descripcion', 'causa_raiz', 'solucion_propuesta',
-                'comentario_usuario', 'fecha_diagnostico', 'fecha_actualizacion'
+                'fecha_diagnostico', 'fecha_actualizacion'
             ]
 
             return [dict(zip(columnas, fila)) for fila in diagnosticos]
@@ -162,14 +164,13 @@ class ControlDiagnosticos:
 
 
     
-    def actualizar_diagnostico(id_diagnosticos, descripcion, causa_raiz, solucion_propuesta, comentario_usuario):
+    def actualizar_diagnostico(id_diagnosticos, descripcion, causa_raiz, solucion_propuesta):
         try:
             sql = """
-                UPDATE diagnosticos
+                UPDATE DIAGNOSTICO
                 SET descripcion = %s,
                     causa_raiz = %s,
                     solucion_propuesta = %s,
-                    comentario_usuario = %s,
                     fecha_actualizacion = NOW()
                 WHERE id_diagnosticos = %s;
             """
@@ -179,7 +180,7 @@ class ControlDiagnosticos:
                 return -2
 
             with conexion.cursor() as cursor:
-                cursor.execute(sql, (descripcion, causa_raiz, solucion_propuesta, comentario_usuario, id_diagnosticos))
+                cursor.execute(sql, (descripcion, causa_raiz, solucion_propuesta, id_diagnosticos))
                 conexion.commit()
 
             conexion.close()
@@ -198,9 +199,8 @@ class ControlDiagnosticos:
                 return False
 
             sql = """
-                UPDATE incidentes
-                SET estado = 'R',
-                id_diagnosticos = %s
+                UPDATE INCIDENTE
+                SET estado = 'A'
                 WHERE id_incidente = %s;
             """
 
@@ -224,14 +224,13 @@ class ControlDiagnosticos:
                 return False
 
             sql = """
-                UPDATE incidentes
-                SET estado = 'C',
-                id_diagnosticos = %s
+                UPDATE INCIDENTE
+                SET estado = 'C'
                 WHERE id_incidente = %s;
             """
 
             with conexion.cursor() as cursor:
-                cursor.execute(sql, (id_diagnostico, id_incidente))
+                cursor.execute(sql, (id_incidente,))
                 conexion.commit()
 
             conexion.close()
@@ -249,8 +248,8 @@ class ControlDiagnosticos:
             SELECT d.id_diagnosticos, d.id_incidente, i.descripcion, 
                 d.fecha_diagnostico, d.fecha_actualizacion, 
                 d.causa_raiz, d.solucion_propuesta
-            FROM diagnosticos d
-            JOIN incidentes i ON d.id_incidente = i.id_incidente
+            FROM DIAGNOSTICO d
+            JOIN INCIDENTE i ON d.id_incidente = i.id_incidente
             WHERE (%s = '' OR i.descripcion ILIKE %s)
             AND (%s = '' OR d.causa_raiz ILIKE %s)
             AND d.id_usuario = %s

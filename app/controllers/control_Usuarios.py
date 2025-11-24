@@ -9,7 +9,7 @@ class controlUsuarios:
         """
         try:
             sql = """
-                INSERT INTO usuarios (nombre, ape_pat, ape_mat, correo, contrasena, id_rol, estado, fecha_creacion)
+                INSERT INTO USUARIO (nombre, ape_pat, ape_mat, correo, contrasena, id_rol, estado, fecha_creacion)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
             """
             
@@ -33,7 +33,7 @@ class controlUsuarios:
     def buscar_por_ID(id_usuario):
         try:
             sql = """
-                SELECT * FROM USUARIOS WHERE id_usuario = %s
+                SELECT * FROM USUARIO WHERE id_usuario = %s
             """
             atributos = ['id_usuario', 'nombre', 'ape_pat', 'ape_mat', 'correo', 'contrasena', 'id_rol', 'estado', 'fecha_creacion']
             
@@ -59,7 +59,7 @@ class controlUsuarios:
     def buscar_todos():
         try:
             sql = """
-                SELECT * FROM USUARIOS
+                SELECT * FROM USUARIO
             """
             atributos = ['idProducto', 'nombre', 'descripcion', 'precio', 'stock', 'activo', 'categoria', 'fechaCreacion', 'imagenURL']
             
@@ -85,7 +85,7 @@ class controlUsuarios:
     def editar_usuario(id_usuario, nombre, ape_pat, ape_mat, correo, contrasena, id_rol, estado):
         try:
             sql = """
-                UPDATE USUARIOS
+                UPDATE USUARIO
                 SET nombre = %s,
                     ape_pat = %s,
                     ape_mat = %s,
@@ -117,7 +117,7 @@ class controlUsuarios:
     def buscar_por_correo(correo, contrasena):
         try:
             sql = """
-                SELECT * FROM usuarios WHERE correo = %s AND contrasena = %s
+                SELECT * FROM USUARIO WHERE correo = %s AND contrasena = %s
             """
             atributos = [
                 'id_usuario', 'nombre', 'ape_pat', 'ape_mat', 
@@ -148,7 +148,7 @@ class controlUsuarios:
         try:
             sql = """
                 SELECT id_usuario, nombre, ape_pat, ape_mat, correo, id_rol, estado
-                FROM usuarios
+                FROM USUARIO
                 WHERE correo = %s AND contrasena = %s
             """
 

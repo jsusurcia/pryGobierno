@@ -9,55 +9,30 @@ class ControlIncidentes:
                 print("No se pudo conectar a la base de datos.")
                 return -2
 
-            # Intentar insertar sin nivel primero (si la BD lo permite)
+            # Si no se proporciona nivel, usar 'B' (Bajo) como valor por defecto
+            # El jefe de TI puede cambiarlo después cuando acepte el incidente
             if nivel is None:
-                try:
-                    sql = """
-                        INSERT INTO INCIDENTE (titulo, descripcion, id_categoria, id_usuario, estado)
-                        VALUES (%s, %s, %s, %s, 'P')
-                        RETURNING id_incidente;
-                    """
-                    with conexion.cursor() as cursor:
-                        cursor.execute(sql, (titulo, descripcion, id_categoria, id_usuario))
-                        id_incidente = cursor.fetchone()[0]
-                        conexion.commit()
-                    conexion.close()
-                    print(f"✅ Incidente creado sin nivel (será asignado por el jefe de TI)")
-                    return id_incidente
-                except Exception as e1:
-                    # Si falla porque nivel es NOT NULL, intentar con NULL
-                    print(f"⚠️ No se pudo insertar sin nivel, intentando con NULL: {e1}")
-                    try:
-                        sql = """
-                            INSERT INTO INCIDENTE (titulo, descripcion, id_categoria, id_usuario, nivel, estado)
-                            VALUES (%s, %s, %s, %s, NULL, 'P')
-                            RETURNING id_incidente;
-                        """
-                        with conexion.cursor() as cursor:
-                            cursor.execute(sql, (titulo, descripcion, id_categoria, id_usuario))
-                            id_incidente = cursor.fetchone()[0]
-                            conexion.commit()
-                        conexion.close()
-                        print(f"✅ Incidente creado con nivel NULL")
-                        return id_incidente
-                    except Exception as e2:
-                        print(f"❌ Error al insertar con NULL: {e2}")
-                        # Si también falla, la BD requiere un valor, pero no lo asignaremos aquí
-                        conexion.close()
-                        raise e2
-            else:
-                # Si se proporciona nivel, insertarlo normalmente
-                sql = """
-                    INSERT INTO INCIDENTE (titulo, descripcion, id_categoria, id_usuario, nivel, estado)
-                    VALUES (%s, %s, %s, %s, %s, 'P')
-                    RETURNING id_incidente;
-                """
-                with conexion.cursor() as cursor:
-                    cursor.execute(sql, (titulo, descripcion, id_categoria, id_usuario, nivel))
-                    id_incidente = cursor.fetchone()[0]
-                    conexion.commit()
-                conexion.close()
-                return id_incidente
+                nivel = 'B'  # Valor por defecto: Bajo
+                print(f"ℹ️ Asignando nivel por defecto 'B' (Bajo). El jefe de TI puede cambiarlo después.")
+            
+            # Validar que el nivel sea válido
+            if nivel not in ['B', 'M', 'A', 'C']:
+                print(f"⚠️ Nivel '{nivel}' no es válido, usando 'B' por defecto")
+                nivel = 'B'
+            
+            # Insertar incidente con nivel
+            sql = """
+                INSERT INTO INCIDENTE (titulo, descripcion, id_categoria, id_usuario, nivel, estado)
+                VALUES (%s, %s, %s, %s, %s, 'P')
+                RETURNING id_incidente;
+            """
+            with conexion.cursor() as cursor:
+                cursor.execute(sql, (titulo, descripcion, id_categoria, id_usuario, nivel))
+                id_incidente = cursor.fetchone()[0]
+                conexion.commit()
+            conexion.close()
+            print(f"✅ Incidente creado con nivel '{nivel}' (ID: {id_incidente})")
+            return id_incidente
                 
         except Exception as e:
             print(f"❌ Error en insertar => {e}")

@@ -252,10 +252,13 @@ document.addEventListener('DOMContentLoaded', function() {
   <div class="bg-white rounded-2xl shadow-2xl max-w-4xl w-full my-8 transform transition-all">
     
     <!-- Header del Modal -->
-    <div class="flex items-center justify-between p-6 border-b border-gray-200 sticky top-0 bg-white z-10">
-      <h3 class="text-2xl font-bold text-gray-900">Detalle del Incidente</h3>
+    <div class="flex items-center justify-between p-6 md:p-8 border-b border-gray-200 sticky top-0 bg-white z-10 shadow-sm">
+      <div>
+        <h3 class="text-2xl md:text-3xl font-bold text-gray-900 mb-1">Detalle del Incidente</h3>
+        <p id="modal-fecha-header" class="text-sm text-gray-500">-</p>
+      </div>
       <button onclick="cerrarModalDetalle()" 
-              class="text-gray-400 hover:text-gray-600 transition"
+              class="text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg p-2 transition"
               aria-label="Cerrar modal">
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
@@ -264,57 +267,77 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
 
     <!-- Cuerpo del Modal -->
-    <div class="p-6 space-y-6">
-      <!-- Información Principal -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <span class="block text-sm text-gray-500 font-medium mb-1">Título:</span>
-          <p id="modal-titulo" class="text-gray-800 font-semibold text-lg">-</p>
-        </div>
-        <div>
-          <span class="block text-sm text-gray-500 font-medium mb-1">Estado:</span>
-          <p id="modal-estado" class="text-gray-700">-</p>
-        </div>
-        <div>
-          <span class="block text-sm text-gray-500 font-medium mb-1">Categoría:</span>
-          <p id="modal-categoria" class="text-gray-700">-</p>
-        </div>
-        <div>
-          <span class="block text-sm text-gray-500 font-medium mb-1">Área de Origen:</span>
-          <p id="modal-area" class="text-gray-700">-</p>
-        </div>
-        <div>
-          <span class="block text-sm text-gray-500 font-medium mb-1">Reportado por:</span>
-          <p id="modal-reportado-por" class="text-gray-700">-</p>
-        </div>
-        <div>
-          <span class="block text-sm text-gray-500 font-medium mb-1">Fecha de Registro:</span>
-          <p id="modal-fecha" class="text-gray-700">-</p>
-        </div>
-        <div>
-          <span class="block text-sm text-gray-500 font-medium mb-1">Nivel de Prioridad:</span>
-          <p id="modal-nivel" class="text-gray-700">-</p>
+    <div class="p-6 md:p-8 space-y-6 max-h-[calc(100vh-200px)] overflow-y-auto">
+      <!-- Título Principal -->
+      <div class="border-b border-gray-200 pb-4 mb-6">
+        <h4 id="modal-titulo" class="text-2xl font-bold text-gray-900 mb-2">-</h4>
+        <div class="flex flex-wrap items-center gap-3">
+          <span id="modal-estado" class="text-sm">-</span>
+          <span class="text-gray-300">•</span>
+          <span id="modal-nivel" class="text-sm text-gray-600">-</span>
         </div>
       </div>
 
-      <div>
-        <span class="block text-sm text-gray-500 font-medium mb-2">Descripción:</span>
-        <p id="modal-descripcion" class="text-gray-700 bg-gray-50 p-4 rounded-lg">-</p>
+      <!-- Información Principal en Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+          <span class="block text-xs text-gray-500 font-semibold uppercase tracking-wide mb-1">Categoría</span>
+          <p id="modal-categoria" class="text-gray-900 font-medium">-</p>
+        </div>
+        <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+          <span class="block text-xs text-gray-500 font-semibold uppercase tracking-wide mb-1">Área de Origen</span>
+          <p id="modal-area" class="text-gray-900 font-medium">-</p>
+        </div>
+        <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+          <span class="block text-xs text-gray-500 font-semibold uppercase tracking-wide mb-1">Reportado por</span>
+          <p id="modal-reportado-por" class="text-gray-900 font-medium">-</p>
+        </div>
+        <div class="bg-gray-50 rounded-lg p-4 border border-gray-200 md:col-span-2 lg:col-span-1">
+          <span class="block text-xs text-gray-500 font-semibold uppercase tracking-wide mb-1">Fecha de Registro</span>
+          <p id="modal-fecha" class="text-gray-900 font-medium">-</p>
+        </div>
+      </div>
+
+      <!-- Descripción -->
+      <div class="bg-blue-50 rounded-xl p-5 border border-blue-100">
+        <h5 class="text-sm font-semibold text-gray-700 mb-3 flex items-center">
+          <svg class="w-4 h-4 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+          </svg>
+          Descripción del Incidente
+        </h5>
+        <p id="modal-descripcion" class="text-gray-800 leading-relaxed whitespace-pre-wrap">-</p>
       </div>
 
       <!-- Evidencias -->
-      <div>
-        <span class="block text-sm text-gray-500 font-medium mb-3">Evidencias:</span>
+      <div class="bg-white rounded-xl border border-gray-200 p-5">
+        <h5 class="text-sm font-semibold text-gray-700 mb-4 flex items-center">
+          <svg class="w-4 h-4 mr-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+          </svg>
+          Evidencias
+        </h5>
         <div id="modal-evidencia-container" class="space-y-4">
-          <p class="text-gray-500 text-sm">Cargando evidencias...</p>
+          <div class="flex items-center justify-center py-8">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <span class="ml-3 text-gray-500 text-sm">Cargando evidencias...</span>
+          </div>
         </div>
       </div>
 
       <!-- Historial -->
-      <div>
-        <span class="block text-sm text-gray-500 font-medium mb-3">Historial de Cambios:</span>
-        <div id="modal-historial-container" class="space-y-3 max-h-96 overflow-y-auto">
-          <p class="text-gray-500 text-sm">Cargando historial...</p>
+      <div class="bg-white rounded-xl border border-gray-200 p-5">
+        <h5 class="text-sm font-semibold text-gray-700 mb-4 flex items-center">
+          <svg class="w-4 h-4 mr-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          Historial de Cambios
+        </h5>
+        <div id="modal-historial-container" class="space-y-3 max-h-80 overflow-y-auto pr-2">
+          <div class="flex items-center justify-center py-8">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <span class="ml-3 text-gray-500 text-sm">Cargando historial...</span>
+          </div>
         </div>
       </div>
     </div>
@@ -386,7 +409,12 @@ document.addEventListener('DOMContentLoaded', function() {
           document.getElementById('modal-categoria').textContent = incidente.categoria || categoria;
           document.getElementById('modal-area').textContent = incidente.area || 'N/A';
           document.getElementById('modal-reportado-por').textContent = incidente.reportado_por || 'N/A';
-          document.getElementById('modal-fecha').textContent = incidente.fecha_reporte ? new Date(incidente.fecha_reporte).toLocaleString('es-ES') : fecha;
+          const fechaFormateada = incidente.fecha_reporte ? new Date(incidente.fecha_reporte).toLocaleString('es-ES') : fecha;
+          document.getElementById('modal-fecha').textContent = fechaFormateada;
+          const fechaHeader = document.getElementById('modal-fecha-header');
+          if (fechaHeader) {
+            fechaHeader.textContent = fechaFormateada;
+          }
           
           // Nivel de prioridad
           const nivelMap = {
@@ -458,24 +486,31 @@ document.addEventListener('DOMContentLoaded', function() {
     const container = document.getElementById('modal-evidencia-container');
     
     if (!evidencias || evidencias.length === 0) {
-      container.innerHTML = '<p class="text-gray-500 text-sm italic">No hay evidencias disponibles</p>';
+      container.innerHTML = `
+        <div class="text-center py-8">
+          <svg class="w-12 h-12 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+          </svg>
+          <p class="text-gray-500 text-sm italic">No hay evidencias disponibles</p>
+        </div>
+      `;
       return;
     }
 
     if (evidencias.length === 1) {
       // Una sola imagen
       container.innerHTML = `
-        <div class="flex justify-center">
+        <div class="flex justify-center bg-gray-50 rounded-lg p-4 border border-gray-200">
           <img src="${evidencias[0].url_archivo}" 
                alt="Evidencia" 
-               class="max-w-full h-auto rounded-lg shadow-md object-contain"
-               style="max-height: 400px;">
+               class="max-w-full h-auto rounded-lg shadow-sm object-contain"
+               style="max-height: 500px;">
         </div>
       `;
     } else {
       // Carrusel para múltiples imágenes
       let carouselHTML = `
-        <div class="relative">
+        <div class="relative bg-gray-50 rounded-lg p-4 border border-gray-200">
           <div id="evidencia-carousel" class="relative overflow-hidden rounded-lg">
             <div class="flex transition-transform duration-300 ease-in-out" id="evidencia-slides">
       `;
@@ -485,8 +520,8 @@ document.addEventListener('DOMContentLoaded', function() {
           <div class="min-w-full flex justify-center ${index === 0 ? '' : 'hidden'}" data-slide="${index}">
             <img src="${evidencia.url_archivo}" 
                  alt="Evidencia ${index + 1}" 
-                 class="max-w-full h-auto rounded-lg shadow-md object-contain"
-                 style="max-height: 400px;">
+                 class="max-w-full h-auto rounded-lg shadow-sm object-contain"
+                 style="max-height: 500px;">
           </div>
         `;
       });
@@ -494,17 +529,19 @@ document.addEventListener('DOMContentLoaded', function() {
       carouselHTML += `
             </div>
           </div>
-          <div class="flex justify-center items-center mt-4 space-x-2">
+          <div class="flex justify-center items-center mt-4 space-x-4">
             <button onclick="cambiarEvidencia(-1)" 
-                    class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg transition">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    class="px-4 py-2 bg-white hover:bg-gray-100 border border-gray-300 rounded-lg transition shadow-sm">
+              <svg class="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
               </svg>
             </button>
-            <span id="evidencia-indicador" class="text-sm text-gray-600">1 / ${evidencias.length}</span>
+            <span id="evidencia-indicador" class="text-sm font-medium text-gray-700 bg-white px-4 py-2 rounded-lg border border-gray-300 shadow-sm">
+              ${evidencias.length > 0 ? '1' : '0'} / ${evidencias.length}
+            </span>
             <button onclick="cambiarEvidencia(1)" 
-                    class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg transition">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    class="px-4 py-2 bg-white hover:bg-gray-100 border border-gray-300 rounded-lg transition shadow-sm">
+              <svg class="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
               </svg>
             </button>
@@ -559,15 +596,20 @@ document.addEventListener('DOMContentLoaded', function() {
       const fechaCreacion = incidente.fecha_reporte ? new Date(incidente.fecha_reporte).toLocaleString('es-ES') : 'N/A';
       
       container.innerHTML = `
-        <div class="border-l-4 border-blue-500 pl-4 py-2">
-          <div class="flex items-center justify-between">
-            <div>
-              <p class="font-semibold text-gray-800">Estado inicial: ${estadoActual}</p>
-              <p class="text-sm text-gray-500">${fechaCreacion}</p>
+        <div class="border-l-4 border-blue-500 bg-blue-50 pl-5 pr-4 py-4 rounded-r-lg">
+          <div class="flex items-start">
+            <div class="flex-shrink-0">
+              <div class="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
+            </div>
+            <div class="ml-3 flex-1">
+              <p class="font-semibold text-gray-900">Estado inicial: ${estadoActual}</p>
+              <p class="text-sm text-gray-600 mt-1">${fechaCreacion}</p>
             </div>
           </div>
         </div>
-        <p class="text-gray-500 text-sm italic mt-2">No hay cambios registrados en el historial</p>
+        <div class="text-center py-4">
+          <p class="text-gray-500 text-sm italic">No hay cambios registrados en el historial</p>
+        </div>
       `;
       return;
     }
@@ -576,28 +618,42 @@ document.addEventListener('DOMContentLoaded', function() {
     
     historial.forEach((cambio, index) => {
       const fecha = cambio.fecha ? new Date(cambio.fecha).toLocaleString('es-ES') : 'N/A';
-      const colorBorde = index === 0 ? 'border-blue-500' : 'border-gray-300';
+      const esReciente = index === 0;
+      const colorBorde = esReciente ? 'border-blue-500' : 'border-gray-300';
+      const bgColor = esReciente ? 'bg-blue-50' : 'bg-gray-50';
       
       historialHTML += `
-        <div class="border-l-4 ${colorBorde} pl-4 py-3 bg-gray-50 rounded-r-lg">
-          <div class="flex items-start justify-between">
-            <div class="flex-1">
+        <div class="border-l-4 ${colorBorde} ${bgColor} pl-5 pr-4 py-4 rounded-r-lg ${index < historial.length - 1 ? 'mb-3' : ''}">
+          <div class="flex items-start">
+            <div class="flex-shrink-0">
+              <div class="w-2 h-2 ${esReciente ? 'bg-blue-500' : 'bg-gray-400'} rounded-full mt-2"></div>
+            </div>
+            <div class="ml-3 flex-1">
               ${cambio.estado_anterior && cambio.estado_nuevo ? `
-                <p class="font-semibold text-gray-800">
-                  Estado: <span class="text-gray-600">${cambio.estado_anterior}</span> 
-                  → <span class="text-blue-600">${cambio.estado_nuevo}</span>
+                <p class="font-semibold text-gray-900 mb-1">
+                  Estado: <span class="text-gray-600 font-normal">${cambio.estado_anterior}</span> 
+                  <span class="mx-2 text-gray-400">→</span>
+                  <span class="text-blue-600 font-medium">${cambio.estado_nuevo}</span>
                 </p>
               ` : ''}
               ${cambio.prioridad_anterior && cambio.prioridad_nueva ? `
-                <p class="text-sm text-gray-700 mt-1">
+                <p class="text-sm text-gray-700 mt-2">
                   Prioridad: <span class="text-gray-600">${cambio.prioridad_anterior}</span> 
-                  → <span class="text-blue-600">${cambio.prioridad_nueva}</span>
+                  <span class="mx-2 text-gray-400">→</span>
+                  <span class="text-blue-600 font-medium">${cambio.prioridad_nueva}</span>
                 </p>
               ` : ''}
               ${cambio.observacion ? `
-                <p class="text-sm text-gray-600 mt-2 italic">${cambio.observacion}</p>
+                <p class="text-sm text-gray-700 mt-3 leading-relaxed bg-white/60 rounded-md p-3 border border-gray-200">
+                  ${cambio.observacion}
+                </p>
               ` : ''}
-              <p class="text-xs text-gray-500 mt-2">${fecha}</p>
+              <p class="text-xs text-gray-500 mt-3 flex items-center">
+                <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                ${fecha}
+              </p>
             </div>
           </div>
         </div>

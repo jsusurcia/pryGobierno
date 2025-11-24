@@ -40,22 +40,41 @@ def allowed_file(filename):
 def subir_a_cloudinary(archivo, id_incidente):
     """Sube un archivo a Cloudinary y retorna la URL"""
     try:
+        from io import BytesIO
+        import uuid
+        import hashlib
+        
+        # Obtener el nombre del archivo
+        nombre_archivo = getattr(archivo, 'filename', None) or getattr(archivo, 'name', 'archivo')
+        
         # Asegurarse de que el archivo esté al inicio
         archivo.seek(0)
         
-        # Leer el contenido del archivo en memoria para evitar problemas con el stream
-        from io import BytesIO
-        archivo_data = archivo.read()
-        archivo.seek(0)  # Volver al inicio
+        # Si ya es un BytesIO, usar directamente; si no, leer en memoria
+        if isinstance(archivo, BytesIO):
+            archivo_stream = archivo
+            archivo_stream.seek(0)
+            # Leer datos para generar hash único
+            archivo_data = archivo_stream.read()
+            archivo_stream.seek(0)
+        else:
+            # Leer el contenido del archivo en memoria para evitar problemas con el stream
+            archivo_data = archivo.read()
+            archivo.seek(0)  # Volver al inicio
+            
+            # Crear un nuevo stream desde los datos
+            archivo_stream = BytesIO(archivo_data)
         
-        # Crear un nuevo stream desde los datos
-        archivo_stream = BytesIO(archivo_data)
-        
-        # Generar nombre único
+        # Generar nombre único con múltiples factores para evitar colisiones
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_%f')
-        nombre_seguro = secure_filename(archivo.filename)
+        # Generar hash del contenido para garantizar unicidad
+        hash_contenido = hashlib.md5(archivo_data).hexdigest()[:8]
+        # Generar UUID corto adicional
+        uuid_corto = str(uuid.uuid4())[:8]
+        nombre_seguro = secure_filename(nombre_archivo)
         nombre_base = nombre_seguro.rsplit('.', 1)[0] if '.' in nombre_seguro else nombre_seguro
-        public_id = f"incidentes_{id_incidente}_{timestamp}_{nombre_base}"
+        # Public ID único: incidente_id + timestamp + hash + uuid + nombre
+        public_id = f"incidentes_{id_incidente}_{timestamp}_{hash_contenido}_{uuid_corto}_{nombre_base}"
         
         # Subir a Cloudinary (solo imágenes)
         resultado = cloudinary.uploader.upload(
@@ -63,14 +82,15 @@ def subir_a_cloudinary(archivo, id_incidente):
             public_id=public_id,
             resource_type="image",  # Solo imágenes
             folder="evidencias_incidentes",
-            overwrite=False
+            overwrite=False  # No sobrescribir si existe (aunque con este ID único nunca debería pasar)
         )
         
         url = resultado.get('secure_url')
-        print(f"✅ Archivo '{archivo.filename}' subido exitosamente a Cloudinary")
+        print(f"   ✅ Archivo '{nombre_archivo}' subido exitosamente a Cloudinary (ID: {public_id})")
         return url
     except Exception as e:
-        print(f"❌ Error al subir '{archivo.filename}' a Cloudinary: {e}")
+        nombre_archivo = getattr(archivo, 'filename', None) or getattr(archivo, 'name', 'archivo')
+        print(f"❌ Error al subir '{nombre_archivo}' a Cloudinary: {e}")
         import traceback
         traceback.print_exc()
         return None  
@@ -433,10 +453,11 @@ def registrar_incidente():
         id_categoria = int(categoria)
         id_usuario = int(session['user_id'])
         
-        # Insertar incidente (estado P por defecto)
-        # El nivel de prioridad será asignado por el jefe de TI (id_rol=1) cuando acepte el incidente
+        # Insertar incidente (estado P por defecto, nivel B por defecto)
+        # El nivel de prioridad se asigna como 'B' (Bajo) por defecto
+        # El jefe de TI puede cambiarlo después cuando acepte el incidente
         resultado = ControlIncidentes.insertar_incidentes(
-            titulo, descripcion, id_categoria, id_usuario, None  # Sin nivel, será asignado por el jefe de TI
+            titulo, descripcion, id_categoria, id_usuario, None  # None = se usará 'B' por defecto
         )
         
         if resultado > 0:  # Retorna el ID del incidente
@@ -448,62 +469,75 @@ def registrar_incidente():
                 archivos_subidos = 0
                 archivos_procesados = 0
                 
-                # Limitar a máximo 5 archivos
-                archivos_limite = archivos[:5]
+                print(f"📁 Total de archivos recibidos: {len(archivos)}")
                 
-                for idx, archivo in enumerate(archivos_limite):
-                    if not archivo or not archivo.filename:
-                        print(f"Archivo {idx + 1} vacío o sin nombre, saltando...")
+                # Filtrar archivos vacíos y limitar a máximo 5 archivos válidos
+                archivos_validos = []
+                for archivo in archivos:
+                    if archivo and archivo.filename:
+                        archivos_validos.append(archivo)
+                        if len(archivos_validos) >= 5:
+                            break
+                
+                print(f"📁 Archivos válidos a procesar: {len(archivos_validos)}")
+                
+                for idx, archivo in enumerate(archivos_validos):
+                    nombre_archivo = archivo.filename
+                    print(f"\n🔄 Procesando archivo {idx + 1}/{len(archivos_validos)}: {nombre_archivo}")
+                    
+                    # Leer el archivo completo en memoria primero
+                    try:
+                        from io import BytesIO
+                        archivo.seek(0)
+                        archivo_data = archivo.read()
+                        tamaño = len(archivo_data)
+                        print(f"   Tamaño: {tamaño / (1024*1024):.2f} MB")
+                    except Exception as e:
+                        print(f"❌ Error al leer archivo {nombre_archivo}: {e}")
                         continue
                     
                     # Validar que sea imagen
-                    if not archivo.filename.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.webp')):
-                        print(f"Archivo {archivo.filename} no es una imagen válida")
+                    if not nombre_archivo.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.webp')):
+                        print(f"❌ Archivo {nombre_archivo} no es una imagen válida")
                         continue
                     
                     # Validar tamaño (10MB)
-                    try:
-                        archivo.seek(0, os.SEEK_END)
-                        tamaño = archivo.tell()
-                        archivo.seek(0)  # Volver al inicio
-                        
-                        if tamaño > MAX_FILE_SIZE:
-                            print(f"Archivo {archivo.filename} excede 10MB ({tamaño / (1024*1024):.2f}MB)")
-                            continue
-                    except Exception as e:
-                        print(f"Error al validar tamaño de {archivo.filename}: {e}")
+                    if tamaño > MAX_FILE_SIZE:
+                        print(f"❌ Archivo {nombre_archivo} excede 10MB ({tamaño / (1024*1024):.2f}MB)")
+                        continue
+                    
+                    if tamaño == 0:
+                        print(f"❌ Archivo {nombre_archivo} está vacío")
                         continue
                     
                     try:
-                        # Asegurarse de que el archivo esté al inicio antes de subir
-                        archivo.seek(0)
+                        # Crear un nuevo objeto file-like desde los datos en memoria
+                        archivo_stream = BytesIO(archivo_data)
+                        archivo_stream.name = nombre_archivo  # Asignar nombre para Cloudinary
                         
-                        print(f"Subiendo archivo {idx + 1}/{len(archivos_limite)}: {archivo.filename}")
+                        print(f"   ⬆️ Subiendo a Cloudinary...")
                         
                         # Subir a Cloudinary
-                        url_archivo = subir_a_cloudinary(archivo, id_incidente)
+                        url_archivo = subir_a_cloudinary(archivo_stream, id_incidente)
                         
                         if url_archivo:
                             # Guardar URL de Cloudinary en la base de datos
                             if controlEvidencias.insertar(id_incidente, url_archivo):
                                 archivos_subidos += 1
-                                print(f"✅ Evidencia {archivos_subidos} guardada: {archivo.filename}")
+                                print(f"   ✅ Evidencia {archivos_subidos} guardada exitosamente: {nombre_archivo}")
                             else:
-                                print(f"❌ Error al guardar URL en BD: {archivo.filename}")
+                                print(f"   ❌ Error al guardar URL en BD: {nombre_archivo}")
                         else:
-                            print(f"❌ Error: No se pudo subir {archivo.filename} a Cloudinary")
+                            print(f"   ❌ Error: No se pudo subir {nombre_archivo} a Cloudinary")
                     except Exception as e:
-                        print(f"❌ Error al procesar evidencia {archivo.filename}: {e}")
+                        print(f"   ❌ Error al procesar evidencia {nombre_archivo}: {e}")
                         import traceback
                         traceback.print_exc()
                         continue
                     finally:
                         archivos_procesados += 1
-                        # Asegurarse de cerrar el archivo
-                        try:
-                            archivo.close()
-                        except:
-                            pass
+                
+                print(f"\n📊 Resumen: {archivos_subidos} de {len(archivos_validos)} archivos subidos exitosamente")
                 
                 if archivos_subidos > 0:
                     flash(f'¡Incidente registrado exitosamente con {archivos_subidos} evidencia(s)! Será revisado por el Jefe de TI.', 'success')
@@ -1151,6 +1185,154 @@ def api_cancelar_incidente(id_incidente):
         return jsonify({'success': True, 'message': 'Incidente cancelado correctamente'})
     else:
         return jsonify({'success': False, 'message': 'Error al cancelar incidente'}), 500
+
+@app.route('/api/incidente/<int:id_incidente>/evidencias', methods=['POST'])
+def api_agregar_evidencias(id_incidente):
+    """Agregar evidencias (imágenes) a un incidente existente"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'No autorizado'}), 401
+    
+    # Verificar que el incidente existe
+    incidente = ControlIncidentes.buscar_por_IDIncidente(id_incidente)
+    if not incidente:
+        return jsonify({'success': False, 'message': 'Incidente no encontrado'}), 404
+    
+    # Verificar permisos: el usuario que reportó el incidente o técnicos asignados pueden agregar evidencias
+    id_usuario = int(session['user_id'])
+    puede_agregar = False
+    
+    # El usuario que reportó puede agregar evidencias
+    if incidente.get('id_usuario') == id_usuario:
+        puede_agregar = True
+    # Los técnicos asignados también pueden agregar evidencias
+    elif controlUsuarios.es_tecnico_area_1(id_usuario):
+        puede_agregar = True
+    # El jefe de TI también puede
+    elif controlUsuarios.es_jefe_ti(id_usuario):
+        puede_agregar = True
+    
+    if not puede_agregar:
+        return jsonify({'success': False, 'message': 'No tiene permisos para agregar evidencias a este incidente'}), 403
+    
+    try:
+        # Obtener evidencias existentes para verificar límite
+        evidencias_existentes = ControlIncidentes.obtener_evidencias_incidente(id_incidente)
+        cantidad_existente = len(evidencias_existentes)
+        max_evidencias = 5
+        
+        if cantidad_existente >= max_evidencias:
+            return jsonify({
+                'success': False, 
+                'message': f'Ya se alcanzó el límite de {max_evidencias} evidencias por incidente'
+            }), 400
+        
+        # Procesar archivos de evidencias
+        if 'evidencias' not in request.files:
+            return jsonify({'success': False, 'message': 'No se recibieron archivos'}), 400
+        
+        archivos = request.files.getlist('evidencias')
+        archivos_subidos = 0
+        errores = []
+        
+        print(f"📁 Agregando evidencias al incidente {id_incidente}. Total de archivos recibidos: {len(archivos)}")
+        
+        # Filtrar archivos válidos y calcular cuántos se pueden agregar
+        archivos_validos = []
+        espacios_disponibles = max_evidencias - cantidad_existente
+        
+        for archivo in archivos:
+            if archivo and archivo.filename:
+                archivos_validos.append(archivo)
+                if len(archivos_validos) >= espacios_disponibles:
+                    break
+        
+        print(f"📁 Archivos válidos a procesar: {len(archivos_validos)} (espacios disponibles: {espacios_disponibles})")
+        
+        for idx, archivo in enumerate(archivos_validos):
+            nombre_archivo = archivo.filename
+            print(f"\n🔄 Procesando archivo {idx + 1}/{len(archivos_validos)}: {nombre_archivo}")
+            
+            # Leer el archivo completo en memoria primero
+            try:
+                from io import BytesIO
+                archivo.seek(0)
+                archivo_data = archivo.read()
+                tamaño = len(archivo_data)
+                print(f"   Tamaño: {tamaño / (1024*1024):.2f} MB")
+            except Exception as e:
+                print(f"❌ Error al leer archivo {nombre_archivo}: {e}")
+                errores.append(f"Error al leer {nombre_archivo}")
+                continue
+            
+            # Validar que sea imagen
+            if not nombre_archivo.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.webp')):
+                print(f"❌ Archivo {nombre_archivo} no es una imagen válida")
+                errores.append(f"{nombre_archivo} no es una imagen válida")
+                continue
+            
+            # Validar tamaño (10MB)
+            if tamaño > MAX_FILE_SIZE:
+                print(f"❌ Archivo {nombre_archivo} excede 10MB ({tamaño / (1024*1024):.2f}MB)")
+                errores.append(f"{nombre_archivo} excede 10MB")
+                continue
+            
+            if tamaño == 0:
+                print(f"❌ Archivo {nombre_archivo} está vacío")
+                errores.append(f"{nombre_archivo} está vacío")
+                continue
+            
+            try:
+                # Crear un nuevo objeto file-like desde los datos en memoria
+                archivo_stream = BytesIO(archivo_data)
+                archivo_stream.name = nombre_archivo
+                
+                print(f"   ⬆️ Subiendo a Cloudinary...")
+                
+                # Subir a Cloudinary
+                url_archivo = subir_a_cloudinary(archivo_stream, id_incidente)
+                
+                if url_archivo:
+                    # Guardar URL de Cloudinary en la base de datos
+                    if controlEvidencias.insertar(id_incidente, url_archivo):
+                        archivos_subidos += 1
+                        print(f"   ✅ Evidencia {archivos_subidos} agregada exitosamente: {nombre_archivo}")
+                    else:
+                        print(f"   ❌ Error al guardar URL en BD: {nombre_archivo}")
+                        errores.append(f"Error al guardar {nombre_archivo} en la base de datos")
+                else:
+                    print(f"   ❌ Error: No se pudo subir {nombre_archivo} a Cloudinary")
+                    errores.append(f"Error al subir {nombre_archivo} a Cloudinary")
+            except Exception as e:
+                print(f"   ❌ Error al procesar evidencia {nombre_archivo}: {e}")
+                import traceback
+                traceback.print_exc()
+                errores.append(f"Error al procesar {nombre_archivo}: {str(e)}")
+                continue
+        
+        print(f"\n📊 Resumen: {archivos_subidos} de {len(archivos_validos)} archivos agregados exitosamente")
+        
+        if archivos_subidos > 0:
+            mensaje = f'Se agregaron {archivos_subidos} evidencia(s) exitosamente'
+            if errores:
+                mensaje += f'. Errores: {len(errores)} archivo(s) no se pudieron agregar'
+            return jsonify({
+                'success': True, 
+                'message': mensaje,
+                'archivos_subidos': archivos_subidos,
+                'errores': errores if errores else None
+            })
+        else:
+            return jsonify({
+                'success': False, 
+                'message': 'No se pudo agregar ninguna evidencia',
+                'errores': errores
+            }), 400
+            
+    except Exception as e:
+        print(f"Error en api_agregar_evidencias: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'message': f'Error inesperado: {str(e)}'}), 500
 
 @app.route('/asignar_prioridad/<int:id_incidente>', methods=['GET', 'POST'])
 def asignar_prioridad(id_incidente):

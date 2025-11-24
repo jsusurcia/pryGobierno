@@ -36,28 +36,6 @@
                 <img src="{{ url_for('static', filename='img/logo_ensa.png') }}" class="me-3  w-32" alt="Logo Ensa" />
             </a>
             
-            <!-- Notificaciones -->
-            {% if current_user_id %}
-            <div class="mb-4 px-2">
-                <a href="{{ url_for('ver_notificaciones') }}" 
-                   class="flex items-center justify-between p-2 text-gray-900 rounded-lg hover:bg-gray-100 group relative">
-                    <div class="flex items-center">
-                        <svg class="w-5 h-5 text-gray-500 transition duration-75 group-hover:text-gray-900" 
-                             fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                  d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
-                        </svg>
-                        <span class="ms-3">Notificaciones</span>
-                    </div>
-                    {% if notificaciones_no_leidas > 0 %}
-                    <span class="bg-red-500 text-white text-xs font-bold rounded-full px-2 py-0.5 min-w-[20px] text-center">
-                        {{ notificaciones_no_leidas }}
-                    </span>
-                    {% endif %}
-                </a>
-            </div>
-            {% endif %}
-            
             <ul class="space-y-2 font-medium">
                 {% block nav_links %}
                 <!-- Menú por defecto según rol -->
@@ -164,6 +142,56 @@
     </aside>
 
     <div class="p-4 sm:ml-64">
+        <!-- Barra superior con notificaciones -->
+        {% if current_user_id %}
+        <div class="fixed top-4 right-4 z-50">
+            <div class="relative">
+                <button onclick="toggleNotificaciones()" 
+                        class="relative p-3 bg-white rounded-full shadow-lg hover:shadow-xl transition border border-gray-200 hover:bg-gray-50">
+                    <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                              d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                    </svg>
+                    {% if notificaciones_no_leidas > 0 %}
+                    <span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center border-2 border-white">
+                        {{ notificaciones_no_leidas }}
+                    </span>
+                    {% endif %}
+                </button>
+                
+                <!-- Dropdown de notificaciones -->
+                <div id="notificacionesDropdown" 
+                     class="hidden absolute right-0 mt-2 w-96 bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden z-50"
+                     style="max-height: 500px;">
+                    <div class="p-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
+                        <h3 class="font-semibold text-gray-900">Notificaciones</h3>
+                        <div class="flex items-center space-x-2">
+                            <a href="{{ url_for('ver_notificaciones') }}" 
+                               class="text-sm text-blue-600 hover:text-blue-800 font-medium">
+                                Ver todas
+                            </a>
+                            {% if notificaciones_no_leidas > 0 %}
+                            <button onclick="marcarTodasLeidas()" 
+                                    class="text-sm text-gray-600 hover:text-gray-800">
+                                Marcar todas
+                            </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div id="notificacionesLista" class="overflow-y-auto" style="max-height: 400px;">
+                        <!-- Las notificaciones se cargarán aquí via AJAX -->
+                        <div class="p-8 text-center text-gray-500">
+                            <svg class="w-12 h-12 mx-auto mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <p>Cargando notificaciones...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
         <div class="p-4 rounded-lg">
             {% block content %}
             {% endblock content %}
@@ -173,6 +201,133 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.3.0/flowbite.min.js"></script>
 
     {% block scripts %}{% endblock scripts %}
+    
+    {% if current_user_id %}
+    <script>
+    let notificacionesAbiertas = false;
+    
+    function toggleNotificaciones() {
+        const dropdown = document.getElementById('notificacionesDropdown');
+        notificacionesAbiertas = !notificacionesAbiertas;
+        
+        if (notificacionesAbiertas) {
+            dropdown.classList.remove('hidden');
+            cargarNotificaciones();
+        } else {
+            dropdown.classList.add('hidden');
+        }
+    }
+    
+    function cargarNotificaciones() {
+        fetch('/api/notificaciones')
+            .then(response => response.json())
+            .then(data => {
+                const lista = document.getElementById('notificacionesLista');
+                
+                if (data.notificaciones && data.notificaciones.length > 0) {
+                    lista.innerHTML = data.notificaciones.map(notif => {
+                        const fecha = new Date(notif.fecha);
+                        const fechaFormateada = fecha.toLocaleDateString('es-ES', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        });
+                        
+                        const noLeidaClass = !notif.leida ? 'bg-blue-50 border-blue-200' : 'bg-white border-gray-200';
+                        const noLeidaDot = !notif.leida ? '<span class="w-2 h-2 bg-blue-600 rounded-full mr-2"></span>' : '';
+                        const botonLeer = !notif.leida ? 
+                            `<button onclick="marcarLeida(${notif.id_notificacion})" class="text-xs text-blue-600 hover:text-blue-800">Marcar leída</button>` : '';
+                        
+                        const linkIncidente = notif.id_referencia && notif.tipo === 'incidente' ?
+                            `<a href="/gestion_incidentes?buscar=${notif.id_referencia}" class="text-xs text-blue-600 hover:text-blue-800">Ver #${notif.id_referencia}</a>` : '';
+                        
+                        return `
+                            <div class="p-4 border-b border-gray-100 ${noLeidaClass} hover:bg-gray-50 transition">
+                                <div class="flex items-start justify-between">
+                                    <div class="flex-1">
+                                        <div class="flex items-center mb-1">
+                                            ${noLeidaDot}
+                                            <h4 class="font-semibold text-sm text-gray-900">${notif.titulo}</h4>
+                                        </div>
+                                        <p class="text-sm text-gray-600 mb-2">${notif.mensaje}</p>
+                                        <div class="flex items-center space-x-3 text-xs text-gray-500">
+                                            <span>${fechaFormateada}</span>
+                                            ${linkIncidente}
+                                            ${botonLeer}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                } else {
+                    lista.innerHTML = `
+                        <div class="p-8 text-center text-gray-500">
+                            <svg class="w-12 h-12 mx-auto mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                            </svg>
+                            <p>No hay notificaciones</p>
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                console.error('Error al cargar notificaciones:', error);
+            });
+    }
+    
+    function marcarLeida(id) {
+        fetch(`/api/notificacion/${id}/leer`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'}
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                cargarNotificaciones();
+                // Recargar la página para actualizar el contador
+                setTimeout(() => location.reload(), 500);
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+    
+    function marcarTodasLeidas() {
+        fetch('/api/notificaciones/leer-todas', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'}
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                cargarNotificaciones();
+                setTimeout(() => location.reload(), 500);
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+    
+    // Cerrar dropdown al hacer clic fuera
+    document.addEventListener('click', function(event) {
+        const dropdown = document.getElementById('notificacionesDropdown');
+        const button = event.target.closest('button[onclick="toggleNotificaciones()"]');
+        
+        if (dropdown && !dropdown.contains(event.target) && !button) {
+            dropdown.classList.add('hidden');
+            notificacionesAbiertas = false;
+        }
+    });
+    
+    // Cargar notificaciones cada 30 segundos
+    setInterval(() => {
+        if (notificacionesAbiertas) {
+            cargarNotificaciones();
+        }
+    }, 30000);
+    </script>
+    {% endif %}
 </body>
 
 </html>

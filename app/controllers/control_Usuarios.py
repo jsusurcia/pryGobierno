@@ -253,6 +253,59 @@ class controlUsuarios:
             return None
 
     @staticmethod
+    def es_tecnico_area_1(id_usuario):
+        """Verifica si un usuario es técnico del área 1 (Desarrollo y Control de Gestión)"""
+        try:
+            sql = """
+                SELECT r.id_rol
+                FROM USUARIO u
+                JOIN ROL r ON u.id_rol = r.id_rol
+                WHERE u.id_usuario = %s 
+                AND r.tipo = 'T' 
+                AND r.id_area = 1
+            """
+            conexion = get_connection()
+            if not conexion:
+                return False
+            
+            with conexion.cursor() as cursor:
+                cursor.execute(sql, (id_usuario,))
+                resultado = cursor.fetchone()
+            
+            conexion.close()
+            return resultado is not None
+        except Exception as e:
+            print(f"Error en es_tecnico_area_1 => {e}")
+            return False
+
+    @staticmethod
+    def es_jefe_ti_rol_1(id_usuario):
+        """Verifica si un usuario es el jefe de TI con id_rol = 1"""
+        try:
+            sql = """
+                SELECT r.id_rol
+                FROM USUARIO u
+                JOIN ROL r ON u.id_rol = r.id_rol
+                WHERE u.id_usuario = %s 
+                AND r.id_rol = 1
+                AND r.tipo = 'J' 
+                AND r.id_area = 1
+            """
+            conexion = get_connection()
+            if not conexion:
+                return False
+            
+            with conexion.cursor() as cursor:
+                cursor.execute(sql, (id_usuario,))
+                resultado = cursor.fetchone()
+            
+            conexion.close()
+            return resultado is not None
+        except Exception as e:
+            print(f"Error en es_jefe_ti_rol_1 => {e}")
+            return False
+
+    @staticmethod
     def obtener_tecnicos():
         """Obtiene todos los técnicos (tipo 'T')"""
         try:

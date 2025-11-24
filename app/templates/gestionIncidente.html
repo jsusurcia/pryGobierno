@@ -237,11 +237,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     </svg>
                     <p class="text-sm font-medium">No se encontraron incidentes registrados.</p>
 
-                    <!-- Botón para registrar un nuevo incidente -->
+                    <!-- Botón para registrar un nuevo incidente - Solo para jefes -->
+                    {% if es_jefe %}
                     <a href="{{ url_for('mostrar_formulario_incidente') }}"
                       class="mt-4 inline-flex items-center px-4 py-2 bg-[#0067b8] hover:bg-[#003d73] text-white font-medium rounded-lg shadow-sm transition">
                       Registrar nuevo incidente
                     </a>
+                    {% endif %}
                   </div>
                 </td>
               </tr>

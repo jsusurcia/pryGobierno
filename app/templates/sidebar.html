@@ -62,10 +62,10 @@
                 {% block nav_links %}
                 <!-- Menú por defecto según rol -->
                 
-                <!-- Para Jefes (incluyendo Jefe de TI) -->
+                <!-- Para Jefes (incluyendo Jefe de TI) - Solo tipo 'J' -->
                 {% if es_jefe %}
                 <li>
-                    <a href="{{ url_for('registrar_incidente') }}" class="flex items-center p-2 text-gray-900 rounded-lg hover:bg-gray-100 group">
+                    <a href="{{ url_for('mostrar_formulario_incidente') }}" class="flex items-center p-2 text-gray-900 rounded-lg hover:bg-gray-100 group">
                         <svg class="w-5 h-5 text-gray-500 transition duration-75 group-hover:text-gray-900" 
                              fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
@@ -113,8 +113,8 @@
                     </a>
                 </li>
                 
-                <!-- Para técnicos y jefes -->
-                {% if es_tecnico or es_jefe %}
+                <!-- Solo para técnicos del área 1 (Desarrollo y Control de Gestión) -->
+                {% if es_tecnico_area_1 %}
                 <li>
                     <a href="{{ url_for('gestion_diagnostico') }}" class="flex items-center p-2 text-gray-900 rounded-lg hover:bg-gray-100 group">
                         <svg class="shrink-0 w-5 h-5 text-gray-500 transition duration-75 group-hover:text-gray-900" 
@@ -126,8 +126,8 @@
                 </li>
                 {% endif %}
                 
-                <!-- Solo para Jefe de TI -->
-                {% if es_jefe_ti %}
+                <!-- Solo para Jefe de TI (id_rol = 1) -->
+                {% if es_jefe_ti_rol_1 %}
                 <li>
                     <a href="{{ url_for('revision_diagnostico') }}" class="flex items-center p-2 text-gray-900 rounded-lg hover:bg-gray-100 group">
                         <svg class="w-5 h-5 text-gray-500 transition duration-75 group-hover:text-gray-900" 

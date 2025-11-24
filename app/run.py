@@ -14,7 +14,8 @@ def index():
     """Ruta principal que redirige al login"""
     if 'user_id' in session:
         print(session.get('user_role'))
-        if session.get('user_role') == 1:
+        # Solo el jefe de TI (id_rol = 1) va a revisión de diagnósticos
+        if controlUsuarios.es_jefe_ti_rol_1(int(session['user_id'])):
             return redirect(url_for('revision_diagnostico'))
         elif session.get('user_role'):
             return redirect(url_for('gestion_incidentes'))
@@ -248,8 +249,14 @@ def mostrar_formulario_incidente():
 
 @app.route('/revision_diagnostico', methods=['GET'])
 def revision_diagnostico():
+    """Revisión de diagnósticos - Solo jefe de TI (id_rol = 1)"""
     if 'user_id' not in session:
         return redirect(url_for('login'))
+    
+    # Verificar que sea jefe de TI con id_rol = 1
+    if not controlUsuarios.es_jefe_ti_rol_1(int(session['user_id'])):
+        flash('Solo el Jefe de Tecnología de la Información y Comunicaciones puede acceder a esta sección', 'error')
+        return redirect(url_for('gestion_incidentes'))
 
     control_diag = ControlDiagnosticos()
     diagnosticos = control_diag.listado_diagnosticos_revision()
@@ -269,9 +276,12 @@ def revision_diagnostico():
 
 @app.route('/api/diagnostico/<int:id_diagnostico>/aceptar/<int:id_incidente>', methods=['POST'])
 def api_aceptar_revision(id_diagnostico, id_incidente):
-    """Aceptar revisión del diagnóstico"""
+    """Aceptar revisión del diagnóstico - Solo jefe de TI"""
     if 'user_id' not in session:
         return jsonify({'success': False, 'message': 'No autorizado'}), 401
+    
+    if not controlUsuarios.es_jefe_ti_rol_1(int(session['user_id'])):
+        return jsonify({'success': False, 'message': 'No tiene permisos'}), 403
 
     exito = ControlDiagnosticos.aceptar_revision(id_diagnostico, id_incidente)
     if exito:
@@ -282,9 +292,12 @@ def api_aceptar_revision(id_diagnostico, id_incidente):
 
 @app.route('/api/diagnostico/<int:id_diagnostico>/cancelar/<int:id_incidente>', methods=['POST'])
 def api_cancelar_revision(id_diagnostico, id_incidente):
-    """Cancelar (rechazar) revisión del diagnóstico"""
+    """Cancelar (rechazar) revisión del diagnóstico - Solo jefe de TI"""
     if 'user_id' not in session:
         return jsonify({'success': False, 'message': 'No autorizado'}), 401
+    
+    if not controlUsuarios.es_jefe_ti_rol_1(int(session['user_id'])):
+        return jsonify({'success': False, 'message': 'No tiene permisos'}), 403
 
     exito = ControlDiagnosticos.cancelar_revision(id_diagnostico, id_incidente)
     if exito:
@@ -508,9 +521,19 @@ def asignar_diagnostico():
 
 @app.route('/gestion_diagnostico', methods=['GET'])
 def gestion_diagnostico():
+    """Gestión de diagnósticos - Solo técnicos del área 1 pueden ver sus propios diagnósticos"""
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    id_usuario = int(session['user_id'])
+    
+    # Verificar que sea técnico del área 1
+    if not controlUsuarios.es_tecnico_area_1(id_usuario):
+        flash('Solo los técnicos del área de Desarrollo y Control de Gestión pueden acceder a esta sección', 'error')
+        return redirect(url_for('gestion_incidentes'))
+    
     titulo = request.args.get('titulo', '')
     causa = request.args.get('causa', '')
-    id_usuario = session.get('user_id')
 
     control_diag = ControlDiagnosticos()
     diagnosticos = control_diag.obtener_diagnosticos_filtrados(id_usuario, titulo, causa)
@@ -616,7 +639,9 @@ def inject_user():
     # Obtener información del rol si hay usuario logueado
     es_jefe = False
     es_jefe_ti = False
+    es_jefe_ti_rol_1 = False
     es_tecnico = False
+    es_tecnico_area_1 = False
     tipo_rol = None
     notificaciones_no_leidas = 0
     
@@ -630,7 +655,9 @@ def inject_user():
                     tipo_rol = rol.get('tipo')
                     es_jefe = tipo_rol == 'J'
                     es_jefe_ti = controlUsuarios.es_jefe_ti(int(user_id))
+                    es_jefe_ti_rol_1 = controlUsuarios.es_jefe_ti_rol_1(int(user_id))
                     es_tecnico = tipo_rol == 'T'
+                    es_tecnico_area_1 = controlUsuarios.es_tecnico_area_1(int(user_id))
                 
                 # Contar notificaciones no leídas
                 notificaciones_no_leidas = ControlNotificaciones.contar_no_leidas(int(user_id))
@@ -644,7 +671,9 @@ def inject_user():
         current_user_role_name=session.get('user_role_name'),
         es_jefe=es_jefe,
         es_jefe_ti=es_jefe_ti,
+        es_jefe_ti_rol_1=es_jefe_ti_rol_1,
         es_tecnico=es_tecnico,
+        es_tecnico_area_1=es_tecnico_area_1,
         tipo_rol=tipo_rol,
         notificaciones_no_leidas=notificaciones_no_leidas
     )

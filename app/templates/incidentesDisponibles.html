@@ -1,0 +1,225 @@
+{% extends "sidebar.html" %}
+
+{% block title %}Incidentes Disponibles{% endblock %}
+
+{% block nav_links %}
+<li>
+  <a href="{{ url_for('incidentes_disponibles') }}" class="flex items-center p-2 text-gray-900 rounded-lg hover:bg-gray-100 group bg-blue-50">
+    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+    </svg>
+    <span class="ms-3">Disponibles</span>
+  </a>
+</li>
+<li>
+  <a href="{{ url_for('gestion_incidentes') }}" class="flex items-center p-2 text-gray-900 rounded-lg hover:bg-gray-100 group">
+    <svg class="w-5 h-5 text-gray-500 transition duration-75 group-hover:text-gray-900" 
+         aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 22 21">
+      <path d="M16.975 11H10V4.025a1 1 0 0 0-1.066-.998 8.5 8.5 0 1 0 9.039 9.039.999.999 0 0 0-1-1.066h.002Z"/>
+      <path d="M12.5 0c-.157 0-.311.01-.565.027A1 1 0 0 0 11 1.02V10h8.975a1 1 0 0 0 1-.935c.013-.188.028-.374.028-.565A8.51 8.51 0 0 0 12.5 0Z"/>
+    </svg>
+    <span class="ms-3">Mis Incidentes</span>
+  </a>
+</li>
+{% endblock nav_links %}
+
+{% block content %}
+
+<!-- Mensajes Flash -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    {% for category, message in messages %}
+      <div class="mb-4 p-4 rounded-lg 
+          {% if category == 'error' %}bg-red-100 border border-red-200 text-red-700
+          {% elif category == 'success' %}bg-green-100 border border-green-200 text-green-700
+          {% else %}bg-yellow-100 border border-yellow-200 text-yellow-700{% endif %}">
+        {{ message }}
+      </div>
+    {% endfor %}
+  {% endif %}
+{% endwith %}
+
+<div class="max-w-7xl mx-auto">
+  
+  <!-- Encabezado -->
+  <header class="mb-6">
+    <div class="flex justify-between items-center">
+      <div>
+        <h1 class="text-3xl font-bold text-gray-900">Incidentes Disponibles</h1>
+        <p class="text-gray-600 mt-2">Toma incidentes de prioridad Baja o Media para trabajar en ellos</p>
+      </div>
+      <div class="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3">
+        <div class="text-sm text-blue-600 font-medium">
+          Tickets Activos: <span class="text-lg font-bold">{{ tickets_activos }}</span> / {{ max_tickets }}
+        </div>
+        {% if tickets_activos >= max_tickets %}
+        <div class="text-xs text-red-600 mt-1">⚠️ Has alcanzado el límite</div>
+        {% endif %}
+      </div>
+    </div>
+  </header>
+
+  <!-- Información -->
+  <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4 mb-6">
+    <div class="flex items-start">
+      <svg class="w-6 h-6 text-blue-600 mr-3 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+      </svg>
+      <div class="text-sm text-blue-800">
+        <p class="font-semibold mb-1">Información:</p>
+        <ul class="list-disc list-inside space-y-1">
+          <li>Puedes tener máximo <strong>{{ max_tickets }} tickets activos</strong> (excepto críticos o altos asignados)</li>
+          <li><strong>Bajo:</strong> Máximo 3 personas trabajando</li>
+          <li><strong>Medio:</strong> Máximo 5 personas trabajando</li>
+          <li>Los incidentes desaparecen cuando alcanzan el límite de personas</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Lista de Incidentes -->
+  {% if incidentes %}
+  <div class="grid grid-cols-1 gap-4">
+    {% for incidente in incidentes %}
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition">
+      <div class="flex justify-between items-start">
+        <div class="flex-1">
+          <div class="flex items-center space-x-3 mb-3">
+            <span class="text-lg font-bold text-gray-900">#{{ incidente.id_incidente }}</span>
+            <span class="px-3 py-1 text-xs font-semibold rounded-full 
+              {% if incidente.nivel == 'B' %}bg-gray-100 text-gray-700
+              {% else %}bg-yellow-100 text-yellow-700{% endif %}">
+              {{ 'Bajo' if incidente.nivel == 'B' else 'Medio' }}
+            </span>
+            <span class="px-3 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-700">
+              {{ incidente.categoria }}
+            </span>
+          </div>
+          
+          <h3 class="text-xl font-semibold text-gray-900 mb-2">{{ incidente.titulo }}</h3>
+          <p class="text-gray-600 mb-4">{{ incidente.descripcion }}</p>
+          
+          <div class="flex items-center space-x-4 text-sm text-gray-500">
+            <div class="flex items-center">
+              <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+              {{ incidente.fecha_reporte.strftime('%d/%m/%Y %H:%M') if incidente.fecha_reporte else 'N/A' }}
+            </div>
+            <div class="flex items-center">
+              <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+              </svg>
+              {{ incidente.personas_trabajando }} persona(s) trabajando
+              {% if incidente.nivel == 'B' %}
+                / 3 máximo
+              {% else %}
+                / 5 máximo
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        
+        <div class="ml-4">
+          <button onclick="tomarIncidente({{ incidente.id_incidente }})" 
+                  class="px-6 py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition 
+                         {% if tickets_activos >= max_tickets %}opacity-50 cursor-not-allowed{% endif %}"
+                  {% if tickets_activos >= max_tickets %}disabled title="Has alcanzado el límite de tickets activos"{% endif %}>
+            <div class="flex items-center">
+              <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+              </svg>
+              Tomar Incidente
+            </div>
+          </button>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
+    <svg class="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+    </svg>
+    <h3 class="text-lg font-medium text-gray-900 mb-2">No hay incidentes disponibles</h3>
+    <p class="text-gray-500">Todos los incidentes de prioridad Baja o Media han alcanzado su límite de personas o ya no están disponibles</p>
+  </div>
+  {% endif %}
+
+</div>
+
+<!-- Modal de Confirmación -->
+<div id="confirmModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+  <div class="bg-white rounded-xl p-6 max-w-md w-full mx-4">
+    <h3 class="text-lg font-semibold text-gray-900 mb-4">Confirmar</h3>
+    <p id="confirmMessage" class="text-gray-600 mb-6"></p>
+    <div class="flex justify-end space-x-3">
+      <button onclick="cerrarModal()" class="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition">
+        Cancelar
+      </button>
+      <button id="confirmButton" onclick="confirmarTomar()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+        Confirmar
+      </button>
+    </div>
+  </div>
+</div>
+
+{% endblock content %}
+
+{% block scripts %}
+<script>
+let incidenteIdActual = null;
+
+function tomarIncidente(id) {
+    {% if tickets_activos >= max_tickets %}
+    alert('Has alcanzado el límite de tickets activos ({{ max_tickets }}). Debes completar o liberar algunos tickets antes de tomar nuevos.');
+    return;
+    {% endif %}
+    
+    incidenteIdActual = id;
+    document.getElementById('confirmMessage').textContent = 
+        `¿Estás seguro de que deseas tomar el incidente #${id}? Este se agregará a tus tickets activos.`;
+    document.getElementById('confirmModal').classList.remove('hidden');
+}
+
+function cerrarModal() {
+    document.getElementById('confirmModal').classList.add('hidden');
+    incidenteIdActual = null;
+}
+
+function confirmarTomar() {
+    if (!incidenteIdActual) return;
+    
+    fetch(`/api/incidente/${incidenteIdActual}/tomar`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        cerrarModal();
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error al procesar la solicitud');
+        cerrarModal();
+    });
+}
+
+// Cerrar modal al hacer clic fuera
+document.getElementById('confirmModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        cerrarModal();
+    }
+});
+</script>
+{% endblock scripts %}
+

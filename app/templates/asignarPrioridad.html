@@ -1,0 +1,155 @@
+{% extends "sidebar.html" %}
+
+{% block title %}Asignar Prioridad{% endblock %}
+
+{% block nav_links %}
+<li>
+  <a href="{{ url_for('gestion_pendientes') }}" class="flex items-center p-2 text-gray-900 rounded-lg hover:bg-gray-100 group">
+    <svg class="w-5 h-5 text-gray-500 transition duration-75 group-hover:text-gray-900" 
+         aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 22 21">
+      <path d="M16.975 11H10V4.025a1 1 0 0 0-1.066-.998 8.5 8.5 0 1 0 9.039 9.039.999.999 0 0 0-1-1.066h.002Z"/>
+      <path d="M12.5 0c-.157 0-.311.01-.565.027A1 1 0 0 0 11 1.02V10h8.975a1 1 0 0 0 1-.935c.013-.188.028-.374.028-.565A8.51 8.51 0 0 0 12.5 0Z"/>
+    </svg>
+    <span class="ms-3">Pendientes</span>
+  </a>
+</li>
+{% endblock nav_links %}
+
+{% block content %}
+
+<!-- Mensajes Flash -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    {% for category, message in messages %}
+      <div class="mb-4 p-4 rounded-lg 
+          {% if category == 'error' %}bg-red-100 border border-red-200 text-red-700
+          {% elif category == 'success' %}bg-green-100 border border-green-200 text-green-700
+          {% else %}bg-yellow-100 border border-yellow-200 text-yellow-700{% endif %}">
+        {{ message }}
+      </div>
+    {% endfor %}
+  {% endif %}
+{% endwith %}
+
+<div class="max-w-4xl mx-auto">
+  
+  <!-- Encabezado -->
+  <header class="mb-6">
+    <h1 class="text-3xl font-bold text-gray-900">Asignar Nivel de Prioridad</h1>
+    <p class="text-gray-600 mt-2">Selecciona el nivel de prioridad para el incidente #{{ incidente.id_incidente }}</p>
+  </header>
+
+  <!-- Información del Incidente -->
+  <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+    <h2 class="text-xl font-semibold text-gray-900 mb-4">Detalles del Incidente</h2>
+    <div class="space-y-3">
+      <div>
+        <span class="text-sm font-medium text-gray-500">Título:</span>
+        <p class="text-gray-900">{{ incidente.titulo }}</p>
+      </div>
+      <div>
+        <span class="text-sm font-medium text-gray-500">Descripción:</span>
+        <p class="text-gray-700">{{ incidente.descripcion }}</p>
+      </div>
+      <div>
+        <span class="text-sm font-medium text-gray-500">Estado:</span>
+        <span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+          Aceptado
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Formulario de Prioridad -->
+  <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+    <h2 class="text-xl font-semibold text-gray-900 mb-6">Seleccionar Nivel de Prioridad</h2>
+    
+    <form method="POST" action="{{ url_for('asignar_prioridad', id_incidente=incidente.id_incidente) }}">
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        
+        <!-- Bajo -->
+        <label class="relative flex items-center p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-blue-500 transition group">
+          <input type="radio" name="nivel" value="B" class="sr-only peer" required>
+          <div class="flex-1">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-lg font-semibold text-gray-900">Bajo</span>
+              <span class="px-2 py-1 text-xs font-medium rounded bg-gray-100 text-gray-700">B</span>
+            </div>
+            <p class="text-sm text-gray-600">No requiere asignación. Disponible para que cualquier técnico lo tome.</p>
+            <p class="text-xs text-gray-500 mt-2">Máximo 3 personas trabajando</p>
+          </div>
+          <div class="ml-4 w-6 h-6 border-2 border-gray-300 rounded-full peer-checked:border-blue-600 peer-checked:bg-blue-600 flex items-center justify-center group-hover:border-blue-400 transition">
+            <div class="w-3 h-3 bg-white rounded-full hidden peer-checked:block"></div>
+          </div>
+        </label>
+
+        <!-- Medio -->
+        <label class="relative flex items-center p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-blue-500 transition group">
+          <input type="radio" name="nivel" value="M" class="sr-only peer" required>
+          <div class="flex-1">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-lg font-semibold text-gray-900">Medio</span>
+              <span class="px-2 py-1 text-xs font-medium rounded bg-yellow-100 text-yellow-700">M</span>
+            </div>
+            <p class="text-sm text-gray-600">No requiere asignación. Disponible para que cualquier técnico lo tome.</p>
+            <p class="text-xs text-gray-500 mt-2">Máximo 5 personas trabajando</p>
+          </div>
+          <div class="ml-4 w-6 h-6 border-2 border-gray-300 rounded-full peer-checked:border-blue-600 peer-checked:bg-blue-600 flex items-center justify-center group-hover:border-blue-400 transition">
+            <div class="w-3 h-3 bg-white rounded-full hidden peer-checked:block"></div>
+          </div>
+        </label>
+
+        <!-- Alto -->
+        <label class="relative flex items-center p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-orange-500 transition group">
+          <input type="radio" name="nivel" value="A" class="sr-only peer" required>
+          <div class="flex-1">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-lg font-semibold text-gray-900">Alto</span>
+              <span class="px-2 py-1 text-xs font-medium rounded bg-orange-100 text-orange-700">A</span>
+            </div>
+            <p class="text-sm text-gray-600">Requiere asignación obligatoria de técnico(s).</p>
+            <p class="text-xs text-orange-600 mt-2 font-medium">⚠️ Debe asignar técnico(s)</p>
+          </div>
+          <div class="ml-4 w-6 h-6 border-2 border-gray-300 rounded-full peer-checked:border-orange-600 peer-checked:bg-orange-600 flex items-center justify-center group-hover:border-orange-400 transition">
+            <div class="w-3 h-3 bg-white rounded-full hidden peer-checked:block"></div>
+          </div>
+        </label>
+
+        <!-- Crítico -->
+        <label class="relative flex items-center p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-red-500 transition group">
+          <input type="radio" name="nivel" value="C" class="sr-only peer" required>
+          <div class="flex-1">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-lg font-semibold text-gray-900">Crítico</span>
+              <span class="px-2 py-1 text-xs font-medium rounded bg-red-100 text-red-700">C</span>
+            </div>
+            <p class="text-sm text-gray-600">Requiere asignación obligatoria de técnico(s). Máxima prioridad.</p>
+            <p class="text-xs text-red-600 mt-2 font-medium">🚨 Debe asignar técnico(s)</p>
+          </div>
+          <div class="ml-4 w-6 h-6 border-2 border-gray-300 rounded-full peer-checked:border-red-600 peer-checked:bg-red-600 flex items-center justify-center group-hover:border-red-400 transition">
+            <div class="w-3 h-3 bg-white rounded-full hidden peer-checked:block"></div>
+          </div>
+        </label>
+
+      </div>
+
+      <!-- Botones -->
+      <div class="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+        <a href="{{ url_for('gestion_pendientes') }}" 
+           class="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition font-medium">
+          Cancelar
+        </a>
+        <button type="submit" 
+                class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium">
+          Asignar Prioridad
+        </button>
+      </div>
+
+    </form>
+  </div>
+
+</div>
+
+{% endblock content %}
+

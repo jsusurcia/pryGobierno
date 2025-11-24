@@ -151,11 +151,11 @@ class ControlIncidentes:
                 UPDATE INCIDENTE
                 SET estado = %s,
                     fecha_resolucion = CASE
-                        WHEN %s IN ('C') THEN NOW()
+                        WHEN %s IN ('C', 'T') THEN NOW()
                         ELSE fecha_resolucion
                     END,
                     tiempo_reparacion = CASE
-                        WHEN %s IN ('C') THEN NOW() - fecha_reporte
+                        WHEN %s IN ('C', 'T') THEN NOW() - fecha_reporte
                         ELSE tiempo_reparacion
                     END
                 WHERE id_incidente = %s;
@@ -176,6 +176,324 @@ class ControlIncidentes:
         except Exception as e:
             print(f"Error en actualizar_estado => {e}")
             return -1
+
+    @staticmethod
+    def cambiar_estado_jefe_ti(id_incidente, nuevo_estado):
+        """Cambia el estado de un incidente (A o C) por el jefe de TI"""
+        try:
+            sql = """
+                UPDATE INCIDENTE
+                SET estado = %s
+                WHERE id_incidente = %s AND estado = 'P'
+            """
+            conexion = get_connection()
+            if not conexion:
+                return False
+            
+            with conexion.cursor() as cursor:
+                cursor.execute(sql, (nuevo_estado, id_incidente))
+                conexion.commit()
+                afectadas = cursor.rowcount
+            
+            conexion.close()
+            return afectadas > 0
+        except Exception as e:
+            print(f"Error en cambiar_estado_jefe_ti => {e}")
+            return False
+
+    @staticmethod
+    def asignar_nivel_prioridad(id_incidente, nivel):
+        """Asigna nivel de prioridad a un incidente aceptado"""
+        try:
+            sql = """
+                UPDATE INCIDENTE
+                SET nivel = %s
+                WHERE id_incidente = %s AND estado = 'A'
+            """
+            conexion = get_connection()
+            if not conexion:
+                return False
+            
+            with conexion.cursor() as cursor:
+                cursor.execute(sql, (nivel, id_incidente))
+                conexion.commit()
+                afectadas = cursor.rowcount
+            
+            conexion.close()
+            return afectadas > 0
+        except Exception as e:
+            print(f"Error en asignar_nivel_prioridad => {e}")
+            return False
+
+    @staticmethod
+    def asignar_tecnico_individual(id_incidente, id_tecnico):
+        """Asigna un técnico individual como responsable"""
+        try:
+            sql = """
+                UPDATE INCIDENTE
+                SET id_tecnico_asignado = %s
+                WHERE id_incidente = %s AND estado = 'A'
+            """
+            conexion = get_connection()
+            if not conexion:
+                return False
+            
+            with conexion.cursor() as cursor:
+                cursor.execute(sql, (id_tecnico, id_incidente))
+                conexion.commit()
+            
+            conexion.close()
+            return True
+        except Exception as e:
+            print(f"Error en asignar_tecnico_individual => {e}")
+            return False
+
+    @staticmethod
+    def agregar_a_equipo_tecnico(id_incidente, id_usuario, es_responsable=False):
+        """Agrega un usuario al equipo técnico de un incidente"""
+        try:
+            # Verificar si ya está en el equipo
+            sql_check = """
+                SELECT id_equipo FROM EQUIPO_TECNICO
+                WHERE id_incidente = %s AND id_usuario = %s
+            """
+            conexion = get_connection()
+            if not conexion:
+                return False
+            
+            with conexion.cursor() as cursor:
+                cursor.execute(sql_check, (id_incidente, id_usuario))
+                existe = cursor.fetchone()
+                
+                if existe:
+                    conexion.close()
+                    return True  # Ya está en el equipo
+                
+                # Si es responsable, también asignarlo como técnico principal
+                if es_responsable:
+                    sql_principal = """
+                        UPDATE INCIDENTE
+                        SET id_tecnico_asignado = %s
+                        WHERE id_incidente = %s
+                    """
+                    cursor.execute(sql_principal, (id_usuario, id_incidente))
+                
+                # Agregar al equipo
+                sql_insert = """
+                    INSERT INTO EQUIPO_TECNICO (id_incidente, id_usuario, fecha_asignacion)
+                    VALUES (%s, %s, NOW())
+                """
+                cursor.execute(sql_insert, (id_incidente, id_usuario))
+                conexion.commit()
+            
+            conexion.close()
+            return True
+        except Exception as e:
+            print(f"Error en agregar_a_equipo_tecnico => {e}")
+            return False
+
+    @staticmethod
+    def obtener_incidentes_disponibles_tecnicos():
+        """Obtiene incidentes disponibles para técnicos (Bajo/Medio, estado A, sin límite alcanzado)"""
+        try:
+            conexion = get_connection()
+            if not conexion:
+                return []
+            
+            sql = """
+                SELECT 
+                    i.id_incidente,
+                    i.titulo,
+                    i.descripcion,
+                    c.nombre as categoria,
+                    i.nivel,
+                    i.fecha_reporte,
+                    COUNT(et.id_usuario) as personas_trabajando
+                FROM INCIDENTE i
+                LEFT JOIN CATEGORIA c ON i.id_categoria = c.id_categoria
+                LEFT JOIN EQUIPO_TECNICO et ON i.id_incidente = et.id_incidente
+                WHERE i.estado = 'A'
+                AND i.nivel IN ('B', 'M')
+                AND (i.id_tecnico_asignado IS NULL OR i.nivel IN ('B', 'M'))
+                GROUP BY i.id_incidente, i.titulo, i.descripcion, c.nombre, i.nivel, i.fecha_reporte
+                HAVING 
+                    (i.nivel = 'B' AND COUNT(et.id_usuario) < 3)
+                    OR (i.nivel = 'M' AND COUNT(et.id_usuario) < 5)
+                ORDER BY 
+                    CASE i.nivel 
+                        WHEN 'M' THEN 1 
+                        WHEN 'B' THEN 2 
+                    END,
+                    i.fecha_reporte ASC
+            """
+            
+            with conexion.cursor() as cursor:
+                cursor.execute(sql)
+                resultados = cursor.fetchall()
+            
+            conexion.close()
+            
+            return [
+                {
+                    'id_incidente': r[0],
+                    'titulo': r[1],
+                    'descripcion': r[2],
+                    'categoria': r[3],
+                    'nivel': r[4],
+                    'fecha_reporte': r[5],
+                    'personas_trabajando': r[6]
+                }
+                for r in resultados
+            ]
+        except Exception as e:
+            print(f"Error en obtener_incidentes_disponibles_tecnicos => {e}")
+            return []
+
+    @staticmethod
+    def tomar_incidente_disponible(id_incidente, id_usuario):
+        """Permite a un técnico tomar un incidente disponible"""
+        try:
+            from controllers.control_Usuarios import controlUsuarios
+            
+            # Verificar límite de tickets activos
+            tickets_activos = controlUsuarios.contar_tickets_activos(id_usuario)
+            tickets_equipo = controlUsuarios.contar_tickets_en_equipo(id_usuario)
+            total_tickets = tickets_activos + tickets_equipo
+            
+            # Obtener información del incidente
+            incidente = ControlIncidentes.buscar_por_IDIncidente(id_incidente)
+            if not incidente:
+                return {'exito': False, 'mensaje': 'Incidente no encontrado'}
+            
+            # Verificar si es crítico o alto asignado
+            es_critico = incidente.get('nivel') == 'C'
+            es_alto_asignado = incidente.get('nivel') == 'A' and incidente.get('id_tecnico_asignado') == id_usuario
+            
+            # Verificar límite (máximo 3, excepto si es crítico o alto asignado)
+            if total_tickets >= 3 and not es_critico and not es_alto_asignado:
+                return {'exito': False, 'mensaje': f'Ya tienes {total_tickets} tickets activos. Máximo permitido: 3'}
+            
+            # Verificar que el incidente esté disponible
+            if incidente.get('estado') != 'A' or incidente.get('nivel') not in ['B', 'M']:
+                return {'exito': False, 'mensaje': 'Este incidente no está disponible para tomar'}
+            
+            # Verificar límite de personas trabajando
+            conexion = get_connection()
+            if not conexion:
+                return {'exito': False, 'mensaje': 'Error de conexión'}
+            
+            sql_count = """
+                SELECT COUNT(*) FROM EQUIPO_TECNICO
+                WHERE id_incidente = %s
+            """
+            with conexion.cursor() as cursor:
+                cursor.execute(sql_count, (id_incidente,))
+                count = cursor.fetchone()[0]
+                
+                max_personas = 3 if incidente.get('nivel') == 'B' else 5
+                if count >= max_personas:
+                    conexion.close()
+                    return {'exito': False, 'mensaje': f'Ya hay {count} personas trabajando en este incidente (máximo: {max_personas})'}
+                
+                # Agregar al equipo
+                sql_insert = """
+                    INSERT INTO EQUIPO_TECNICO (id_incidente, id_usuario, fecha_asignacion)
+                    VALUES (%s, %s, NOW())
+                """
+                cursor.execute(sql_insert, (id_incidente, id_usuario))
+                conexion.commit()
+            
+            conexion.close()
+            return {'exito': True, 'mensaje': 'Incidente tomado correctamente'}
+        except Exception as e:
+            print(f"Error en tomar_incidente_disponible => {e}")
+            return {'exito': False, 'mensaje': f'Error: {str(e)}'}
+
+    @staticmethod
+    def obtener_incidentes_pendientes_jefe_ti():
+        """Obtiene incidentes pendientes para el jefe de TI"""
+        try:
+            conexion = get_connection()
+            if not conexion:
+                return []
+            
+            sql = """
+                SELECT 
+                    i.id_incidente,
+                    i.titulo,
+                    i.descripcion,
+                    c.nombre as categoria,
+                    u.nombre || ' ' || u.ape_pat || ' ' || u.ape_mat as reportado_por,
+                    i.fecha_reporte
+                FROM INCIDENTE i
+                LEFT JOIN CATEGORIA c ON i.id_categoria = c.id_categoria
+                LEFT JOIN USUARIO u ON i.id_usuario = u.id_usuario
+                WHERE i.estado = 'P'
+                ORDER BY i.fecha_reporte ASC
+            """
+            
+            with conexion.cursor() as cursor:
+                cursor.execute(sql)
+                resultados = cursor.fetchall()
+            
+            conexion.close()
+            
+            return [
+                {
+                    'id_incidente': r[0],
+                    'titulo': r[1],
+                    'descripcion': r[2],
+                    'categoria': r[3],
+                    'reportado_por': r[4],
+                    'fecha_reporte': r[5]
+                }
+                for r in resultados
+            ]
+        except Exception as e:
+            print(f"Error en obtener_incidentes_pendientes_jefe_ti => {e}")
+            return []
+
+    @staticmethod
+    def obtener_equipo_tecnico(id_incidente):
+        """Obtiene el equipo técnico asignado a un incidente"""
+        try:
+            conexion = get_connection()
+            if not conexion:
+                return []
+            
+            sql = """
+                SELECT 
+                    et.id_equipo,
+                    et.id_usuario,
+                    u.nombre || ' ' || u.ape_pat || ' ' || u.ape_mat as nombre_completo,
+                    et.fecha_asignacion,
+                    CASE WHEN i.id_tecnico_asignado = et.id_usuario THEN TRUE ELSE FALSE END as es_responsable
+                FROM EQUIPO_TECNICO et
+                JOIN USUARIO u ON et.id_usuario = u.id_usuario
+                JOIN INCIDENTE i ON et.id_incidente = i.id_incidente
+                WHERE et.id_incidente = %s
+                ORDER BY es_responsable DESC, et.fecha_asignacion ASC
+            """
+            
+            with conexion.cursor() as cursor:
+                cursor.execute(sql, (id_incidente,))
+                resultados = cursor.fetchall()
+            
+            conexion.close()
+            
+            return [
+                {
+                    'id_equipo': r[0],
+                    'id_usuario': r[1],
+                    'nombre_completo': r[2],
+                    'fecha_asignacion': r[3],
+                    'es_responsable': r[4]
+                }
+                for r in resultados
+            ]
+        except Exception as e:
+            print(f"Error en obtener_equipo_tecnico => {e}")
+            return []
         
     @staticmethod
     def obtener_incidentes_sin_diagnostico():

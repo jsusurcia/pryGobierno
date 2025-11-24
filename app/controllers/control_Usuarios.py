@@ -176,5 +176,161 @@ class controlUsuarios:
             print(f"❌ Error en verificar_contrasena => {e}")
             return None
 
-        
+    @staticmethod
+    def es_jefe(id_usuario):
+        """Verifica si un usuario es jefe (tipo 'J')"""
+        try:
+            sql = """
+                SELECT r.tipo
+                FROM USUARIO u
+                JOIN ROL r ON u.id_rol = r.id_rol
+                WHERE u.id_usuario = %s AND r.tipo = 'J'
+            """
+            conexion = get_connection()
+            if not conexion:
+                return False
+            
+            with conexion.cursor() as cursor:
+                cursor.execute(sql, (id_usuario,))
+                resultado = cursor.fetchone()
+            
+            conexion.close()
+            return resultado is not None
+        except Exception as e:
+            print(f"Error en es_jefe => {e}")
+            return False
+
+    @staticmethod
+    def es_jefe_ti(id_usuario):
+        """Verifica si un usuario es el Jefe de Tecnología de la Información y Comunicaciones"""
+        try:
+            sql = """
+                SELECT r.id_rol
+                FROM USUARIO u
+                JOIN ROL r ON u.id_rol = r.id_rol
+                WHERE u.id_usuario = %s 
+                AND r.tipo = 'J' 
+                AND r.id_area = 1
+                AND r.nombre = 'Jefe de Tecnología de la Información y Comunicaciones'
+            """
+            conexion = get_connection()
+            if not conexion:
+                return False
+            
+            with conexion.cursor() as cursor:
+                cursor.execute(sql, (id_usuario,))
+                resultado = cursor.fetchone()
+            
+            conexion.close()
+            return resultado is not None
+        except Exception as e:
+            print(f"Error en es_jefe_ti => {e}")
+            return False
+
+    @staticmethod
+    def obtener_id_jefe_ti():
+        """Obtiene el ID del rol del Jefe de TI"""
+        try:
+            sql = """
+                SELECT id_rol FROM ROL
+                WHERE tipo = 'J' 
+                AND id_area = 1
+                AND nombre = 'Jefe de Tecnología de la Información y Comunicaciones'
+                LIMIT 1
+            """
+            conexion = get_connection()
+            if not conexion:
+                return None
+            
+            with conexion.cursor() as cursor:
+                cursor.execute(sql)
+                resultado = cursor.fetchone()
+            
+            conexion.close()
+            return resultado[0] if resultado else None
+        except Exception as e:
+            print(f"Error en obtener_id_jefe_ti => {e}")
+            return None
+
+    @staticmethod
+    def obtener_tecnicos():
+        """Obtiene todos los técnicos (tipo 'T')"""
+        try:
+            sql = """
+                SELECT u.id_usuario, u.nombre, u.ape_pat, u.ape_mat, r.nombre as rol_nombre
+                FROM USUARIO u
+                JOIN ROL r ON u.id_rol = r.id_rol
+                WHERE r.tipo = 'T' AND u.estado = TRUE
+                ORDER BY u.nombre, u.ape_pat
+            """
+            conexion = get_connection()
+            if not conexion:
+                return []
+            
+            with conexion.cursor() as cursor:
+                cursor.execute(sql)
+                tecnicos = cursor.fetchall()
+            
+            conexion.close()
+            return [
+                {
+                    'id_usuario': t[0],
+                    'nombre_completo': f"{t[1]} {t[2]} {t[3]}",
+                    'rol_nombre': t[4]
+                }
+                for t in tecnicos
+            ]
+        except Exception as e:
+            print(f"Error en obtener_tecnicos => {e}")
+            return []
+
+    @staticmethod
+    def contar_tickets_activos(id_usuario):
+        """Cuenta los tickets activos asignados directamente a un usuario (estados P, A, T)"""
+        try:
+            sql = """
+                SELECT COUNT(*)
+                FROM INCIDENTE
+                WHERE id_tecnico_asignado = %s
+                AND estado IN ('P', 'A', 'T')
+            """
+            conexion = get_connection()
+            if not conexion:
+                return 0
+            
+            with conexion.cursor() as cursor:
+                cursor.execute(sql, (id_usuario,))
+                resultado = cursor.fetchone()
+            
+            conexion.close()
+            return resultado[0] if resultado else 0
+        except Exception as e:
+            print(f"Error en contar_tickets_activos => {e}")
+            return 0
+
+    @staticmethod
+    def contar_tickets_en_equipo(id_usuario):
+        """Cuenta los tickets donde el usuario está en el equipo técnico"""
+        try:
+            sql = """
+                SELECT COUNT(DISTINCT et.id_incidente)
+                FROM EQUIPO_TECNICO et
+                JOIN INCIDENTE i ON et.id_incidente = i.id_incidente
+                WHERE et.id_usuario = %s
+                AND i.estado IN ('P', 'A', 'T')
+            """
+            conexion = get_connection()
+            if not conexion:
+                return 0
+            
+            with conexion.cursor() as cursor:
+                cursor.execute(sql, (id_usuario,))
+                resultado = cursor.fetchone()
+            
+            conexion.close()
+            return resultado[0] if resultado else 0
+        except Exception as e:
+            print(f"Error en contar_tickets_en_equipo => {e}")
+            return 0
+
          

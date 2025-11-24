@@ -97,9 +97,20 @@ def dashboard():
 
 @app.route('/gestion_incidentes')
 def gestion_incidentes():
-    """Ruta para gestión de incidentes con filtros"""
+    """Ruta para gestión de incidentes con filtros - Adaptado según rol"""
     if 'user_id' not in session:
         return redirect(url_for('login'))
+    
+    usuario_id = int(session['user_id'])
+    usuario = controlUsuarios.buscar_por_ID(usuario_id)
+    
+    if not usuario:
+        return redirect(url_for('login'))
+    
+    # Obtener rol
+    from controllers.controlador_rol import ControlRol
+    rol = ControlRol.buscar_por_IDRol(usuario['id_rol'])
+    tipo_rol = rol.get('tipo') if rol else None
     
     # Obtener parámetros de filtro
     filtros = {
@@ -111,14 +122,33 @@ def gestion_incidentes():
     }
 
     try:
-        # Obtener todos los incidentes
-        todos = ControlIncidentes.listar_incidentes()
-
-        # 🧹 Si la función devuelve None o vacío, lo forzamos a lista vacía
+        # Obtener incidentes según el rol
+        if tipo_rol == 'J' and controlUsuarios.es_jefe_ti(usuario_id):
+            # Jefe de TI: ver todos los incidentes
+            todos = ControlIncidentes.listar_incidentes()
+        elif tipo_rol == 'J':
+            # Otros jefes: ver solo los que ellos reportaron
+            todos = ControlIncidentes.listar_incidentes()
+            todos = [i for i in todos if i.get('id_usuario') == usuario_id]
+        elif tipo_rol == 'T':
+            # Técnicos: ver incidentes asignados o en los que están en el equipo
+            todos = ControlIncidentes.listar_incidentes()
+            # Filtrar por asignación
+            incidentes_filtrados = []
+            for inc in todos:
+                if inc.get('id_tecnico_asignado') == usuario_id:
+                    incidentes_filtrados.append(inc)
+                else:
+                    # Verificar si está en el equipo
+                    equipo = ControlIncidentes.obtener_equipo_tecnico(inc.get('id_incidente'))
+                    if any(m['id_usuario'] == usuario_id for m in equipo):
+                        incidentes_filtrados.append(inc)
+            todos = incidentes_filtrados
+        else:
+            todos = []
+        
         if not todos:
             todos = []
-
-        print(f"Total de incidentes obtenidos: {len(todos)}")
 
         incidentes = []
         for inc in todos:
@@ -169,7 +199,8 @@ def gestion_incidentes():
                     self.titulo = data.get('titulo', '')
                     self.descripcion = data.get('descripcion', '')
                     self.categoria = data.get('categoria', 'No asignada')
-                    self.estado = data.get('estado', 'abierto')
+                    self.estado = data.get('estado', 'pendiente')
+                    self.nivel = data.get('nivel', 'M')
 
                     # Manejar fecha_creacion
                     fecha_reporte = data.get('fecha_reporte')
@@ -185,8 +216,6 @@ def gestion_incidentes():
 
             incidentes_obj = [IncidenteObj(inc) for inc in incidentes]
 
-        print(f"Filtrados: {len(incidentes_obj)} incidentes válidos")
-
     except Exception as e:
         print(f"Error al obtener incidentes: {e}")
         import traceback
@@ -196,11 +225,25 @@ def gestion_incidentes():
 
     return render_template('gestionIncidente.html',
                            incidentes=incidentes_obj,
-                           user_role=session.get('user_role'))
+                           user_role=session.get('user_role'),
+                           tipo_rol=tipo_rol,
+                           es_jefe_ti=controlUsuarios.es_jefe_ti(usuario_id) if usuario else False)
     
 @app.route('/registrar_incidente', methods=['GET'])
 def mostrar_formulario_incidente():
-    return render_template('formRegistrarIncidente.html')
+    """Mostrar formulario de registro de incidente - Solo jefes"""
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    # Verificar que sea jefe
+    if not controlUsuarios.es_jefe(int(session['user_id'])):
+        flash('Solo los jefes pueden registrar incidentes', 'error')
+        return redirect(url_for('gestion_incidentes'))
+    
+    # Obtener categorías
+    categorias = controlCategorias.buscar_todos() or []
+    
+    return render_template('formRegistrarIncidente.html', categorias=categorias)
 
 @app.route('/revision_diagnostico', methods=['GET'])
 def revision_diagnostico():
@@ -252,6 +295,15 @@ def api_cancelar_revision(id_diagnostico, id_incidente):
 
 @app.route('/registrar_incidente', methods=['POST'])
 def registrar_incidente():
+    """Registrar nuevo incidente - Solo jefes"""
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    # Verificar que sea jefe
+    if not controlUsuarios.es_jefe(int(session['user_id'])):
+        flash('Solo los jefes pueden registrar incidentes', 'error')
+        return redirect(url_for('gestion_incidentes'))
+    
     try:
         # Obtener datos del formulario
         titulo = request.form.get('titulo')
@@ -263,16 +315,16 @@ def registrar_incidente():
             flash('Todos los campos son obligatorios', 'error')
             return redirect(url_for('mostrar_formulario_incidente'))
         
-        # Usuario temporal hasta que integres login
-        id_usuario = 1
+        id_usuario = int(session['user_id'])
         
-        # Insertar incidente
+        # Insertar incidente (estado P por defecto)
         resultado = ControlIncidentes.insertar_incidentes(
             titulo, descripcion, id_categoria, id_usuario
         )
         
         if resultado == 0:
-            flash('¡Incidente registrado exitosamente!', 'success')
+            flash('¡Incidente registrado exitosamente! Será revisado por el Jefe de TI.', 'success')
+            return redirect(url_for('gestion_incidentes'))
         elif resultado == -2:
             flash('Error de conexión a la base de datos', 'error')
         else:
@@ -678,6 +730,200 @@ def api_filtrar_mttr():
             'success': False, 
             'error': 'Error al filtrar los datos'
         }), 500
+
+# ========== RUTAS PARA JEFE DE TI ==========
+
+@app.route('/gestion_pendientes')
+def gestion_pendientes():
+    """Vista para que el jefe de TI gestione incidentes pendientes"""
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    # Verificar que sea jefe de TI
+    if not controlUsuarios.es_jefe_ti(int(session['user_id'])):
+        flash('No tiene permisos para acceder a esta sección', 'error')
+        return redirect(url_for('gestion_incidentes'))
+    
+    incidentes_pendientes = ControlIncidentes.obtener_incidentes_pendientes_jefe_ti()
+    
+    return render_template('gestionPendientes.html', 
+                         incidentes=incidentes_pendientes,
+                         user_name=session.get('user_name'))
+
+@app.route('/api/incidente/<int:id_incidente>/aceptar', methods=['POST'])
+def api_aceptar_incidente(id_incidente):
+    """Aceptar incidente (cambiar a estado A)"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'No autorizado'}), 401
+    
+    if not controlUsuarios.es_jefe_ti(int(session['user_id'])):
+        return jsonify({'success': False, 'message': 'No tiene permisos'}), 403
+    
+    exito = ControlIncidentes.cambiar_estado_jefe_ti(id_incidente, 'A')
+    if exito:
+        return jsonify({'success': True, 'message': 'Incidente aceptado correctamente'})
+    else:
+        return jsonify({'success': False, 'message': 'Error al aceptar incidente'}), 500
+
+@app.route('/api/incidente/<int:id_incidente>/cancelar', methods=['POST'])
+def api_cancelar_incidente(id_incidente):
+    """Cancelar incidente (cambiar a estado C)"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'No autorizado'}), 401
+    
+    if not controlUsuarios.es_jefe_ti(int(session['user_id'])):
+        return jsonify({'success': False, 'message': 'No tiene permisos'}), 403
+    
+    exito = ControlIncidentes.cambiar_estado_jefe_ti(id_incidente, 'C')
+    if exito:
+        return jsonify({'success': True, 'message': 'Incidente cancelado correctamente'})
+    else:
+        return jsonify({'success': False, 'message': 'Error al cancelar incidente'}), 500
+
+@app.route('/asignar_prioridad/<int:id_incidente>', methods=['GET', 'POST'])
+def asignar_prioridad(id_incidente):
+    """Asignar nivel de prioridad a un incidente aceptado"""
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    if not controlUsuarios.es_jefe_ti(int(session['user_id'])):
+        flash('No tiene permisos', 'error')
+        return redirect(url_for('gestion_incidentes'))
+    
+    if request.method == 'POST':
+        nivel = request.form.get('nivel')
+        if nivel not in ['B', 'M', 'A', 'C']:
+            flash('Nivel de prioridad inválido', 'error')
+            return redirect(url_for('asignar_prioridad', id_incidente=id_incidente))
+        
+        exito = ControlIncidentes.asignar_nivel_prioridad(id_incidente, nivel)
+        if exito:
+            flash('Prioridad asignada correctamente', 'success')
+            # Si es Alto o Crítico, redirigir a asignación de técnicos
+            if nivel in ['A', 'C']:
+                return redirect(url_for('asignar_tecnicos', id_incidente=id_incidente))
+            else:
+                return redirect(url_for('gestion_pendientes'))
+        else:
+            flash('Error al asignar prioridad', 'error')
+    
+    incidente = ControlIncidentes.buscar_por_IDIncidente(id_incidente)
+    if not incidente or incidente.get('estado') != 'A':
+        flash('Incidente no encontrado o no está aceptado', 'error')
+        return redirect(url_for('gestion_pendientes'))
+    
+    return render_template('asignarPrioridad.html', incidente=incidente)
+
+@app.route('/asignar_tecnicos/<int:id_incidente>', methods=['GET', 'POST'])
+def asignar_tecnicos(id_incidente):
+    """Asignar técnicos a un incidente Alto o Crítico"""
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    if not controlUsuarios.es_jefe_ti(int(session['user_id'])):
+        flash('No tiene permisos', 'error')
+        return redirect(url_for('gestion_incidentes'))
+    
+    incidente = ControlIncidentes.buscar_por_IDIncidente(id_incidente)
+    if not incidente or incidente.get('estado') != 'A' or incidente.get('nivel') not in ['A', 'C']:
+        flash('Este incidente no requiere asignación de técnicos', 'error')
+        return redirect(url_for('gestion_pendientes'))
+    
+    if request.method == 'POST':
+        tipo_asignacion = request.form.get('tipo_asignacion')  # 'individual' o 'grupo'
+        
+        if tipo_asignacion == 'individual':
+            id_tecnico = request.form.get('id_tecnico')
+            if id_tecnico:
+                exito = ControlIncidentes.asignar_tecnico_individual(id_incidente, int(id_tecnico))
+                if exito:
+                    flash('Técnico asignado correctamente', 'success')
+                else:
+                    flash('Error al asignar técnico', 'error')
+        elif tipo_asignacion == 'grupo':
+            tecnicos = request.form.getlist('tecnicos[]')
+            responsable = request.form.get('responsable')
+            
+            if not tecnicos or not responsable:
+                flash('Debe seleccionar al menos un técnico y un responsable', 'error')
+            else:
+                exito = True
+                for id_tecnico in tecnicos:
+                    es_responsable = (id_tecnico == responsable)
+                    if not ControlIncidentes.agregar_a_equipo_tecnico(id_incidente, int(id_tecnico), es_responsable):
+                        exito = False
+                
+                if exito:
+                    flash('Equipo técnico asignado correctamente', 'success')
+                else:
+                    flash('Error al asignar algunos técnicos', 'error')
+        
+        return redirect(url_for('gestion_pendientes'))
+    
+    tecnicos = controlUsuarios.obtener_tecnicos()
+    equipo_actual = ControlIncidentes.obtener_equipo_tecnico(id_incidente)
+    
+    return render_template('asignarTecnicos.html', 
+                         incidente=incidente,
+                         tecnicos=tecnicos,
+                         equipo_actual=equipo_actual)
+
+# ========== RUTAS PARA TÉCNICOS ==========
+
+@app.route('/incidentes_disponibles')
+def incidentes_disponibles():
+    """Vista para que técnicos vean y tomen incidentes disponibles"""
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    # Verificar que sea técnico (tipo 'T')
+    usuario = controlUsuarios.buscar_por_ID(int(session['user_id']))
+    if not usuario:
+        return redirect(url_for('login'))
+    
+    # Obtener rol del usuario
+    from controllers.controlador_rol import ControlRol
+    rol = ControlRol.buscar_por_IDRol(usuario['id_rol'])
+    if not rol or rol.get('tipo') != 'T':
+        flash('Solo los técnicos pueden acceder a esta sección', 'error')
+        return redirect(url_for('gestion_incidentes'))
+    
+    incidentes = ControlIncidentes.obtener_incidentes_disponibles_tecnicos()
+    tickets_activos = controlUsuarios.contar_tickets_activos(int(session['user_id']))
+    tickets_equipo = controlUsuarios.contar_tickets_en_equipo(int(session['user_id']))
+    
+    return render_template('incidentesDisponibles.html',
+                         incidentes=incidentes,
+                         tickets_activos=tickets_activos + tickets_equipo,
+                         max_tickets=3)
+
+@app.route('/api/incidente/<int:id_incidente>/tomar', methods=['POST'])
+def api_tomar_incidente(id_incidente):
+    """Tomar un incidente disponible"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'No autorizado'}), 401
+    
+    resultado = ControlIncidentes.tomar_incidente_disponible(id_incidente, int(session['user_id']))
+    
+    if resultado.get('exito'):
+        return jsonify({'success': True, 'message': resultado['mensaje']})
+    else:
+        return jsonify({'success': False, 'message': resultado['mensaje']}), 400
+
+@app.route('/api/incidente/<int:id_incidente>/terminar', methods=['POST'])
+def api_terminar_incidente(id_incidente):
+    """Terminar incidente (cambiar a estado T) - Solo jefe de TI"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'No autorizado'}), 401
+    
+    if not controlUsuarios.es_jefe_ti(int(session['user_id'])):
+        return jsonify({'success': False, 'message': 'No tiene permisos'}), 403
+    
+    exito = ControlIncidentes.actualizar_estado(id_incidente, 'T')
+    if exito == 0:
+        return jsonify({'success': True, 'message': 'Incidente terminado correctamente'})
+    else:
+        return jsonify({'success': False, 'message': 'Error al terminar incidente'}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)

@@ -131,6 +131,40 @@ class ControlDiagnosticos:
                     observacion=f"Diagnóstico D{id_diagnostico} registrado y pendiente de revisión. Realizado por: {nombre_tecnico}"
                 )
             
+            # Notificar al Jefe de TI que hay un nuevo diagnóstico para revisar
+            from controllers.control_notificaciones import ControlNotificaciones
+            titulo_incidente = incidente.get('titulo', f'Incidente #{id_incidente}')
+            
+            # Obtener ID del jefe de TI
+            from controllers.control_Usuarios import controlUsuarios
+            id_jefe_ti_rol = controlUsuarios.obtener_id_jefe_ti()
+            
+            if id_jefe_ti_rol:
+                # Obtener usuarios con ese rol
+                conexion = get_connection()
+                if conexion:
+                    sql_usuarios = """
+                        SELECT id_usuario FROM USUARIO
+                        WHERE id_rol = %s AND estado = TRUE
+                    """
+                    with conexion.cursor() as cursor:
+                        cursor.execute(sql_usuarios, (id_jefe_ti_rol,))
+                        jefes_ti = cursor.fetchall()
+                    
+                    conexion.close()
+                    
+                    # Notificar a cada jefe de TI
+                    for jefe_ti in jefes_ti:
+                        ControlNotificaciones.crear_notificacion(
+                            id_usuario=jefe_ti[0],
+                            titulo=f"Nuevo Diagnóstico para Revisar - Incidente #{id_incidente}",
+                            mensaje=f"{nombre_tecnico} ha enviado un diagnóstico para el incidente '{titulo_incidente}'. Requiere tu revisión.",
+                            tipo="diagnostico",
+                            id_referencia=id_incidente
+                        )
+                    
+                    print(f"✅ Notificación enviada al Jefe de TI sobre nuevo diagnóstico de {nombre_tecnico}")
+            
             return True  # Éxito
 
         except Exception as e:
@@ -348,6 +382,50 @@ class ControlDiagnosticos:
                     solucion_propuesta=solucion_propuesta
                 )
             
+            # Notificar al Jefe de TI que el diagnóstico fue actualizado
+            # (esto aplica cuando fue rechazado y el técnico lo actualizó)
+            from controllers.control_notificaciones import ControlNotificaciones
+            from controllers.control_incidentes import ControlIncidentes
+            from controllers.control_Usuarios import controlUsuarios
+            
+            # Obtener información del incidente y técnico
+            incidente = ControlIncidentes.buscar_por_IDIncidente(id_incidente)
+            titulo_incidente = incidente.get('titulo', f'Incidente #{id_incidente}') if incidente else f'Incidente #{id_incidente}'
+            
+            usuario_tecnico = controlUsuarios.buscar_por_ID(id_usuario) if id_usuario else None
+            nombre_tecnico = "Técnico desconocido"
+            if usuario_tecnico:
+                nombre_tecnico = f"{usuario_tecnico.get('nombre', '')} {usuario_tecnico.get('ape_pat', '')}"
+            
+            # Obtener ID del jefe de TI
+            id_jefe_ti_rol = controlUsuarios.obtener_id_jefe_ti()
+            
+            if id_jefe_ti_rol:
+                # Obtener usuarios con ese rol
+                conexion_notif = get_connection()
+                if conexion_notif:
+                    sql_usuarios = """
+                        SELECT id_usuario FROM USUARIO
+                        WHERE id_rol = %s AND estado = TRUE
+                    """
+                    with conexion_notif.cursor() as cursor:
+                        cursor.execute(sql_usuarios, (id_jefe_ti_rol,))
+                        jefes_ti = cursor.fetchall()
+                    
+                    conexion_notif.close()
+                    
+                    # Notificar a cada jefe de TI
+                    for jefe_ti in jefes_ti:
+                        ControlNotificaciones.crear_notificacion(
+                            id_usuario=jefe_ti[0],
+                            titulo=f"Diagnóstico Actualizado - Incidente #{id_incidente}",
+                            mensaje=f"{nombre_tecnico} ha actualizado el diagnóstico del incidente '{titulo_incidente}'. Por favor, revísalo nuevamente.",
+                            tipo="diagnostico",
+                            id_referencia=id_incidente
+                        )
+                    
+                    print(f"✅ Notificación enviada al Jefe de TI sobre actualización de diagnóstico por {nombre_tecnico}")
+            
             return 0 
 
         except Exception as e:
@@ -425,23 +503,37 @@ class ControlDiagnosticos:
                 
                 # Notificar a todos los involucrados
                 titulo_incidente = incidente_anterior.get('titulo', f'Incidente #{id_incidente}')
+                id_tecnico_diagnostico = diagnostico.get('id_usuario') if diagnostico else None
                 
                 # Notificar al usuario que reportó el incidente
                 ControlNotificaciones.notificar_estado_incidente(id_incidente, 'T', incidente_anterior['id_usuario'])
                 
-                # Notificar a técnicos en el equipo técnico
-                equipo = ControlIncidentes.obtener_equipo_tecnico(id_incidente)
-                for miembro in equipo:
+                # Notificar PRIMERO al técnico que hizo el diagnóstico con mensaje personalizado
+                if id_tecnico_diagnostico:
                     ControlNotificaciones.crear_notificacion(
-                        id_usuario=miembro['id_usuario'],
-                        titulo=f"Incidente #{id_incidente} Terminado",
-                        mensaje=f"El incidente '{titulo_incidente}' ha sido terminado. El diagnóstico fue aceptado.",
-                        tipo="incidente",
+                        id_usuario=id_tecnico_diagnostico,
+                        titulo=f"✅ Tu Diagnóstico fue Aceptado - Incidente #{id_incidente}",
+                        mensaje=f"¡Excelente trabajo! Tu diagnóstico para el incidente '{titulo_incidente}' ha sido aceptado por el Jefe de TI. El incidente está terminado.",
+                        tipo="diagnostico",
                         id_referencia=id_incidente
                     )
+                    print(f"✅ Notificación de aceptación enviada al técnico {nombre_tecnico}")
                 
-                # Si hay técnico asignado directamente
-                if incidente_anterior.get('id_tecnico_asignado'):
+                # Notificar a otros técnicos en el equipo técnico
+                equipo = ControlIncidentes.obtener_equipo_tecnico(id_incidente)
+                for miembro in equipo:
+                    # No duplicar notificación si es el mismo técnico que hizo el diagnóstico
+                    if miembro['id_usuario'] != id_tecnico_diagnostico:
+                        ControlNotificaciones.crear_notificacion(
+                            id_usuario=miembro['id_usuario'],
+                            titulo=f"Incidente #{id_incidente} Terminado",
+                            mensaje=f"El incidente '{titulo_incidente}' ha sido terminado. El diagnóstico fue aceptado.",
+                            tipo="incidente",
+                            id_referencia=id_incidente
+                        )
+                
+                # Si hay técnico asignado directamente (y no es el que hizo el diagnóstico)
+                if incidente_anterior.get('id_tecnico_asignado') and incidente_anterior.get('id_tecnico_asignado') != id_tecnico_diagnostico:
                     ControlNotificaciones.crear_notificacion(
                         id_usuario=incidente_anterior['id_tecnico_asignado'],
                         titulo=f"Incidente #{id_incidente} Terminado",
@@ -559,6 +651,21 @@ class ControlDiagnosticos:
                 estado_nuevo=estado_actual,  # El estado no cambia
                 observacion=mensaje
             )
+            
+            # Notificar al técnico que hizo el diagnóstico
+            from controllers.control_notificaciones import ControlNotificaciones
+            titulo_incidente = incidente.get('titulo', f'Incidente #{id_incidente}')
+            id_tecnico = diagnostico.get('id_usuario')
+            
+            if id_tecnico:
+                ControlNotificaciones.crear_notificacion(
+                    id_usuario=id_tecnico,
+                    titulo=f"Diagnóstico Rechazado - Incidente #{id_incidente}",
+                    mensaje=f"Tu diagnóstico para el incidente '{titulo_incidente}' ha sido rechazado por el Jefe de TI. Por favor, revísalo y actualízalo.",
+                    tipo="diagnostico",
+                    id_referencia=id_incidente
+                )
+                print(f"✅ Notificación enviada al técnico {nombre_tecnico} sobre rechazo del diagnóstico")
             
             return True
 

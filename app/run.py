@@ -1558,8 +1558,14 @@ def asignar_tecnicos(id_incidente):
             if id_tecnico:
                 exito = ControlIncidentes.asignar_tecnico_individual(id_incidente, int(id_tecnico))
                 if exito:
+                    # Obtener nombre del técnico
+                    tecnico = controlUsuarios.buscar_por_ID(int(id_tecnico))
+                    nombre_tecnico = f"{tecnico['nombre']} {tecnico['ape_pat']}" if tecnico else "un técnico"
+                    
                     # Notificar al técnico
                     ControlNotificaciones.notificar_asignacion_tecnico(id_incidente, int(id_tecnico), False)
+                    # Notificar al usuario que reportó el incidente
+                    ControlNotificaciones.notificar_asignacion_a_reportante(id_incidente, int(id_tecnico), nombre_tecnico, False)
                     flash('Técnico asignado correctamente', 'success')
                 else:
                     flash('Error al asignar técnico', 'error')
@@ -1571,6 +1577,7 @@ def asignar_tecnicos(id_incidente):
                 flash('Debe seleccionar al menos un técnico y un responsable', 'error')
             else:
                 exito = True
+                primer_tecnico = tecnicos[0] if tecnicos else None
                 for id_tecnico in tecnicos:
                     es_responsable = (id_tecnico == responsable)
                     if ControlIncidentes.agregar_a_equipo_tecnico(id_incidente, int(id_tecnico), es_responsable):
@@ -1580,6 +1587,9 @@ def asignar_tecnicos(id_incidente):
                         exito = False
                 
                 if exito:
+                    # Notificar al usuario que reportó sobre la asignación del equipo (una sola vez)
+                    if primer_tecnico:
+                        ControlNotificaciones.notificar_asignacion_a_reportante(id_incidente, int(primer_tecnico), "", True)
                     flash('Equipo técnico asignado correctamente', 'success')
                 else:
                     flash('Error al asignar algunos técnicos', 'error')

@@ -422,6 +422,8 @@ class ControlIncidentes:
     def agregar_a_equipo_tecnico(id_incidente, id_usuario, es_responsable=False):
         """Agrega un usuario al equipo técnico de un incidente"""
         try:
+            from controllers.control_Usuarios import controlUsuarios
+            
             # Verificar si ya está en el equipo
             sql_check = """
                 SELECT id_equipo FROM EQUIPO_TECNICO
@@ -457,6 +459,18 @@ class ControlIncidentes:
                 conexion.commit()
             
             conexion.close()
+            
+            # Registrar en historial
+            tecnico = controlUsuarios.buscar_por_ID(id_usuario)
+            nombre_tecnico = f"{tecnico['nombre']} {tecnico['ape_pat']}" if tecnico else "Técnico desconocido"
+            tipo_asignacion = "responsable" if es_responsable else "miembro del equipo técnico"
+            
+            ControlIncidentes.insertar_historial(
+                id_incidente=id_incidente,
+                tecnico_nuevo=id_usuario,
+                observacion=f"{nombre_tecnico} agregado como {tipo_asignacion}"
+            )
+            
             return True
         except Exception as e:
             print(f"Error en agregar_a_equipo_tecnico => {e}")
@@ -585,6 +599,7 @@ class ControlIncidentes:
         """Permite a un técnico tomar un incidente disponible"""
         try:
             from controllers.control_Usuarios import controlUsuarios
+            from controllers.control_notificaciones import ControlNotificaciones
             
             # Verificar límite de tickets activos
             tickets_activos = controlUsuarios.contar_tickets_activos(id_usuario)
@@ -648,6 +663,22 @@ class ControlIncidentes:
                 conexion.commit()
             
             conexion.close()
+            
+            # Obtener información del técnico
+            tecnico = controlUsuarios.buscar_por_ID(id_usuario)
+            nombre_tecnico = f"{tecnico['nombre']} {tecnico['ape_pat']}" if tecnico else "un técnico"
+            
+            # Registrar en historial
+            ControlIncidentes.insertar_historial(
+                id_incidente=id_incidente,
+                tecnico_nuevo=id_usuario,
+                observacion=f"{nombre_tecnico} tomó el incidente y se unió al equipo técnico"
+            )
+            
+            # Si es el primer técnico en el equipo, notificar al usuario reportante
+            if count == 0:
+                ControlNotificaciones.notificar_asignacion_a_reportante(id_incidente, id_usuario, nombre_tecnico, True)
+            
             return {'exito': True, 'mensaje': 'Incidente tomado correctamente'}
         except Exception as e:
             print(f"Error en tomar_incidente_disponible => {e}")

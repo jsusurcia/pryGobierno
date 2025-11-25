@@ -231,4 +231,30 @@ class ControlNotificaciones:
         except Exception as e:
             print(f"Error al notificar asignación => {e}")
             return False
+    
+    @staticmethod
+    def notificar_asignacion_a_reportante(id_incidente, id_tecnico, nombre_tecnico, es_grupo=False):
+        """Notifica al usuario que reportó el incidente cuando se le asigna un técnico"""
+        try:
+            from controllers.control_incidentes import ControlIncidentes
+            
+            incidente = ControlIncidentes.buscar_por_IDIncidente(id_incidente)
+            if not incidente:
+                return False
+            
+            # Notificar al usuario que reportó
+            tipo_asignacion = "un equipo técnico" if es_grupo else f"el técnico {nombre_tecnico}"
+            
+            ControlNotificaciones.crear_notificacion(
+                id_usuario=incidente['id_usuario'],
+                titulo=f"Técnico Asignado a tu Incidente #{id_incidente}",
+                mensaje=f"Se ha asignado {tipo_asignacion} para atender tu incidente: {incidente['titulo']}",
+                tipo="incidente",
+                id_referencia=id_incidente
+            )
+            
+            return True
+        except Exception as e:
+            print(f"Error al notificar asignación a reportante => {e}")
+            return False
 

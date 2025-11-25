@@ -5,6 +5,7 @@ from controllers.control_categorias import controlCategorias
 from controllers.control_diagnostico import ControlDiagnosticos
 from controllers.control_notificaciones import ControlNotificaciones
 from controllers.control_evidencias import controlEvidencias
+from controllers.control_biometria import ControlBiometria
 from datetime import datetime
 import os
 from werkzeug.utils import secure_filename
@@ -143,6 +144,133 @@ def logout():
     session.clear()
     flash('Sesión cerrada correctamente', 'info')
     return redirect(url_for('login'))
+
+# ========== RUTAS DE BIOMETRÍA FACIAL ==========
+
+@app.route('/login_biometrico', methods=['POST'])
+def login_biometrico():
+    """Login con verificación biométrica (correo + contraseña + rostro)"""
+    correo = request.form.get('email')
+    contrasena = request.form.get('password')
+    imagen_facial = request.form.get('imagen_facial')
+    
+    if not correo or not contrasena:
+        flash('Por favor, complete todos los campos', 'error')
+        return render_template('login.html')
+    
+    if not imagen_facial:
+        flash('Por favor, capture su rostro para la verificación biométrica', 'error')
+        return render_template('login.html')
+    
+    # Verificar credenciales y rostro
+    resultado = ControlBiometria.verificar_rostro(correo, contrasena, imagen_facial)
+    
+    if resultado['exito']:
+        usuario = resultado['usuario']
+        session['user_id'] = str(usuario['id_usuario'])
+        session['user_name'] = f"{usuario['nombre']} {usuario['ape_pat']} {usuario['ape_mat']}"
+        session['user_role'] = usuario['id_rol']
+        flash(f'Inicio de sesión biométrico exitoso. Similitud: {resultado.get("similitud", 0):.1f}%', 'success')
+        return redirect(url_for('index'))
+    else:
+        # Si requiere registro de rostro, redirigir a enrolamiento
+        if resultado.get('requiere_registro'):
+            flash('Necesita registrar su rostro primero. Use sus credenciales para registrarlo.', 'info')
+            return redirect(url_for('enrolamiento_facial'))
+        
+        flash(resultado['mensaje'], 'error')
+        return render_template('login.html')
+
+@app.route('/enrolamiento_facial')
+def enrolamiento_facial():
+    """Página para registrar el rostro del usuario"""
+    return render_template('enrolamiento_facial.html')
+
+@app.route('/api/biometria/verificar-credenciales', methods=['POST'])
+def api_verificar_credenciales():
+    """API para verificar credenciales antes del registro facial"""
+    try:
+        data = request.get_json()
+        correo = data.get('correo')
+        contrasena = data.get('contrasena')
+        
+        if not correo or not contrasena:
+            return jsonify({'exito': False, 'mensaje': 'Credenciales incompletas'})
+        
+        # Buscar usuario
+        usuario = controlUsuarios.buscar_por_correo(correo, contrasena)
+        
+        if not usuario:
+            return jsonify({'exito': False, 'mensaje': 'Correo o contraseña incorrectos'})
+        
+        if not usuario.get('estado'):
+            return jsonify({'exito': False, 'mensaje': 'Usuario inactivo'})
+        
+        # Verificar si ya tiene biometría
+        if ControlBiometria.tiene_biometria(usuario['id_usuario']):
+            return jsonify({
+                'exito': False, 
+                'mensaje': 'Ya tiene un rostro registrado. Si desea actualizarlo, contacte al administrador.'
+            })
+        
+        return jsonify({
+            'exito': True,
+            'id_usuario': usuario['id_usuario'],
+            'nombre_completo': f"{usuario['nombre']} {usuario['ape_pat']} {usuario['ape_mat']}"
+        })
+        
+    except Exception as e:
+        print(f"Error en api_verificar_credenciales: {e}")
+        return jsonify({'exito': False, 'mensaje': 'Error interno del servidor'}), 500
+
+@app.route('/api/biometria/registrar-rostro', methods=['POST'])
+def api_registrar_rostro():
+    """API para registrar el rostro de un usuario"""
+    try:
+        data = request.get_json()
+        id_usuario = data.get('id_usuario')
+        imagen_facial = data.get('imagen_facial')
+        
+        if not id_usuario or not imagen_facial:
+            return jsonify({'exito': False, 'mensaje': 'Datos incompletos'})
+        
+        # Registrar rostro
+        resultado = ControlBiometria.registrar_rostro(id_usuario, imagen_facial)
+        
+        return jsonify(resultado)
+        
+    except Exception as e:
+        print(f"Error en api_registrar_rostro: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'exito': False, 'mensaje': f'Error: {str(e)}'}), 500
+
+@app.route('/api/biometria/verificar-rostro', methods=['POST'])
+def api_verificar_rostro():
+    """API para verificar solo el rostro de un usuario (re-autenticación)"""
+    if 'user_id' not in session:
+        return jsonify({'exito': False, 'mensaje': 'No autorizado'}), 401
+    
+    try:
+        data = request.get_json()
+        imagen_facial = data.get('imagen_facial')
+        
+        if not imagen_facial:
+            return jsonify({'exito': False, 'mensaje': 'Imagen facial requerida'})
+        
+        resultado = ControlBiometria.verificar_solo_rostro(int(session['user_id']), imagen_facial)
+        
+        return jsonify(resultado)
+        
+    except Exception as e:
+        print(f"Error en api_verificar_rostro: {e}")
+        return jsonify({'exito': False, 'mensaje': str(e)}), 500
+
+@app.route('/api/biometria/estado/<int:id_usuario>')
+def api_estado_biometria(id_usuario):
+    """API para verificar si un usuario tiene biometría registrada"""
+    tiene = ControlBiometria.tiene_biometria(id_usuario)
+    return jsonify({'tiene_biometria': tiene})
 
 @app.route('/dashboard')
 def dashboard():
@@ -1570,4 +1698,5 @@ def api_marcar_todas_leidas():
         return jsonify({'success': False, 'message': 'Error al marcar notificaciones'}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    # host='0.0.0.0' permite acceso desde otros dispositivos en la red
+    app.run(debug=True, host='0.0.0.0', port=5000)

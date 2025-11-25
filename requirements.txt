@@ -11,3 +11,38 @@ psycopg2==2.9.10
 SQLAlchemy==2.0.43
 typing_extensions==4.14.1
 Werkzeug==3.1.3
+
+# ========================================
+# Dependencias para Biometría Facial
+# ========================================
+# IMPORTANTE: En Windows, dlib puede ser difícil de instalar.
+# Sigue estos pasos:
+#
+# 1. Instalar Visual Studio Build Tools (C++ compiler):
+#    https://visualstudio.microsoft.com/visual-cpp-build-tools/
+#    - Seleccionar "Desarrollo de escritorio con C++"
+#
+# 2. Instalar CMake:
+#    https://cmake.org/download/
+#    - Agregar al PATH durante instalación
+#
+# 3. Instalar dlib:
+#    pip install dlib
+#
+# 4. Instalar face_recognition:
+#    pip install face_recognition
+#
+# Alternativa más fácil en Windows:
+# Usar wheels precompilados de dlib:
+# pip install dlib-19.24.1-cp311-cp311-win_amd64.whl
+# (Descargar de: https://github.com/z-mahmud22/Dlib_Windows_Python3.x)
+# ========================================
+
+numpy>=1.24.0
+opencv-python>=4.8.0
+Pillow>=10.0.0
+face_recognition>=1.3.0
+dlib>=19.24.0
+
+# Dependencias adicionales ya incluidas con las anteriores:
+# cloudinary (para evidencias - ya instalado si lo usas)

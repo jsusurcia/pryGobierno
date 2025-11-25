@@ -3,8 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema T.I. - Login</title>
+    <title>Sistema T.I. - Login Biométrico</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Animación para el scanner facial */
+        @keyframes scan {
+            0% { top: 0; }
+            50% { top: calc(100% - 4px); }
+            100% { top: 0; }
+        }
+        .scanner-line {
+            animation: scan 2s linear infinite;
+        }
+        
+        /* Efecto de pulso para el botón de captura */
+        @keyframes pulse-ring {
+            0% { transform: scale(0.8); opacity: 1; }
+            100% { transform: scale(1.3); opacity: 0; }
+        }
+        .pulse-ring::before {
+            content: '';
+            position: absolute;
+            inset: -4px;
+            border-radius: 50%;
+            border: 2px solid #3b82f6;
+            animation: pulse-ring 1.5s ease-out infinite;
+        }
+        
+        /* Overlay para el rostro detectado */
+        .face-overlay {
+            box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+        }
+    </style>
 </head>
 <body class="bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900 min-h-screen flex items-center justify-center p-4">
     
@@ -12,25 +42,48 @@
         <!-- Logo y título -->
         <div class="text-center mb-8">
             <div class="inline-flex items-center justify-center w-16 h-16 bg-gray-50 rounded-xl mb-4 px-2">
-                <img src="{{ url_for('static', filename='img/logo_ensa.png') }}" alt="Icono" class="bject-contain" />
+                <img src="{{ url_for('static', filename='img/logo_ensa.png') }}" alt="Icono" class="object-contain" />
             </div>
             <h1 class="text-white text-3xl font-bold mb-2">Sistema de Gestión de Incidentes</h1>
+            <p class="text-blue-300 text-sm">Autenticación Biométrica</p>
         </div>
+
         <!-- Mensajes Flash -->
-                {% with messages = get_flashed_messages(with_categories=true) %}
-                    {% if messages %}
-                        {% for category, message in messages %}
-                            <div class="mb-4 p-4 rounded-lg {% if category == 'error' %}bg-red-600 text-white{% elif category == 'success' %}bg-green-600 text-white{% elif category == 'info' %}bg-blue-600 text-white{% else %}bg-yellow-600 text-black{% endif %}">
-                                {{ message }}
-                            </div>
-                        {% endfor %}
-                    {% endif %}
-                {% endwith %}
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="mb-4 p-4 rounded-lg {% if category == 'error' %}bg-red-600 text-white{% elif category == 'success' %}bg-green-600 text-white{% elif category == 'info' %}bg-blue-600 text-white{% else %}bg-yellow-600 text-black{% endif %}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
        
         <div class="bg-gray-800 bg-opacity-50 backdrop-blur-sm rounded-2xl p-8 shadow-2xl border border-gray-700">
-            <form method="POST" action="{{ url_for('login') }}">
+            <!-- Selector de modo de login -->
+            <div class="flex mb-6 bg-gray-700 rounded-lg p-1">
+                <button 
+                    type="button"
+                    id="btn-modo-biometrico"
+                    onclick="cambiarModo('biometrico')"
+                    class="flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all duration-200 bg-blue-600 text-white"
+                >
+                    🔐 Biométrico
+                </button>
+                <button 
+                    type="button"
+                    id="btn-modo-tradicional"
+                    onclick="cambiarModo('tradicional')"
+                    class="flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all duration-200 text-gray-400 hover:text-white"
+                >
+                    🔑 Tradicional
+                </button>
+            </div>
+
+            <!-- Formulario de Login -->
+            <form id="loginForm" method="POST" action="{{ url_for('login_biometrico') }}">
                 <!-- Correo Electrónico -->
-                <div class="mb-6">
+                <div class="mb-4">
                     <label class="block text-gray-300 text-sm font-medium mb-2">
                         Correo Electrónico
                     </label>
@@ -43,7 +96,8 @@
                         <input 
                             type="email" 
                             name="email"
-                            placeholder="hola@soporte.com"
+                            id="email"
+                            placeholder="correo@ejemplo.com"
                             class="w-full bg-gray-700 bg-opacity-50 text-gray-200 placeholder-gray-500 rounded-lg pl-10 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 border border-gray-600 transition"
                             required
                         >
@@ -51,7 +105,7 @@
                 </div>
 
                 <!-- Contraseña -->
-                <div class="mb-6">
+                <div class="mb-4">
                     <label class="block text-gray-300 text-sm font-medium mb-2">
                         Contraseña
                     </label>
@@ -82,34 +136,287 @@
                     </div>
                 </div>
 
+                <!-- Sección de Cámara (Solo modo biométrico) -->
+                <div id="seccion-camara" class="mb-6">
+                    <label class="block text-gray-300 text-sm font-medium mb-2">
+                        <span class="flex items-center gap-2">
+                            <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                            </svg>
+                            Verificación Facial
+                        </span>
+                    </label>
+                    
+                    <!-- Contenedor de la cámara -->
+                    <div class="relative bg-gray-900 rounded-xl overflow-hidden border-2 border-gray-600 aspect-video">
+                        <!-- Video de la cámara -->
+                        <video 
+                            id="video" 
+                            class="w-full h-full object-cover"
+                            autoplay 
+                            playsinline
+                            muted
+                        ></video>
+                        
+                        <!-- Canvas oculto para captura -->
+                        <canvas id="canvas" class="hidden"></canvas>
+                        
+                        <!-- Overlay de guía facial -->
+                        <div id="face-guide" class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                            <div class="w-40 h-52 border-2 border-dashed border-blue-400 rounded-full opacity-50"></div>
+                        </div>
+                        
+                        <!-- Línea de escaneo -->
+                        <div id="scanner" class="absolute left-0 right-0 h-1 bg-gradient-to-r from-transparent via-blue-500 to-transparent scanner-line hidden"></div>
+                        
+                        <!-- Mensaje de estado -->
+                        <div id="camera-status" class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3">
+                            <p class="text-center text-sm text-gray-300" id="status-text">
+                                Haga clic en "Activar Cámara" para comenzar
+                            </p>
+                        </div>
+                        
+                        <!-- Indicador de rostro detectado -->
+                        <div id="face-detected" class="absolute top-3 right-3 hidden">
+                            <span class="flex items-center gap-1 bg-green-500/80 text-white text-xs px-2 py-1 rounded-full">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                </svg>
+                                Rostro detectado
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <!-- Controles de cámara -->
+                    <div class="flex gap-3 mt-3">
+                        <button 
+                            type="button"
+                            id="btn-activar-camara"
+                            onclick="activarCamara()"
+                            class="flex-1 bg-gray-600 hover:bg-gray-500 text-white font-medium py-2 px-4 rounded-lg transition flex items-center justify-center gap-2"
+                        >
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                            </svg>
+                            <span id="btn-camara-text">Activar Cámara</span>
+                        </button>
+                        <button 
+                            type="button"
+                            id="btn-capturar"
+                            onclick="capturarRostro()"
+                            class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                            disabled
+                        >
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            </svg>
+                            Capturar
+                        </button>
+                    </div>
+                    
+                    <!-- Campo oculto para la imagen capturada -->
+                    <input type="hidden" name="imagen_facial" id="imagen_facial">
+                </div>
+
                 <!-- Botón de inicio de sesión -->
                 <button 
                     type="submit"
-                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition duration-200 shadow-lg hover:shadow-xl transform hover:scale-[1.02] active:scale-[0.98]"
+                    id="btn-login"
+                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition duration-200 shadow-lg hover:shadow-xl transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                 >
-                    Iniciar Sesión
+                    <span id="btn-login-text" class="flex items-center justify-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                        </svg>
+                        Iniciar Sesión con Biometría
+                    </span>
+                    <span id="btn-login-loading" class="hidden flex items-center justify-center gap-2">
+                        <svg class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Verificando...
+                    </span>
                 </button>
 
                 <!-- Enlaces de ayuda -->
                 <div class="mt-6 text-center space-y-2">
+                    <a href="{{ url_for('enrolamiento_facial') }}" class="block text-blue-400 hover:text-blue-300 text-sm transition">
+                        📷 Registrar mi rostro
+                    </a>
                     <a href="#" class="block text-gray-300 hover:text-blue-400 text-sm transition">
                         ¿Necesitas ayuda?
                     </a>
-                    <a href="#" class="block text-blue-400 hover:text-blue-300 text-sm transition">
-                        ¿Olvidaste tu contraseña?
-                    </a>
-                    <div class="text-gray-300 text-sm">
-                        ¿Eres nuevo? 
-                        <a href="{{ url_for('registro') }}" class="text-blue-400 hover:text-blue-300 transition">
-                            Regístrate aquí
-                        </a>
-                    </div>
                 </div>
             </form>
+        </div>
+        
+        <!-- Información de seguridad -->
+        <div class="mt-4 text-center">
+            <p class="text-gray-500 text-xs">
+                🔒 Tu imagen facial se procesa de forma segura y no se almacena después de la verificación
+            </p>
         </div>
     </div>
 
     <script>
+        let stream = null;
+        let camaraActiva = false;
+        let imagenCapturada = false;
+        let modoActual = 'biometrico';
+
+        // Cambiar entre modo biométrico y tradicional
+        function cambiarModo(modo) {
+            modoActual = modo;
+            const seccionCamara = document.getElementById('seccion-camara');
+            const btnBiometrico = document.getElementById('btn-modo-biometrico');
+            const btnTradicional = document.getElementById('btn-modo-tradicional');
+            const btnLoginText = document.getElementById('btn-login-text');
+            const form = document.getElementById('loginForm');
+            
+            if (modo === 'biometrico') {
+                seccionCamara.classList.remove('hidden');
+                btnBiometrico.classList.add('bg-blue-600', 'text-white');
+                btnBiometrico.classList.remove('text-gray-400');
+                btnTradicional.classList.remove('bg-blue-600', 'text-white');
+                btnTradicional.classList.add('text-gray-400');
+                btnLoginText.innerHTML = `
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                    </svg>
+                    Iniciar Sesión con Biometría
+                `;
+                form.action = "{{ url_for('login_biometrico') }}";
+            } else {
+                seccionCamara.classList.add('hidden');
+                btnTradicional.classList.add('bg-blue-600', 'text-white');
+                btnTradicional.classList.remove('text-gray-400');
+                btnBiometrico.classList.remove('bg-blue-600', 'text-white');
+                btnBiometrico.classList.add('text-gray-400');
+                btnLoginText.innerHTML = `
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/>
+                    </svg>
+                    Iniciar Sesión
+                `;
+                form.action = "{{ url_for('login') }}";
+                // Detener cámara si está activa
+                if (camaraActiva) {
+                    detenerCamara();
+                }
+            }
+        }
+
+        // Activar/Desactivar cámara
+        async function activarCamara() {
+            const video = document.getElementById('video');
+            const btnCamara = document.getElementById('btn-activar-camara');
+            const btnCamaraText = document.getElementById('btn-camara-text');
+            const btnCapturar = document.getElementById('btn-capturar');
+            const statusText = document.getElementById('status-text');
+            const scanner = document.getElementById('scanner');
+            
+            if (camaraActiva) {
+                detenerCamara();
+                return;
+            }
+            
+            try {
+                statusText.textContent = 'Solicitando acceso a la cámara...';
+                
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        width: { ideal: 640 },
+                        height: { ideal: 480 },
+                        facingMode: 'user'
+                    }
+                });
+                
+                video.srcObject = stream;
+                camaraActiva = true;
+                
+                btnCamaraText.textContent = 'Desactivar';
+                btnCamara.classList.remove('bg-gray-600', 'hover:bg-gray-500');
+                btnCamara.classList.add('bg-red-600', 'hover:bg-red-700');
+                btnCapturar.disabled = false;
+                scanner.classList.remove('hidden');
+                statusText.textContent = 'Posicione su rostro dentro del óvalo y haga clic en "Capturar"';
+                
+            } catch (error) {
+                console.error('Error al acceder a la cámara:', error);
+                statusText.textContent = '❌ Error: No se pudo acceder a la cámara. Verifique los permisos.';
+                statusText.classList.add('text-red-400');
+            }
+        }
+
+        // Detener cámara
+        function detenerCamara() {
+            const video = document.getElementById('video');
+            const btnCamara = document.getElementById('btn-activar-camara');
+            const btnCamaraText = document.getElementById('btn-camara-text');
+            const btnCapturar = document.getElementById('btn-capturar');
+            const statusText = document.getElementById('status-text');
+            const scanner = document.getElementById('scanner');
+            
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+            }
+            
+            video.srcObject = null;
+            camaraActiva = false;
+            imagenCapturada = false;
+            
+            btnCamaraText.textContent = 'Activar Cámara';
+            btnCamara.classList.add('bg-gray-600', 'hover:bg-gray-500');
+            btnCamara.classList.remove('bg-red-600', 'hover:bg-red-700');
+            btnCapturar.disabled = true;
+            scanner.classList.add('hidden');
+            statusText.textContent = 'Haga clic en "Activar Cámara" para comenzar';
+            statusText.classList.remove('text-red-400', 'text-green-400');
+            
+            document.getElementById('imagen_facial').value = '';
+            document.getElementById('face-detected').classList.add('hidden');
+        }
+
+        // Capturar rostro
+        function capturarRostro() {
+            const video = document.getElementById('video');
+            const canvas = document.getElementById('canvas');
+            const ctx = canvas.getContext('2d');
+            const statusText = document.getElementById('status-text');
+            const faceDetected = document.getElementById('face-detected');
+            const btnCapturar = document.getElementById('btn-capturar');
+            
+            // Configurar canvas con las dimensiones del video
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            
+            // Dibujar el frame actual del video en el canvas
+            ctx.drawImage(video, 0, 0);
+            
+            // Convertir a base64
+            const imagenBase64 = canvas.toDataURL('image/jpeg', 0.8);
+            
+            // Guardar en el campo oculto
+            document.getElementById('imagen_facial').value = imagenBase64;
+            
+            // Actualizar UI
+            imagenCapturada = true;
+            faceDetected.classList.remove('hidden');
+            statusText.textContent = '✅ Imagen capturada. Puede iniciar sesión.';
+            statusText.classList.add('text-green-400');
+            statusText.classList.remove('text-red-400');
+            
+            // Efecto visual de captura
+            btnCapturar.classList.add('ring-4', 'ring-green-500');
+            setTimeout(() => {
+                btnCapturar.classList.remove('ring-4', 'ring-green-500');
+            }, 500);
+        }
+
+        // Mostrar/Ocultar contraseña
         function togglePassword() {
             const passwordInput = document.getElementById('password');
             const eyeIcon = document.getElementById('eye-icon');
@@ -127,6 +434,31 @@
                 `;
             }
         }
+
+        // Validación del formulario antes de enviar
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            if (modoActual === 'biometrico') {
+                const imagenFacial = document.getElementById('imagen_facial').value;
+                
+                if (!imagenFacial) {
+                    e.preventDefault();
+                    alert('Por favor, capture su rostro antes de iniciar sesión.');
+                    return false;
+                }
+            }
+            
+            // Mostrar estado de carga
+            document.getElementById('btn-login-text').classList.add('hidden');
+            document.getElementById('btn-login-loading').classList.remove('hidden');
+            document.getElementById('btn-login').disabled = true;
+        });
+
+        // Limpiar recursos al salir de la página
+        window.addEventListener('beforeunload', function() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+        });
     </script>
 
 </body>

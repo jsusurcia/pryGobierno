@@ -9,6 +9,20 @@ class ControlIncidentes:
                 print("No se pudo conectar a la base de datos.")
                 return -2
 
+            # Asegurar que los strings estén correctamente codificados en UTF-8
+            if isinstance(titulo, bytes):
+                titulo = titulo.decode('utf-8', errors='ignore')
+            if isinstance(descripcion, bytes):
+                descripcion = descripcion.decode('utf-8', errors='ignore')
+            
+            # Convertir a string si no lo es
+            titulo = str(titulo) if titulo else ''
+            descripcion = str(descripcion) if descripcion else ''
+            
+            # Limpiar y normalizar strings
+            titulo = titulo.strip()
+            descripcion = descripcion.strip()
+
             # Si no se proporciona nivel, usar 'B' (Bajo) como valor por defecto
             # El jefe de TI puede cambiarlo después cuando acepte el incidente
             if nivel is None:
@@ -27,6 +41,8 @@ class ControlIncidentes:
                 RETURNING id_incidente;
             """
             with conexion.cursor() as cursor:
+                # Asegurar encoding UTF-8 antes de ejecutar
+                cursor.execute("SET CLIENT_ENCODING TO 'UTF8';")
                 cursor.execute(sql, (titulo, descripcion, id_categoria, id_usuario, nivel))
                 id_incidente = cursor.fetchone()[0]
                 conexion.commit()
@@ -447,42 +463,100 @@ class ControlIncidentes:
             return False
 
     @staticmethod
-    def obtener_incidentes_disponibles_tecnicos():
-        """Obtiene incidentes disponibles para técnicos (Bajo/Medio, estado A, sin límite alcanzado)"""
+    def obtener_incidentes_disponibles_tecnicos(id_usuario=None):
+        """Obtiene incidentes disponibles para técnicos (Bajo/Medio, estado A, sin límite alcanzado)
+        Si se proporciona id_usuario, incluye información sobre si el usuario ya está trabajando en cada incidente
+        y excluye incidentes donde el usuario ya tiene un diagnóstico pendiente de revisión"""
         try:
             conexion = get_connection()
             if not conexion:
                 return []
             
-            sql = """
-                SELECT 
-                    i.id_incidente,
-                    i.titulo,
-                    i.descripcion,
-                    c.nombre as categoria,
-                    i.nivel,
-                    i.fecha_reporte,
-                    COUNT(et.id_usuario) as personas_trabajando
-                FROM INCIDENTE i
-                LEFT JOIN CATEGORIA c ON i.id_categoria = c.id_categoria
-                LEFT JOIN EQUIPO_TECNICO et ON i.id_incidente = et.id_incidente
-                WHERE i.estado = 'A'
-                AND i.nivel IN ('B', 'M')
-                AND (i.id_tecnico_asignado IS NULL OR i.nivel IN ('B', 'M'))
-                GROUP BY i.id_incidente, i.titulo, i.descripcion, c.nombre, i.nivel, i.fecha_reporte
-                HAVING 
-                    (i.nivel = 'B' AND COUNT(et.id_usuario) < 3)
-                    OR (i.nivel = 'M' AND COUNT(et.id_usuario) < 5)
-                ORDER BY 
-                    CASE i.nivel 
-                        WHEN 'M' THEN 1 
-                        WHEN 'B' THEN 2 
-                    END,
-                    i.fecha_reporte ASC
-            """
+            # Construir la consulta con o sin verificación de usuario
+            if id_usuario:
+                sql = """
+                    SELECT 
+                        i.id_incidente,
+                        i.titulo,
+                        i.descripcion,
+                        c.nombre as categoria,
+                        i.nivel,
+                        i.fecha_reporte,
+                        COUNT(et.id_usuario) as personas_trabajando,
+                        CASE WHEN EXISTS (
+                            SELECT 1 FROM EQUIPO_TECNICO et2 
+                            WHERE et2.id_incidente = i.id_incidente 
+                            AND et2.id_usuario = %s
+                        ) THEN TRUE ELSE FALSE END as ya_esta_trabajando
+                    FROM INCIDENTE i
+                    LEFT JOIN CATEGORIA c ON i.id_categoria = c.id_categoria
+                    LEFT JOIN EQUIPO_TECNICO et ON i.id_incidente = et.id_incidente
+                    WHERE i.estado = 'A'
+                    AND i.nivel IN ('B', 'M')
+                    AND (i.id_tecnico_asignado IS NULL OR i.nivel IN ('B', 'M'))
+                    -- Excluir incidentes donde el usuario ya tiene un diagnóstico pendiente
+                    -- Si el diagnóstico fue rechazado y no fue actualizado después, el incidente puede aparecer para agregar otro diagnóstico
+                    AND NOT EXISTS (
+                        SELECT 1 
+                        FROM DIAGNOSTICO d
+                        LEFT JOIN REVISION_DIAGNOSTICO rd ON d.id_diagnosticos = rd.id_diagnostico
+                        WHERE d.id_incidente = i.id_incidente
+                        AND d.id_usuario = %s
+                        AND (
+                            -- Si no tiene revisión, está pendiente (excluir)
+                            rd.id_revision IS NULL
+                            OR (
+                                -- Si tiene revisión rechazada PERO el diagnóstico fue actualizado después del rechazo, está pendiente de nuevo (excluir)
+                                rd.id_revision IS NOT NULL 
+                                AND d.fecha_actualizacion IS NOT NULL
+                                AND d.fecha_actualizacion > rd.fecha_rechazo
+                            )
+                        )
+                    )
+                    GROUP BY i.id_incidente, i.titulo, i.descripcion, c.nombre, i.nivel, i.fecha_reporte
+                    HAVING 
+                        (i.nivel = 'B' AND COUNT(et.id_usuario) < 3)
+                        OR (i.nivel = 'M' AND COUNT(et.id_usuario) < 5)
+                    ORDER BY 
+                        CASE i.nivel 
+                            WHEN 'M' THEN 1 
+                            WHEN 'B' THEN 2 
+                        END,
+                        i.fecha_reporte ASC
+                """
+                params = (id_usuario, id_usuario)
+            else:
+                sql = """
+                    SELECT 
+                        i.id_incidente,
+                        i.titulo,
+                        i.descripcion,
+                        c.nombre as categoria,
+                        i.nivel,
+                        i.fecha_reporte,
+                        COUNT(et.id_usuario) as personas_trabajando,
+                        FALSE as ya_esta_trabajando
+                    FROM INCIDENTE i
+                    LEFT JOIN CATEGORIA c ON i.id_categoria = c.id_categoria
+                    LEFT JOIN EQUIPO_TECNICO et ON i.id_incidente = et.id_incidente
+                    WHERE i.estado = 'A'
+                    AND i.nivel IN ('B', 'M')
+                    AND (i.id_tecnico_asignado IS NULL OR i.nivel IN ('B', 'M'))
+                    GROUP BY i.id_incidente, i.titulo, i.descripcion, c.nombre, i.nivel, i.fecha_reporte
+                    HAVING 
+                        (i.nivel = 'B' AND COUNT(et.id_usuario) < 3)
+                        OR (i.nivel = 'M' AND COUNT(et.id_usuario) < 5)
+                    ORDER BY 
+                        CASE i.nivel 
+                            WHEN 'M' THEN 1 
+                            WHEN 'B' THEN 2 
+                        END,
+                        i.fecha_reporte ASC
+                """
+                params = ()
             
             with conexion.cursor() as cursor:
-                cursor.execute(sql)
+                cursor.execute(sql, params)
                 resultados = cursor.fetchall()
             
             conexion.close()
@@ -495,12 +569,15 @@ class ControlIncidentes:
                     'categoria': r[3],
                     'nivel': r[4],
                     'fecha_reporte': r[5],
-                    'personas_trabajando': r[6]
+                    'personas_trabajando': r[6],
+                    'ya_esta_trabajando': r[7] if len(r) > 7 else False
                 }
                 for r in resultados
             ]
         except Exception as e:
             print(f"Error en obtener_incidentes_disponibles_tecnicos => {e}")
+            import traceback
+            traceback.print_exc()
             return []
 
     @staticmethod
@@ -536,11 +613,24 @@ class ControlIncidentes:
             if not conexion:
                 return {'exito': False, 'mensaje': 'Error de conexión'}
             
-            sql_count = """
-                SELECT COUNT(*) FROM EQUIPO_TECNICO
-                WHERE id_incidente = %s
-            """
             with conexion.cursor() as cursor:
+                # Verificar si el usuario ya está trabajando en este incidente
+                sql_verificar_usuario = """
+                    SELECT COUNT(*) FROM EQUIPO_TECNICO
+                    WHERE id_incidente = %s AND id_usuario = %s
+                """
+                cursor.execute(sql_verificar_usuario, (id_incidente, id_usuario))
+                ya_esta_en_equipo = cursor.fetchone()[0] > 0
+                
+                if ya_esta_en_equipo:
+                    conexion.close()
+                    return {'exito': False, 'mensaje': 'Ya estás trabajando en este incidente'}
+                
+                # Verificar límite de personas trabajando
+                sql_count = """
+                    SELECT COUNT(*) FROM EQUIPO_TECNICO
+                    WHERE id_incidente = %s
+                """
                 cursor.execute(sql_count, (id_incidente,))
                 count = cursor.fetchone()[0]
                 
@@ -785,6 +875,7 @@ class ControlIncidentes:
         """
         Obtiene incidentes sin diagnóstico que están en estado 'A' (Activo)
         y que fueron asignados al técnico (id_tecnico_asignado) o que el técnico está en EQUIPO_TECNICO.
+        Excluye incidentes donde el usuario ya tiene un diagnóstico pendiente de revisión.
         """
         try:
             conexion = get_connection()
@@ -796,17 +887,34 @@ class ControlIncidentes:
                 # Consulta que verifica ambas condiciones:
                 # 1. Incidentes asignados directamente (id_tecnico_asignado)
                 # 2. Incidentes donde el técnico está en EQUIPO_TECNICO
-                # SOLO estado 'A' (Activo) y sin diagnóstico
-                # Usamos UNION para combinar ambas consultas de manera explícita
+                # SOLO estado 'A' (Activo) y sin diagnóstico pendiente de revisión del usuario
+                # Excluir incidentes donde el usuario ya tiene un diagnóstico pendiente (sin rechazo)
+                # Pero incluir incidentes con diagnóstico rechazado para que pueda agregar otro
                 sql = """
                     SELECT DISTINCT
                         i.id_incidente, 
                         i.titulo
                     FROM INCIDENTE i
-                    LEFT JOIN DIAGNOSTICO d ON i.id_incidente = d.id_incidente
                     WHERE i.estado = 'A'
-                        AND d.id_diagnosticos IS NULL
                         AND i.id_tecnico_asignado = %s
+                        -- Excluir si el usuario tiene un diagnóstico pendiente para este incidente
+                        AND NOT EXISTS (
+                            SELECT 1 
+                            FROM DIAGNOSTICO d
+                            LEFT JOIN REVISION_DIAGNOSTICO rd ON d.id_diagnosticos = rd.id_diagnostico
+                            WHERE d.id_incidente = i.id_incidente
+                            AND d.id_usuario = %s
+                            AND (
+                                -- Si no tiene revisión, está pendiente (excluir)
+                                rd.id_revision IS NULL
+                                OR (
+                                    -- Si tiene revisión rechazada PERO el diagnóstico fue actualizado después del rechazo, está pendiente de nuevo (excluir)
+                                    rd.id_revision IS NOT NULL 
+                                    AND d.fecha_actualizacion IS NOT NULL
+                                    AND d.fecha_actualizacion > rd.fecha_rechazo
+                                )
+                            )
+                        )
                     
                     UNION
                     
@@ -815,14 +923,30 @@ class ControlIncidentes:
                         i.titulo
                     FROM EQUIPO_TECNICO et
                     INNER JOIN INCIDENTE i ON et.id_incidente = i.id_incidente
-                    LEFT JOIN DIAGNOSTICO d ON i.id_incidente = d.id_incidente
                     WHERE et.id_usuario = %s
                         AND i.estado = 'A'
-                        AND d.id_diagnosticos IS NULL
+                        -- Excluir si el usuario tiene un diagnóstico pendiente para este incidente
+                        AND NOT EXISTS (
+                            SELECT 1 
+                            FROM DIAGNOSTICO d
+                            LEFT JOIN REVISION_DIAGNOSTICO rd ON d.id_diagnosticos = rd.id_diagnostico
+                            WHERE d.id_incidente = i.id_incidente
+                            AND d.id_usuario = %s
+                            AND (
+                                -- Si no tiene revisión, está pendiente (excluir)
+                                rd.id_revision IS NULL
+                                OR (
+                                    -- Si tiene revisión rechazada PERO el diagnóstico fue actualizado después del rechazo, está pendiente de nuevo (excluir)
+                                    rd.id_revision IS NOT NULL 
+                                    AND d.fecha_actualizacion IS NOT NULL
+                                    AND d.fecha_actualizacion > rd.fecha_rechazo
+                                )
+                            )
+                        )
                     
                     ORDER BY id_incidente DESC;
                 """
-                params = (id_usuario, id_usuario)
+                params = (id_usuario, id_usuario, id_usuario, id_usuario)
             else:
                 # Sin usuario: sin incidentes
                 return []

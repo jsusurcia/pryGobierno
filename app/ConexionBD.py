@@ -1,38 +1,30 @@
 import psycopg2
-import os
+import psycopg2.extensions
 
 def get_connection():
     try:
-        # Forzar encoding para evitar problemas con rutas que tienen tildes
-        os.environ['PGCLIENTENCODING'] = 'LATIN1'
-        
+        # Configurar conexión con UTF-8 explícitamente
         conexion = psycopg2.connect(
             host="localhost",
             database="Gobierno2",
             user="postgres",
-            password="SMAILLIW"
+            password="070905",
+            client_encoding='UTF8'
         )
         
-        # Después de conectar, cambiar a UTF8 para queries
+        # Establecer el encoding del cliente explícitamente
+        conexion.set_client_encoding('UTF8')
+        
+        # Obtener el cursor y asegurar que use UTF-8
         cursor = conexion.cursor()
         cursor.execute("SET CLIENT_ENCODING TO 'UTF8';")
+        cursor.execute("SET NAMES 'UTF8';")
         conexion.commit()
         cursor.close()
         
         return conexion
-    except UnicodeDecodeError:
-        # Si falla con encoding, intentar sin configurar
-        try:
-            conexion = psycopg2.connect(
-                host="localhost",
-                database="Gobierno2",
-                user="postgres",
-                password="SMAILLIW"
-            )
-            return conexion
-        except Exception as e2:
-            print("Error al conectar con PostgreSQL:", e2)
-            return None
     except Exception as e:
-        print("Error al conectar con PostgreSQL:", e)
+        print(f"Error al conectar con PostgreSQL: {e}")
+        import traceback
+        traceback.print_exc()
         return None

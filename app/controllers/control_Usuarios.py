@@ -339,13 +339,13 @@ class controlUsuarios:
 
     @staticmethod
     def contar_tickets_activos(id_usuario):
-        """Cuenta los tickets activos asignados directamente a un usuario (estados P, A, T)"""
+        """Cuenta los tickets activos asignados directamente a un usuario (estados P y A, excluyendo Terminados)"""
         try:
             sql = """
                 SELECT COUNT(*)
                 FROM INCIDENTE
                 WHERE id_tecnico_asignado = %s
-                AND estado IN ('P', 'A', 'T')
+                AND estado IN ('P', 'A')
             """
             conexion = get_connection()
             if not conexion:
@@ -363,14 +363,14 @@ class controlUsuarios:
 
     @staticmethod
     def contar_tickets_en_equipo(id_usuario):
-        """Cuenta los tickets donde el usuario está en el equipo técnico"""
+        """Cuenta los tickets activos donde el usuario está en el equipo técnico (excluyendo Terminados)"""
         try:
             sql = """
                 SELECT COUNT(DISTINCT et.id_incidente)
                 FROM EQUIPO_TECNICO et
                 JOIN INCIDENTE i ON et.id_incidente = i.id_incidente
                 WHERE et.id_usuario = %s
-                AND i.estado IN ('P', 'A', 'T')
+                AND i.estado IN ('P', 'A')
             """
             conexion = get_connection()
             if not conexion:

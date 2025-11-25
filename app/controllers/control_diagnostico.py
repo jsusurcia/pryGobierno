@@ -29,11 +29,58 @@ class ControlDiagnosticos:
             return False
     
     @staticmethod
+    def tiene_diagnostico_pendiente(id_incidente, id_usuario):
+        """
+        Verifica si el usuario ya tiene un diagnóstico pendiente para este incidente.
+        Retorna True si tiene diagnóstico pendiente, False si no tiene o fue rechazado sin actualizar.
+        """
+        try:
+            conexion = get_connection()
+            if not conexion:
+                return False
+            
+            sql = """
+                SELECT COUNT(*) 
+                FROM DIAGNOSTICO d
+                LEFT JOIN REVISION_DIAGNOSTICO rd ON d.id_diagnosticos = rd.id_diagnostico
+                WHERE d.id_incidente = %s
+                AND d.id_usuario = %s
+                AND (
+                    -- No tiene revisión (pendiente)
+                    rd.id_revision IS NULL
+                    OR (
+                        -- Tiene revisión rechazada PERO el diagnóstico fue actualizado después del rechazo (pendiente de nuevo)
+                        rd.id_revision IS NOT NULL 
+                        AND d.fecha_actualizacion IS NOT NULL
+                        AND d.fecha_actualizacion > rd.fecha_rechazo
+                    )
+                )
+            """
+            
+            with conexion.cursor() as cursor:
+                cursor.execute(sql, (id_incidente, id_usuario))
+                resultado = cursor.fetchone()[0]
+            
+            conexion.close()
+            
+            return resultado > 0
+            
+        except Exception as e:
+            print(f"Error en tiene_diagnostico_pendiente => {e}")
+            return False
+    
+    @staticmethod
     def insertar_diagnostico(id_incidente, descripcion, causa_raiz, solucion, comentario=None, usuario_id=None):
         """
         Inserta un diagnóstico. El parámetro comentario se mantiene por compatibilidad pero no se usa.
+        Verifica primero que el usuario no tenga un diagnóstico pendiente para este incidente.
         """
         try:
+            # Verificar si el usuario ya tiene un diagnóstico pendiente para este incidente
+            if usuario_id and ControlDiagnosticos.tiene_diagnostico_pendiente(id_incidente, usuario_id):
+                print(f"⚠️ El usuario {usuario_id} ya tiene un diagnóstico pendiente para el incidente {id_incidente}")
+                return False
+            
             conexion = get_connection()
             if not conexion:
                 print("No se pudo conectar a la base de datos.")
@@ -52,7 +99,7 @@ class ControlDiagnosticos:
 
             conexion.close()
             
-            # Registrar en historial
+            # Registrar en historial de diagnósticos
             if id_diagnostico and usuario_id:
                 ControlDiagnosticos.insertar_historial_diagnostico(
                     id_diagnostico=id_diagnostico,
@@ -61,6 +108,27 @@ class ControlDiagnosticos:
                     descripcion=descripcion,
                     causa_raiz=causa_raiz,
                     solucion_propuesta=solucion
+                )
+            
+            # Obtener nombre del técnico que registró el diagnóstico
+            from controllers.control_Usuarios import controlUsuarios
+            usuario_diagnostico = controlUsuarios.buscar_por_ID(usuario_id) if usuario_id else None
+            nombre_tecnico = "Técnico desconocido"
+            if usuario_diagnostico:
+                nombre_tecnico = f"{usuario_diagnostico.get('nombre', '')} {usuario_diagnostico.get('ape_pat', '')}"
+            
+            # Obtener el estado actual del incidente
+            from controllers.control_incidentes import ControlIncidentes
+            incidente = ControlIncidentes.buscar_por_IDIncidente(id_incidente)
+            estado_actual = incidente.get('estado') if incidente else None
+            
+            # Registrar en el historial del incidente que se agregó un diagnóstico pendiente de revisión
+            if id_diagnostico:
+                ControlIncidentes.insertar_historial(
+                    id_incidente=id_incidente,
+                    estado_anterior=estado_actual,
+                    estado_nuevo=estado_actual,  # El estado no cambia al agregar diagnóstico
+                    observacion=f"Diagnóstico D{id_diagnostico} registrado y pendiente de revisión. Realizado por: {nombre_tecnico}"
                 )
             
             return True  # Éxito
@@ -321,13 +389,38 @@ class ControlDiagnosticos:
 
             conexion.close()
             
+            # Obtener información completa del diagnóstico aceptado
+            diagnostico = ControlDiagnosticos.buscar_por_IDDiagnostico(id_diagnostico)
+            nombre_tecnico = "Técnico desconocido"
+            descripcion_diag = ""
+            causa_raiz_diag = ""
+            solucion_diag = ""
+            
+            if diagnostico:
+                from controllers.control_Usuarios import controlUsuarios
+                usuario_diagnostico = controlUsuarios.buscar_por_ID(diagnostico.get('id_usuario'))
+                if usuario_diagnostico:
+                    nombre_tecnico = f"{usuario_diagnostico.get('nombre', '')} {usuario_diagnostico.get('ape_pat', '')}"
+                
+                descripcion_diag = diagnostico.get('descripcion', '')[:200] if diagnostico.get('descripcion') else 'No especificada'
+                causa_raiz_diag = diagnostico.get('causa_raiz', '')[:200] if diagnostico.get('causa_raiz') else 'No especificada'
+                solucion_diag = diagnostico.get('solucion_propuesta', '')[:200] if diagnostico.get('solucion_propuesta') else 'No especificada'
+            
+            # Construir mensaje detallado para el historial
+            mensaje_historial = f"Diagnóstico D{id_diagnostico} aceptado por el Jefe de TI - Incidente terminado.\n"
+            mensaje_historial += f"Realizado por: {nombre_tecnico}\n"
+            mensaje_historial += f"Descripción: {descripcion_diag}\n"
+            mensaje_historial += f"Causa raíz: {causa_raiz_diag}\n"
+            if solucion_diag and solucion_diag != 'No especificada':
+                mensaje_historial += f"Solución propuesta: {solucion_diag}"
+            
             # Registrar en historial si se actualizó correctamente
             if afectadas > 0 and estado_anterior != 'T':
                 ControlIncidentes.insertar_historial(
                     id_incidente=id_incidente,
                     estado_anterior=estado_anterior,
                     estado_nuevo='T',
-                    observacion="Diagnóstico aceptado por el Jefe de TI - Incidente terminado"
+                    observacion=mensaje_historial
                 )
                 
                 # Notificar a todos los involucrados
@@ -369,9 +462,30 @@ class ControlDiagnosticos:
     def cancelar_revision(id_diagnostico, id_incidente, id_usuario_rechazo=None):
         """
         Rechaza un diagnóstico. Registra el rechazo en REVISION_DIAGNOSTICO.
+        También registra en el historial del incidente que el diagnóstico fue rechazado.
         No cambia el estado del incidente, solo marca el diagnóstico como rechazado.
         """
+        from controllers.control_incidentes import ControlIncidentes
+        
         try:
+            # Obtener información completa del diagnóstico antes de rechazarlo
+            diagnostico = ControlDiagnosticos.buscar_por_IDDiagnostico(id_diagnostico)
+            if not diagnostico:
+                print(f"Diagnóstico {id_diagnostico} no encontrado")
+                return False
+            
+            # Obtener nombre del técnico que hizo el diagnóstico
+            from controllers.control_Usuarios import controlUsuarios
+            usuario_diagnostico = controlUsuarios.buscar_por_ID(diagnostico.get('id_usuario'))
+            nombre_tecnico = "Técnico desconocido"
+            if usuario_diagnostico:
+                nombre_tecnico = f"{usuario_diagnostico.get('nombre', '')} {usuario_diagnostico.get('ape_pat', '')}"
+            
+            # Obtener detalles del diagnóstico
+            descripcion_diag = diagnostico.get('descripcion', '')[:200] if diagnostico.get('descripcion') else 'No especificada'
+            causa_raiz_diag = diagnostico.get('causa_raiz', '')[:200] if diagnostico.get('causa_raiz') else 'No especificada'
+            solucion_diag = diagnostico.get('solucion_propuesta', '')[:200] if diagnostico.get('solucion_propuesta') else 'No especificada'
+            
             conexion = get_connection()
             if not conexion:
                 print("No se pudo conectar a la base de datos.")
@@ -401,8 +515,9 @@ class ControlDiagnosticos:
                 cursor.execute(sql_check, (id_diagnostico,))
                 existe = cursor.fetchone()
                 
+                fue_nuevo_rechazo = False
                 if existe:
-                    # Actualizar fecha de rechazo
+                    # Actualizar fecha de rechazo (ya estaba rechazado antes)
                     sql_update = """
                         UPDATE REVISION_DIAGNOSTICO
                         SET fecha_rechazo = NOW(), id_usuario = %s
@@ -411,6 +526,7 @@ class ControlDiagnosticos:
                     cursor.execute(sql_update, (id_usuario_rechazo, id_diagnostico))
                 else:
                     # Insertar nuevo rechazo
+                    fue_nuevo_rechazo = True
                     sql_insert = """
                         INSERT INTO REVISION_DIAGNOSTICO (id_diagnostico, id_usuario, fecha_rechazo)
                         VALUES (%s, %s, NOW());
@@ -420,6 +536,29 @@ class ControlDiagnosticos:
                 conexion.commit()
 
             conexion.close()
+            
+            # Obtener el estado actual del incidente
+            incidente = ControlIncidentes.buscar_por_IDIncidente(id_incidente)
+            estado_actual = incidente.get('estado') if incidente else None
+            
+            # Construir mensaje detallado para el historial
+            mensaje = f"Diagnóstico D{id_diagnostico} rechazado por el Jefe de TI.\n"
+            if not fue_nuevo_rechazo:
+                mensaje = f"Diagnóstico D{id_diagnostico} rechazado nuevamente por el Jefe de TI.\n"
+            mensaje += f"Realizado por: {nombre_tecnico}\n"
+            mensaje += f"Descripción: {descripcion_diag}\n"
+            mensaje += f"Causa raíz: {causa_raiz_diag}\n"
+            if solucion_diag and solucion_diag != 'No especificada':
+                mensaje += f"Solución propuesta: {solucion_diag}"
+            
+            # Registrar en el historial del incidente que el diagnóstico fue rechazado
+            # Registrar siempre, incluso si ya estaba rechazado antes (para mantener el historial completo)
+            ControlIncidentes.insertar_historial(
+                id_incidente=id_incidente,
+                estado_anterior=estado_actual,
+                estado_nuevo=estado_actual,  # El estado no cambia
+                observacion=mensaje
+            )
             
             return True
 

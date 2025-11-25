@@ -182,7 +182,8 @@ document.addEventListener('DOMContentLoaded', function() {
                       '{{ incidente.descripcion|default('Sin descripción')|escape }}',
                       '{{ incidente.categoria|default('No asignada')|escape }}',
                       '{{ incidente.estado|escape }}',
-                      '{{ incidente.fecha_creacion.strftime('%Y-%m-%d') if incidente.fecha_creacion else 'N/A' }}'
+                      '{{ incidente.fecha_creacion.strftime('%Y-%m-%d') if incidente.fecha_creacion else 'N/A' }}',
+                      {{ 'true' if incidente.tiene_diagnostico_pendiente else 'false' }}
                     )"
                     class="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
                     title="Ver detalles"
@@ -197,16 +198,28 @@ document.addEventListener('DOMContentLoaded', function() {
 
                   {% if es_tecnico %}
                     {% if incidente.estado not in ['Terminado', 'Cancelado', 'T', 'C'] %}
-                      <!-- Botón Agregar Diagnóstico - Para todos los técnicos -->
-                      <a href="{{ url_for('asignar_diagnostico') }}?incidente={{ incidente.id_incidente }}"
-                        class="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition"
-                        title="Agregar diagnóstico"
-                        aria-label="Agregar diagnóstico">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                        </svg>
-                      </a>
+                      {% if not incidente.tiene_diagnostico_pendiente %}
+                        <!-- Botón Agregar Diagnóstico - Para todos los técnicos -->
+                        <a href="{{ url_for('asignar_diagnostico') }}?incidente={{ incidente.id_incidente }}"
+                          class="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition"
+                          title="Agregar diagnóstico"
+                          aria-label="Agregar diagnóstico">
+                          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                          </svg>
+                        </a>
+                      {% else %}
+                        <!-- Icono indicando que ya tiene diagnóstico pendiente -->
+                        <span class="p-2 text-gray-400 cursor-not-allowed"
+                              title="Ya tienes un diagnóstico pendiente de revisión para este incidente"
+                              aria-label="Diagnóstico pendiente">
+                          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                          </svg>
+                        </span>
+                      {% endif %}
                     {% endif %}
                   {% endif %}
 
@@ -392,9 +405,19 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 
   // Funciones para el Modal de Detalle
-  function abrirModalDetalle(idIncidente, titulo, descripcion, categoria, estado, fecha) {
+  function abrirModalDetalle(idIncidente, titulo, descripcion, categoria, estado, fecha, tieneDiagnosticoPendiente = false) {
     document.getElementById('modalDetalle').classList.remove('hidden');
     document.body.style.overflow = 'hidden';
+    
+    // Mostrar u ocultar el botón de asignar diagnóstico según si tiene diagnóstico pendiente
+    const botonAsignar = document.getElementById('modal-boton-asignar');
+    if (botonAsignar) {
+      if (tieneDiagnosticoPendiente === true || tieneDiagnosticoPendiente === 'true') {
+        botonAsignar.style.display = 'none';
+      } else {
+        botonAsignar.style.display = 'inline-flex';
+      }
+    }
 
     // Cargar detalles completos desde la API
     fetch(`/api/incidente/${idIncidente}/detalles`)
@@ -454,6 +477,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
           // Mostrar historial
           mostrarHistorial(data.historial || [], incidente);
+          
+          // Mostrar u ocultar el botón de asignar diagnóstico según si tiene diagnóstico pendiente
+          const botonAsignarApi = document.getElementById('modal-boton-asignar');
+          if (botonAsignarApi) {
+            if (data.tiene_diagnostico_pendiente) {
+              botonAsignarApi.style.display = 'none';
+            } else {
+              botonAsignarApi.style.display = 'inline-flex';
+              botonAsignarApi.href = "{{ url_for('asignar_diagnostico') }}?incidente=" + idIncidente;
+            }
+          }
         } else {
           // Fallback a datos básicos si la API falla
           document.getElementById('modal-titulo').textContent = titulo;
@@ -475,10 +509,15 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('modal-historial-container').innerHTML = '<p class="text-gray-500 text-sm">Error al cargar historial</p>';
       });
 
-    // Actualizar enlace de asignar diagnóstico
-    const botonAsignar = document.getElementById('modal-boton-asignar');
-    if (botonAsignar) {
-      botonAsignar.href = "{{ url_for('asignar_diagnostico') }}?incidente=" + idIncidente;
+    // Actualizar enlace de asignar diagnóstico (solo si no tiene diagnóstico pendiente)
+    const botonAsignarModal = document.getElementById('modal-boton-asignar');
+    if (botonAsignarModal) {
+      if (tieneDiagnosticoPendiente === true || tieneDiagnosticoPendiente === 'true') {
+        botonAsignarModal.style.display = 'none';
+      } else {
+        botonAsignarModal.style.display = 'inline-flex';
+        botonAsignarModal.href = "{{ url_for('asignar_diagnostico') }}?incidente=" + idIncidente;
+      }
     }
   }
 
@@ -616,37 +655,108 @@ document.addEventListener('DOMContentLoaded', function() {
 
     let historialHTML = '';
     
+    // Debug: mostrar en consola todas las entradas del historial
+    console.log('📋 Historial completo:', historial);
+    
     historial.forEach((cambio, index) => {
       const fecha = cambio.fecha ? new Date(cambio.fecha).toLocaleString('es-ES') : 'N/A';
       const esReciente = index === 0;
-      const colorBorde = esReciente ? 'border-blue-500' : 'border-gray-300';
-      const bgColor = esReciente ? 'bg-blue-50' : 'bg-gray-50';
+      
+      // Detectar si es un diagnóstico aceptado, rechazado o pendiente
+      const observacion = cambio.observacion || '';
+      const esDiagnosticoAceptado = observacion.toLowerCase().includes('diagnóstico') && observacion.toLowerCase().includes('aceptado');
+      const esDiagnosticoRechazado = observacion.toLowerCase().includes('diagnóstico') && observacion.toLowerCase().includes('rechazado');
+      const esDiagnosticoPendiente = observacion.toLowerCase().includes('diagnóstico') && observacion.toLowerCase().includes('pendiente');
+      
+      // Definir colores según el tipo de cambio
+      let colorBorde, bgColor, iconColor;
+      if (esDiagnosticoAceptado) {
+        colorBorde = 'border-green-500';
+        bgColor = 'bg-green-50';
+        iconColor = 'bg-green-500';
+      } else if (esDiagnosticoRechazado) {
+        colorBorde = 'border-red-500';
+        bgColor = 'bg-red-50';
+        iconColor = 'bg-red-500';
+      } else if (esDiagnosticoPendiente) {
+        colorBorde = 'border-yellow-500';
+        bgColor = 'bg-yellow-50';
+        iconColor = 'bg-yellow-500';
+      } else if (esReciente) {
+        colorBorde = 'border-blue-500';
+        bgColor = 'bg-blue-50';
+        iconColor = 'bg-blue-500';
+      } else {
+        colorBorde = 'border-gray-300';
+        bgColor = 'bg-gray-50';
+        iconColor = 'bg-gray-400';
+      }
       
       historialHTML += `
         <div class="border-l-4 ${colorBorde} ${bgColor} pl-5 pr-4 py-4 rounded-r-lg ${index < historial.length - 1 ? 'mb-3' : ''}">
           <div class="flex items-start">
             <div class="flex-shrink-0">
-              <div class="w-2 h-2 ${esReciente ? 'bg-blue-500' : 'bg-gray-400'} rounded-full mt-2"></div>
+              <div class="w-2 h-2 ${iconColor} rounded-full mt-2"></div>
             </div>
-            <div class="ml-3 flex-1">
-              ${cambio.estado_anterior && cambio.estado_nuevo ? `
+            <div class="ml-3 flex-1 min-w-0">
+              ${cambio.estado_anterior && cambio.estado_nuevo && cambio.estado_anterior !== cambio.estado_nuevo ? `
                 <p class="font-semibold text-gray-900 mb-1">
                   Estado: <span class="text-gray-600 font-normal">${cambio.estado_anterior}</span> 
                   <span class="mx-2 text-gray-400">→</span>
                   <span class="text-blue-600 font-medium">${cambio.estado_nuevo}</span>
                 </p>
               ` : ''}
-              ${cambio.prioridad_anterior && cambio.prioridad_nueva ? `
-                <p class="text-sm text-gray-700 mt-2">
+              ${cambio.prioridad_anterior && cambio.prioridad_nueva && cambio.prioridad_anterior !== cambio.prioridad_nueva ? `
+                <p class="text-sm text-gray-700 ${cambio.estado_anterior && cambio.estado_nuevo && cambio.estado_anterior !== cambio.estado_nuevo ? 'mt-2' : 'mb-1'}">
                   Prioridad: <span class="text-gray-600">${cambio.prioridad_anterior}</span> 
                   <span class="mx-2 text-gray-400">→</span>
                   <span class="text-blue-600 font-medium">${cambio.prioridad_nueva}</span>
                 </p>
               ` : ''}
               ${cambio.observacion ? `
-                <p class="text-sm text-gray-700 mt-3 leading-relaxed bg-white/60 rounded-md p-3 border border-gray-200">
-                  ${cambio.observacion}
-                </p>
+                <div class="mt-${(!cambio.estado_anterior || !cambio.estado_nuevo || cambio.estado_anterior === cambio.estado_nuevo) && (!cambio.prioridad_anterior || !cambio.prioridad_nueva || cambio.prioridad_anterior === cambio.prioridad_nueva) ? '1' : '3'} leading-relaxed ${esDiagnosticoAceptado ? 'bg-green-100 border-green-300' : esDiagnosticoRechazado ? 'bg-red-100 border-red-300' : esDiagnosticoPendiente ? 'bg-yellow-100 border-yellow-300' : 'bg-white/60 border-gray-200'} rounded-md p-3 border">
+                  ${esDiagnosticoAceptado ? `
+                    <div class="flex items-start mb-2">
+                      <svg class="w-5 h-5 text-green-600 mr-2 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                      </svg>
+                      <p class="font-semibold text-green-800">Diagnóstico Aceptado</p>
+                    </div>
+                  ` : esDiagnosticoRechazado ? `
+                    <div class="flex items-start mb-2">
+                      <svg class="w-5 h-5 text-red-600 mr-2 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                      </svg>
+                      <p class="font-semibold text-red-800">Diagnóstico Rechazado</p>
+                    </div>
+                  ` : esDiagnosticoPendiente ? `
+                    <div class="flex items-start mb-2">
+                      <svg class="w-5 h-5 text-yellow-600 mr-2 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                      </svg>
+                      <p class="font-semibold text-yellow-800">Diagnóstico Pendiente de Revisión</p>
+                    </div>
+                  ` : ''}
+                  <div class="text-sm ${esDiagnosticoAceptado ? 'text-green-900' : esDiagnosticoRechazado ? 'text-red-900' : esDiagnosticoPendiente ? 'text-yellow-900' : 'text-gray-700'}">
+                    ${cambio.observacion ? cambio.observacion.split('\n').map(linea => {
+                      // Detectar si la línea tiene un formato especial (etiqueta: valor)
+                      if (linea.includes(':')) {
+                        const [etiqueta, ...valorParts] = linea.split(':');
+                        const valor = valorParts.join(':').trim();
+                        if (etiqueta.trim().match(/^(Realizado por|Descripción|Causa raíz|Solución propuesta)$/i)) {
+                          return `<p class="mt-1.5"><span class="font-semibold">${etiqueta.trim()}:</span> <span class="font-normal">${valor || 'N/A'}</span></p>`;
+                        }
+                      }
+                      // Si es una línea normal, mostrarla como está
+                      return linea.trim() ? `<p class="mt-1.5">${linea.trim()}</p>` : '';
+                    }).filter(linea => linea).join('') : ''}
+                  </div>
+                </div>
+              ` : ''}
+              ${!cambio.observacion && (!cambio.estado_anterior || !cambio.estado_nuevo || cambio.estado_anterior === cambio.estado_nuevo) && (!cambio.prioridad_anterior || !cambio.prioridad_nueva || cambio.prioridad_anterior === cambio.prioridad_nueva) ? `
+                <div class="text-sm text-gray-500 italic mt-2">
+                  Sin detalles específicos registrados
+                </div>
               ` : ''}
               <p class="text-xs text-gray-500 mt-3 flex items-center">
                 <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">

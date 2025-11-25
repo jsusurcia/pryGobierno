@@ -45,7 +45,7 @@ document.addEventListener('DOMContentLoaded', function() {
         <div class="text-sm text-blue-600 font-medium">
           Tickets Activos: <span class="text-lg font-bold">{{ tickets_activos }}</span> / {{ max_tickets }}
         </div>
-        {% if tickets_activos >= max_tickets %}
+        {% if tickets_activos >= max_tickets and incidentes|length > 0 %}
         <div class="text-xs text-red-600 mt-1">⚠️ Has alcanzado el límite</div>
         {% endif %}
       </div>
@@ -114,10 +114,31 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
         
         <div class="ml-4">
+          {% if incidente.ya_esta_trabajando %}
+          <button disabled
+                  class="px-6 py-2.5 bg-green-600 text-white font-medium rounded-lg opacity-75 cursor-not-allowed"
+                  title="Ya estás trabajando en este incidente">
+            <div class="flex items-center">
+              <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+              </svg>
+              Ya estás trabajando
+            </div>
+          </button>
+          {% elif tickets_activos >= max_tickets %}
+          <button disabled
+                  class="px-6 py-2.5 bg-gray-400 text-white font-medium rounded-lg opacity-50 cursor-not-allowed"
+                  title="Has alcanzado el límite de tickets activos">
+            <div class="flex items-center">
+              <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+              </svg>
+              Límite alcanzado
+            </div>
+          </button>
+          {% else %}
           <button onclick="tomarIncidente({{ incidente.id_incidente }})" 
-                  class="px-6 py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition 
-                         {% if tickets_activos >= max_tickets %}opacity-50 cursor-not-allowed{% endif %}"
-                  {% if tickets_activos >= max_tickets %}disabled title="Has alcanzado el límite de tickets activos"{% endif %}>
+                  class="px-6 py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition">
             <div class="flex items-center">
               <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
@@ -125,6 +146,7 @@ document.addEventListener('DOMContentLoaded', function() {
               Tomar Incidente
             </div>
           </button>
+          {% endif %}
         </div>
       </div>
     </div>

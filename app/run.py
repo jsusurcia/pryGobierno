@@ -16,6 +16,13 @@ import cloudinary.api
 app = Flask(__name__, template_folder="./templates")
 app.secret_key = 'tu_clave_secreta_aqui'
 
+# Configurar encoding UTF-8 para Flask
+import sys
+if sys.platform == 'win32':
+    import codecs
+    sys.stdout = codecs.getwriter('utf-8')(sys.stdout.buffer, 'strict')
+    sys.stderr = codecs.getwriter('utf-8')(sys.stderr.buffer, 'strict')
+
 # Configuración de Cloudinary
 cloudinary.config(
     cloud_name='dazo1emme',
@@ -399,6 +406,9 @@ def gestion_incidentes():
         if not incidentes:
             incidentes_obj = []
         else:
+            # Importar ControlDiagnosticos para verificar diagnósticos pendientes
+            from controllers.control_diagnostico import ControlDiagnosticos
+            
             class IncidenteObj:
                 def __init__(self, data):
                     self.id_incidente = data.get('id_incidente') or data.get('id')
@@ -407,6 +417,15 @@ def gestion_incidentes():
                     self.categoria = data.get('categoria', 'No asignada')
                     self.estado = data.get('estado', 'pendiente')
                     self.nivel = data.get('nivel', 'M')
+                    
+                    # Verificar si el usuario actual tiene diagnóstico pendiente para este incidente
+                    if 'user_id' in session:
+                        self.tiene_diagnostico_pendiente = ControlDiagnosticos.tiene_diagnostico_pendiente(
+                            self.id_incidente, 
+                            int(session['user_id'])
+                        )
+                    else:
+                        self.tiene_diagnostico_pendiente = False
 
                     # Manejar fecha_creacion
                     fecha_reporte = data.get('fecha_reporte')
@@ -569,14 +588,20 @@ def registrar_incidente():
     
     try:
         # Obtener datos del formulario
-        titulo = request.form.get('titulo')
+        titulo = request.form.get('titulo', '').strip()
         categoria = request.form.get('categoria')
-        descripcion = request.form.get('descripcion')
+        descripcion = request.form.get('descripcion', '').strip()
         
         # Validar campos
         if not titulo or not categoria or not descripcion:
             flash('Todos los campos son obligatorios', 'error')
             return redirect(url_for('mostrar_formulario_incidente'))
+        
+        # Asegurar que los strings estén en UTF-8
+        if isinstance(titulo, bytes):
+            titulo = titulo.decode('utf-8', errors='replace')
+        if isinstance(descripcion, bytes):
+            descripcion = descripcion.decode('utf-8', errors='replace')
         
         id_categoria = int(categoria)
         id_usuario = int(session['user_id'])
@@ -850,6 +875,12 @@ def asignar_diagnostico():
         if not solucion:
             solucion = None
 
+        # Verificar primero si el usuario ya tiene un diagnóstico pendiente para este incidente
+        control_diagnostico = ControlDiagnosticos()
+        if control_diagnostico.tiene_diagnostico_pendiente(id_incidente, usuario_id):
+            flash('Ya tienes un diagnóstico pendiente de revisión para este incidente. Espera a que sea aceptado o rechazado antes de agregar otro.', 'error')
+            return redirect(url_for('asignar_diagnostico'))
+        
         # Verificar que el técnico esté en el equipo técnico, si no, agregarlo
         usuario_id = int(session.get('user_id'))
         equipo = ControlIncidentes.obtener_equipo_tecnico(id_incidente)
@@ -871,7 +902,6 @@ def asignar_diagnostico():
                     flash(f'Error: {resultado_tomar.get("mensaje", "No se pudo agregar al equipo técnico")}', 'error')
                     return redirect(url_for('asignar_diagnostico'))
         
-        control_diagnostico = ControlDiagnosticos()
         exito = control_diagnostico.insertar_diagnostico(
             id_incidente=id_incidente,
             descripcion=descripcion,
@@ -1253,6 +1283,14 @@ def api_detalles_incidente(id_incidente):
         }
         estado_actual_texto = estado_map.get(estado_actual, estado_actual) if estado_actual else 'Desconocido'
         
+        # Verificar si el usuario actual tiene diagnóstico pendiente
+        from controllers.control_diagnostico import ControlDiagnosticos
+        usuario_id = int(session['user_id'])
+        tiene_diagnostico_pendiente = ControlDiagnosticos.tiene_diagnostico_pendiente(
+            id_incidente, 
+            usuario_id
+        )
+        
         return jsonify({
             'success': True,
             'incidente': {
@@ -1268,7 +1306,8 @@ def api_detalles_incidente(id_incidente):
                 'categoria': resultado[7]
             },
             'evidencias': evidencias,
-            'historial': historial
+            'historial': historial,
+            'tiene_diagnostico_pendiente': tiene_diagnostico_pendiente
         })
     except Exception as e:
         print(f"Error en api_detalles_incidente: {e}")
@@ -1575,9 +1614,10 @@ def incidentes_disponibles():
         flash('Solo los técnicos pueden acceder a esta sección', 'error')
         return redirect(url_for('gestion_incidentes'))
     
-    incidentes = ControlIncidentes.obtener_incidentes_disponibles_tecnicos()
-    tickets_activos = controlUsuarios.contar_tickets_activos(int(session['user_id']))
-    tickets_equipo = controlUsuarios.contar_tickets_en_equipo(int(session['user_id']))
+    id_usuario = int(session['user_id'])
+    incidentes = ControlIncidentes.obtener_incidentes_disponibles_tecnicos(id_usuario)
+    tickets_activos = controlUsuarios.contar_tickets_activos(id_usuario)
+    tickets_equipo = controlUsuarios.contar_tickets_en_equipo(id_usuario)
     
     return render_template('incidentesDisponibles.html',
                          incidentes=incidentes,

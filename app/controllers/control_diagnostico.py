@@ -454,9 +454,12 @@ class ControlDiagnosticos:
                 return False
 
             # Cambiar estado del incidente a 'T' (Terminado)
+            # También calcular tiempo_reparacion para métricas MTTR
             sql = """
                 UPDATE INCIDENTE
-                SET estado = 'T', fecha_resolucion = NOW()
+                SET estado = 'T', 
+                    fecha_resolucion = NOW(),
+                    tiempo_reparacion = NOW() - fecha_reporte
                 WHERE id_incidente = %s;
             """
 

@@ -308,9 +308,18 @@ class ControlIncidentes:
             incidente_anterior = ControlIncidentes.buscar_por_IDIncidente(id_incidente)
             estado_anterior = incidente_anterior.get('estado') if incidente_anterior else None
             
+            # Si se cancela (C), también calcular tiempo_reparacion y fecha_resolucion
             sql = """
                 UPDATE INCIDENTE
-                SET estado = %s
+                SET estado = %s,
+                    fecha_resolucion = CASE
+                        WHEN %s = 'C' THEN NOW()
+                        ELSE fecha_resolucion
+                    END,
+                    tiempo_reparacion = CASE
+                        WHEN %s = 'C' THEN NOW() - fecha_reporte
+                        ELSE tiempo_reparacion
+                    END
                 WHERE id_incidente = %s AND estado = 'P'
             """
             conexion = get_connection()
@@ -318,7 +327,7 @@ class ControlIncidentes:
                 return False
             
             with conexion.cursor() as cursor:
-                cursor.execute(sql, (nuevo_estado, id_incidente))
+                cursor.execute(sql, (nuevo_estado, nuevo_estado, nuevo_estado, id_incidente))
                 conexion.commit()
                 afectadas = cursor.rowcount
             
@@ -1008,6 +1017,7 @@ class ControlIncidentes:
                 return []
 
             # Consulta que calcula MTTR usando el campo tiempo_reparacion o calculándolo
+            # Solo considera incidentes Terminados ('T') o Cancelados ('C')
             sql = """
                 SELECT 
                     COALESCE(c.nombre, 'Sin categoría') AS categoria,
@@ -1020,11 +1030,11 @@ class ControlIncidentes:
                     END AS mttr_horas,
                     COUNT(i.id_incidente) AS total_incidentes
                 FROM 
-                    incidentes i
+                    INCIDENTE i
                 LEFT JOIN 
-                    categorias c ON i.id_categoria = c.id_categoria
+                    CATEGORIA c ON i.id_categoria = c.id_categoria
                 WHERE 
-                    i.estado IN ('R', 'C', 'resuelto', 'cerrado')
+                    i.estado IN ('T', 'C')
                 GROUP BY 
                     c.nombre
                 ORDER BY 
@@ -1049,6 +1059,8 @@ class ControlIncidentes:
 
         except Exception as e:
             print(f"⚠️ Error al calcular MTTR => {e}")
+            import traceback
+            traceback.print_exc()
             return []
 
     def obtener_estadisticas_mttr(self):
@@ -1061,6 +1073,7 @@ class ControlIncidentes:
 
             with conexion.cursor() as cursor:
                 # MTTR Global usando tiempo_reparacion o calculando
+                # Solo incidentes Terminados ('T') o Cancelados ('C')
                 cursor.execute("""
                     SELECT 
                         CASE 
@@ -1071,7 +1084,7 @@ class ControlIncidentes:
                             ELSE 0
                         END AS mttr_global
                     FROM INCIDENTE
-                    WHERE estado IN ('C');
+                    WHERE estado IN ('T', 'C');
                 """)
                 resultado = cursor.fetchone()
                 mttr_global = float(resultado[0]) if resultado and resultado[0] else 0.0
@@ -1093,7 +1106,7 @@ class ControlIncidentes:
                         END AS mttr
                     FROM INCIDENTE i
                     LEFT JOIN CATEGORIA c ON i.id_categoria = c.id_categoria
-                    WHERE i.estado IN ('C')
+                    WHERE i.estado IN ('T', 'C')
                     GROUP BY c.nombre
                     HAVING COUNT(i.id_incidente) > 0
                     ORDER BY mttr ASC
@@ -1116,7 +1129,7 @@ class ControlIncidentes:
                         END AS mttr
                     FROM INCIDENTE i
                     LEFT JOIN CATEGORIA c ON i.id_categoria = c.id_categoria
-                    WHERE i.estado IN ('C')
+                    WHERE i.estado IN ('T', 'C')
                     GROUP BY c.nombre
                     HAVING COUNT(i.id_incidente) > 0
                     ORDER BY mttr DESC
@@ -1165,7 +1178,7 @@ class ControlIncidentes:
                 LEFT JOIN 
                     CATEGORIA c ON i.id_categoria = c.id_categoria
                 WHERE 
-                    i.estado IN ('C')
+                    i.estado IN ('T', 'C')
                 GROUP BY 
                     c.nombre
                 ORDER BY 
@@ -1211,7 +1224,7 @@ class ControlIncidentes:
                 FROM 
                     INCIDENTE
                 WHERE 
-                    estado IN ('C')
+                    estado IN ('T', 'C')
                     AND COALESCE(fecha_resolucion, fecha_reporte) >= CURRENT_DATE - INTERVAL '%s months'
                 GROUP BY 
                     TO_CHAR(COALESCE(fecha_resolucion, fecha_reporte), 'YYYY-MM')
@@ -1286,7 +1299,8 @@ class ControlIncidentes:
                 return []
 
             # Construir query dinámicamente
-            where_conditions = ["i.estado IN ('C')"]
+            # Solo considerar incidentes Terminados ('T') o Cancelados ('C')
+            where_conditions = ["i.estado IN ('T', 'C')"]
             params = []
 
             if categoria and categoria.strip() and categoria.lower() != 'todas':

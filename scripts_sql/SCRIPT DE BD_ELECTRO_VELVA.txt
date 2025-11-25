@@ -1,0 +1,208 @@
+
+CREATE TABLE AREA (
+    id_area SERIAL PRIMARY KEY,
+    nombre VARCHAR(150) UNIQUE NOT NULL
+);
+
+CREATE TABLE ROL (
+	id_rol SERIAL PRIMARY KEY,
+	tipo char(1) not null,
+	id_area int not null,
+	nombre varchar(100) not null,
+	FOREIGN KEY (id_area) REFERENCES AREA (id_area),
+	UNIQUE (nombre, id_area)
+);
+
+CREATE TABLE USUARIO (
+    id_usuario SERIAL PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL,
+    ape_pat VARCHAR(100) NOT NULL,
+    ape_mat VARCHAR(100) NOT NULL,
+    correo VARCHAR(150) UNIQUE NOT NULL,
+    contrasena VARCHAR(200) NOT NULL,
+    id_rol INTEGER NOT NULL,
+    estado BOOLEAN DEFAULT TRUE,
+    fecha_creacion TIMESTAMP DEFAULT NOW(),
+    FOREIGN KEY (id_rol) REFERENCES ROL(id_rol)
+);
+
+
+CREATE TABLE CATEGORIA (
+	id_categoria serial primary key,
+	nombre varchar(50) unique not null
+);
+
+CREATE TABLE INCIDENTE (
+    id_incidente SERIAL PRIMARY KEY,
+    titulo VARCHAR(200) NOT NULL,
+    descripcion TEXT NOT NULL,
+    id_categoria INTEGER NOT NULL,
+    id_usuario INTEGER NOT NULL,             -- quien reporta
+    id_tecnico_asignado INTEGER,             -- técnico principal (opcional)
+    estado CHAR(1) NOT NULL CHECK (estado IN ('P','A','T','C')) DEFAULT 'P',
+	nivel CHAR(1) NOT NULL CHECK (nivel IN ('B','M','A','C')),  -- prioridad
+    fecha_reporte TIMESTAMP DEFAULT NOW(),
+    fecha_resolucion TIMESTAMP,
+    tiempo_reparacion INTERVAL,
+
+    FOREIGN KEY (id_categoria) REFERENCES CATEGORIA(id_categoria),
+    FOREIGN KEY (id_usuario) REFERENCES USUARIO(id_usuario),
+    FOREIGN KEY (id_tecnico_asignado) REFERENCES USUARIO(id_usuario)
+);
+
+
+CREATE TABLE EQUIPO_TECNICO (
+    id_equipo SERIAL PRIMARY KEY,
+    id_incidente INTEGER NOT NULL,
+    id_usuario INTEGER NOT NULL,
+
+    fecha_asignacion TIMESTAMP DEFAULT NOW(),
+
+    FOREIGN KEY (id_incidente) REFERENCES INCIDENTE(id_incidente),
+    FOREIGN KEY (id_usuario) REFERENCES USUARIO(id_usuario)
+);
+
+CREATE TABLE DIAGNOSTICO (
+    id_diagnosticos SERIAL PRIMARY KEY,
+    id_incidente INTEGER NOT NULL,
+    id_usuario INTEGER NOT NULL,  -- técnico que realiza el diagnóstico
+    descripcion TEXT NOT NULL,
+    causa_raiz TEXT,
+    solucion_propuesta TEXT,
+    fecha_diagnostico TIMESTAMP DEFAULT NOW(),
+    fecha_actualizacion TIMESTAMP,
+
+    FOREIGN KEY (id_incidente) REFERENCES INCIDENTE(id_incidente),
+    FOREIGN KEY (id_usuario) REFERENCES USUARIO(id_usuario)
+);
+
+
+CREATE TABLE HISTORIAL_INCIDENTE (
+    id_historial SERIAL PRIMARY KEY,
+    id_incidente INTEGER NOT NULL,
+    estado_anterior CHAR(1),
+    estado_nuevo CHAR(1),
+    tecnico_anterior INTEGER,
+    tecnico_nuevo INTEGER,
+    prioridad_anterior CHAR(1),
+    prioridad_nueva CHAR(1),
+    fecha TIMESTAMP DEFAULT NOW(),
+    observacion TEXT,
+
+    FOREIGN KEY (id_incidente) REFERENCES INCIDENTE(id_incidente),
+    FOREIGN KEY (tecnico_anterior) REFERENCES USUARIO(id_usuario),
+    FOREIGN KEY (tecnico_nuevo) REFERENCES USUARIO(id_usuario)
+);
+
+CREATE TABLE EVIDENCIAS (
+    id_evidencias SERIAL PRIMARY KEY,
+    id_incidente INTEGER NOT NULL,
+    url_archivo TEXT NOT NULL,
+    fecha_subida TIMESTAMP DEFAULT NOW(),
+    FOREIGN KEY (id_incidente) REFERENCES INCIDENTE(id_incidente)
+);
+
+CREATE TABLE NOTIFICACION (
+    id_notificacion SERIAL PRIMARY KEY,
+    id_usuario INTEGER NOT NULL,
+    titulo VARCHAR(200) NOT NULL,
+    mensaje TEXT NOT NULL,
+    tipo VARCHAR(50),  -- ejemplo: 'incidente', 'contrato', 'sistema'
+    id_referencia INTEGER, -- id del incidente o contrato relacionado
+    fecha TIMESTAMP DEFAULT NOW(),
+    leida BOOLEAN DEFAULT FALSE,
+    FOREIGN KEY (id_usuario) REFERENCES USUARIO(id_usuario)
+);
+
+CREATE TABLE CONTRATO (
+    id_contrato SERIAL PRIMARY KEY,
+    titulo VARCHAR(200) NOT NULL,
+    descripcion TEXT,
+    url_archivo TEXT NOT NULL,   -- contrato sin firmar
+    estado CHAR(1) NOT NULL CHECK (estado IN ('P','F','R')) DEFAULT 'P',
+    -- P = pendiente de firmas
+    -- F = firmado completo
+    -- R = rechazado
+    fecha_creacion TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE CONTRATO_FIRMA_PENDIENTE (
+    id_firma SERIAL PRIMARY KEY,
+    id_contrato INTEGER NOT NULL,
+    id_usuario INTEGER NOT NULL,
+    orden INTEGER NOT NULL,              -- El orden de la firma (1,2,3,4...)
+    firmado BOOLEAN DEFAULT FALSE,       -- Ya firmó
+    fecha_firma TIMESTAMP,
+    rechazo BOOLEAN DEFAULT FALSE,       -- ¿Rechazó?
+    comentario_rechazo TEXT,             -- Motivo si rechazó
+    FOREIGN KEY (id_contrato) REFERENCES CONTRATO(id_contrato),
+    FOREIGN KEY (id_usuario) REFERENCES USUARIO(id_usuario)
+);
+
+
+CREATE TABLE CONTRATO_RECHAZO (
+    id_rechazo SERIAL PRIMARY KEY,
+    id_contrato INTEGER NOT NULL,
+    id_usuario INTEGER NOT NULL,          -- quien rechazó
+    motivo TEXT NOT NULL,
+    fecha_rechazo TIMESTAMP DEFAULT NOW(),
+	id_firma_pendiente INTEGER,
+	FOREIGN KEY (id_firma_pendiente) REFERENCES CONTRATO_FIRMA_PENDIENTE(id_firma),
+    FOREIGN KEY (id_contrato) REFERENCES CONTRATO(id_contrato),
+    FOREIGN KEY (id_usuario) REFERENCES USUARIO(id_usuario)
+);
+
+
+CREATE TABLE IF NOT EXISTS public.revision_diagnostico
+(
+    id_revision integer NOT NULL DEFAULT nextval('revision_diagnostico_id_revision_seq'::regclass),
+    id_diagnostico integer NOT NULL,
+    fecha_rechazo timestamp without time zone DEFAULT now(),
+    id_usuario integer,
+    CONSTRAINT revision_diagnostico_pkey PRIMARY KEY (id_revision),
+    CONSTRAINT revision_diagnostico_id_diagnostico_fkey FOREIGN KEY (id_diagnostico)
+        REFERENCES public.diagnostico (id_diagnosticos) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT revision_diagnostico_id_usuario_fkey FOREIGN KEY (id_usuario)
+        REFERENCES public.usuario (id_usuario) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE IF EXISTS public.revision_diagnostico
+    OWNER to postgres;
+
+
+
+CREATE TABLE IF NOT EXISTS public.historial_diagnostico
+(
+    id_historial_diagnostico integer NOT NULL DEFAULT nextval('historial_diagnostico_id_historial_diagnostico_seq'::regclass),
+    id_diagnostico integer NOT NULL,
+    id_incidente integer NOT NULL,
+    id_usuario integer NOT NULL,
+    descripcion text COLLATE pg_catalog."default" NOT NULL,
+    causa_raiz text COLLATE pg_catalog."default",
+    solucion_propuesta text COLLATE pg_catalog."default",
+    fecha timestamp without time zone DEFAULT now(),
+    CONSTRAINT historial_diagnostico_pkey PRIMARY KEY (id_historial_diagnostico),
+    CONSTRAINT historial_diagnostico_id_diagnostico_fkey FOREIGN KEY (id_diagnostico)
+        REFERENCES public.diagnostico (id_diagnosticos) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT historial_diagnostico_id_incidente_fkey FOREIGN KEY (id_incidente)
+        REFERENCES public.incidente (id_incidente) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT historial_diagnostico_id_usuario_fkey FOREIGN KEY (id_usuario)
+        REFERENCES public.usuario (id_usuario) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE IF EXISTS public.historial_diagnostico
+    OWNER to postgres;

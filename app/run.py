@@ -6,6 +6,7 @@ from controllers.control_diagnostico import ControlDiagnosticos
 from controllers.control_notificaciones import ControlNotificaciones
 from controllers.control_evidencias import controlEvidencias
 from controllers.control_biometria import ControlBiometria
+from controllers.control_predicciones import ControlPredicciones
 from datetime import datetime
 import os
 from werkzeug.utils import secure_filename
@@ -1746,6 +1747,149 @@ def api_marcar_todas_leidas():
         return jsonify({'success': True, 'message': 'Todas las notificaciones marcadas como leídas'})
     else:
         return jsonify({'success': False, 'message': 'Error al marcar notificaciones'}), 500
+
+# ========== MÓDULO DE PREDICCIONES CON IA ==========
+
+@app.route('/predicciones_ia')
+def predicciones_ia():
+    """Vista principal del módulo de predicciones con IA"""
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    # Solo jefes de TI pueden ver predicciones
+    if not controlUsuarios.es_jefe_ti(int(session['user_id'])):
+        flash('No tiene permisos para acceder a esta sección', 'error')
+        return redirect(url_for('gestion_incidentes'))
+    
+    return render_template('predicciones_ia.html', 
+                         user_name=session.get('user_name'))
+
+@app.route('/api/predicciones/categorias', methods=['GET'])
+def api_predicciones_categorias():
+    """API para obtener predicciones de incidentes por categoría"""
+    if 'user_id' not in session:
+        return jsonify({'error': 'No autorizado'}), 401
+    
+    if not controlUsuarios.es_jefe_ti(int(session['user_id'])):
+        return jsonify({'error': 'No tiene permisos'}), 403
+    
+    try:
+        meses_historico = int(request.args.get('meses', 3))
+        predicciones = ControlPredicciones.predecir_incidentes_por_categoria(meses_historico)
+        
+        return jsonify({
+            'success': True,
+            'predicciones': predicciones
+        })
+    except Exception as e:
+        print(f"Error en API predicciones categorías => {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/predicciones/tiempo-resolucion', methods=['GET'])
+def api_predicciones_tiempo():
+    """API para predecir tiempo de resolución"""
+    if 'user_id' not in session:
+        return jsonify({'error': 'No autorizado'}), 401
+    
+    if not controlUsuarios.es_jefe_ti(int(session['user_id'])):
+        return jsonify({'error': 'No tiene permisos'}), 403
+    
+    try:
+        id_categoria = request.args.get('categoria', None)
+        nivel = request.args.get('nivel', 'M')
+        
+        prediccion = ControlPredicciones.predecir_tiempo_resolucion(id_categoria, nivel)
+        
+        return jsonify({
+            'success': True,
+            'prediccion': prediccion
+        })
+    except Exception as e:
+        print(f"Error en API predicción tiempo => {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/predicciones/patrones-temporales', methods=['GET'])
+def api_patrones_temporales():
+    """API para analizar patrones temporales"""
+    if 'user_id' not in session:
+        return jsonify({'error': 'No autorizado'}), 401
+    
+    if not controlUsuarios.es_jefe_ti(int(session['user_id'])):
+        return jsonify({'error': 'No tiene permisos'}), 403
+    
+    try:
+        meses = int(request.args.get('meses', 3))
+        patrones = ControlPredicciones.analizar_patrones_temporales(meses)
+        
+        return jsonify({
+            'success': True,
+            'patrones': patrones
+        })
+    except Exception as e:
+        print(f"Error en API patrones temporales => {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/predicciones/anomalias', methods=['GET'])
+def api_detectar_anomalias():
+    """API para detectar anomalías en incidentes"""
+    if 'user_id' not in session:
+        return jsonify({'error': 'No autorizado'}), 401
+    
+    if not controlUsuarios.es_jefe_ti(int(session['user_id'])):
+        return jsonify({'error': 'No tiene permisos'}), 403
+    
+    try:
+        threshold = float(request.args.get('threshold', 2.0))
+        anomalias = ControlPredicciones.detectar_anomalias(threshold)
+        
+        return jsonify({
+            'success': True,
+            'anomalias': anomalias
+        })
+    except Exception as e:
+        print(f"Error en API detección anomalías => {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/predicciones/carga-tecnicos', methods=['GET'])
+def api_carga_tecnicos():
+    """API para predecir carga de trabajo de técnicos"""
+    if 'user_id' not in session:
+        return jsonify({'error': 'No autorizado'}), 401
+    
+    if not controlUsuarios.es_jefe_ti(int(session['user_id'])):
+        return jsonify({'error': 'No tiene permisos'}), 403
+    
+    try:
+        dias = int(request.args.get('dias', 7))
+        predicciones = ControlPredicciones.predecir_carga_tecnicos(dias)
+        
+        return jsonify({
+            'success': True,
+            'predicciones': predicciones
+        })
+    except Exception as e:
+        print(f"Error en API carga técnicos => {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/predicciones/recomendaciones', methods=['GET'])
+def api_recomendaciones():
+    """API para obtener recomendaciones basadas en predicciones"""
+    if 'user_id' not in session:
+        return jsonify({'error': 'No autorizado'}), 401
+    
+    if not controlUsuarios.es_jefe_ti(int(session['user_id'])):
+        return jsonify({'error': 'No tiene permisos'}), 403
+    
+    try:
+        recomendaciones = ControlPredicciones.obtener_recomendaciones()
+        
+        return jsonify({
+            'success': True,
+            'recomendaciones': recomendaciones
+        })
+    except Exception as e:
+        print(f"Error en API recomendaciones => {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 if __name__ == '__main__':
     # host='0.0.0.0' permite acceso desde otros dispositivos en la red

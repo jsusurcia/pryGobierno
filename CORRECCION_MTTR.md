@@ -327,3 +327,4 @@ ORDER BY mttr_horas ASC;
 
 **¡Reportes MTTR completamente funcionales!** 📊✨
 
+

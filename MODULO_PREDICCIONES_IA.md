@@ -734,3 +734,4 @@ Este módulo convierte los datos históricos de incidentes en **inteligencia acc
 **Autor**: Sistema de Gestión de Incidentes TI - Módulo de IA
 **Versión**: 1.0.0
 
+

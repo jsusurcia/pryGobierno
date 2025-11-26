@@ -44,8 +44,9 @@ Pillow>=10.0.0
 face_recognition>=1.3.0
 dlib>=19.24.0
 
-# Dependencias adicionales ya incluidas con las anteriores:
-# cloudinary (para evidencias - ya instalado si lo usas)
+# Dependencias adicionales
+cloudinary>=1.44.0    # Para gestión de evidencias en la nube
+pymysql>=1.1.0        # Conector MySQL/MariaDB alternativo
 
 # ========================================
 # Dependencias para Predicciones con IA

@@ -8,7 +8,7 @@ def get_connection():
             host="localhost",
             database="Gobierno2",
             user="postgres",
-            password="070905",
+            password="SMAILLIW",
             client_encoding='UTF8'
         )
         

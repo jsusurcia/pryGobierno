@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login con Reconocimiento Facial - Sistema T.I.</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Animación para el scanner facial */
+        @keyframes scan {
+            0% { top: 0; }
+            50% { top: calc(100% - 4px); }
+            100% { top: 0; }
+        }
+        .scanner-line {
+            animation: scan 2s linear infinite;
+        }
+        
+        /* Efecto de pulso para el botón */
+        @keyframes pulse-ring {
+            0% { transform: scale(0.8); opacity: 1; }
+            100% { transform: scale(1.3); opacity: 0; }
+        }
+        .pulse-ring::before {
+            content: '';
+            position: absolute;
+            inset: -4px;
+            border-radius: 50%;
+            border: 2px solid #3b82f6;
+            animation: pulse-ring 1.5s ease-out infinite;
+        }
+        
+        /* Overlay para el rostro detectado */
+        .face-box {
+            position: absolute;
+            border: 3px solid #10b981;
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.5);
+            transition: all 0.3s ease;
+        }
+        
+        .face-box.no-match {
+            border-color: #ef4444;
+            box-shadow: 0 0 20px rgba(239, 68, 68, 0.5);
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900 min-h-screen flex items-center justify-center p-4">
+    
+    <div class="w-full max-w-5xl">
+        <!-- Logo y título -->
+        <div class="text-center mb-8">
+            <div class="inline-flex items-center justify-center w-16 h-16 bg-gray-50 rounded-xl mb-4 px-2">
+                <img src="{{ url_for('static', filename='img/logo_ensa.png') }}" alt="Logo" class="object-contain" />
+            </div>
+            <h1 class="text-white text-3xl font-bold mb-2">Sistema de Gestión de Incidentes</h1>
+            <p class="text-blue-300 text-sm">Autenticación Biométrica con Video Streaming</p>
+        </div>
+
+        <!-- Mensajes Flash -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="mb-4 p-4 rounded-lg {% if category == 'error' %}bg-red-600 text-white{% elif category == 'success' %}bg-green-600 text-white{% elif category == 'info' %}bg-blue-600 text-white{% else %}bg-yellow-600 text-black{% endif %}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="grid md:grid-cols-2 gap-6">
+            <!-- Columna izquierda: Credenciales -->
+            <div class="bg-gray-800 bg-opacity-50 backdrop-blur-sm rounded-2xl p-8 shadow-2xl border border-gray-700">
+                <h2 class="text-white text-xl font-semibold mb-6 flex items-center gap-2">
+                    <svg class="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                    </svg>
+                    Paso 1: Ingrese sus credenciales
+                </h2>
+                
+                <form id="credencialesForm" class="space-y-4">
+                    <!-- Correo Electrónico -->
+                    <div>
+                        <label class="block text-gray-300 text-sm font-medium mb-2">
+                            Correo Electrónico
+                        </label>
+                        <input 
+                            type="email" 
+                            id="correo"
+                            placeholder="correo@ejemplo.com"
+                            class="w-full bg-gray-700 bg-opacity-50 text-gray-200 placeholder-gray-500 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 border border-gray-600"
+                            required
+                        >
+                    </div>
+                    
+                    <!-- Contraseña -->
+                    <div>
+                        <label class="block text-gray-300 text-sm font-medium mb-2">
+                            Contraseña
+                        </label>
+                        <input 
+                            type="password" 
+                            id="contrasena"
+                            placeholder="••••••••"
+                            class="w-full bg-gray-700 bg-opacity-50 text-gray-200 placeholder-gray-500 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 border border-gray-600"
+                            required
+                        >
+                    </div>
+                    
+                    <!-- Botón Iniciar Verificación -->
+                    <button 
+                        type="submit"
+                        id="btnIniciarVerificacion"
+                        class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-all duration-200 flex items-center justify-center gap-2"
+                    >
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
+                        </svg>
+                        Iniciar Verificación Facial
+                    </button>
+
+                    <!-- Link a login tradicional -->
+                    <div class="text-center">
+                        <a href="{{ url_for('login') }}" class="text-blue-400 hover:text-blue-300 text-sm transition-colors">
+                            ← Volver al login tradicional
+                        </a>
+                    </div>
+                </form>
+
+                <!-- Link a registro -->
+                <div class="mt-6 pt-6 border-t border-gray-700 text-center">
+                    <p class="text-gray-400 text-sm">
+                        ¿No tiene rostro registrado?
+                        <a href="{{ url_for('enrolamiento_facial') }}" class="text-blue-400 hover:text-blue-300 font-medium transition-colors">
+                            Registrar rostro
+                        </a>
+                    </p>
+                </div>
+            </div>
+
+            <!-- Columna derecha: Video Streaming -->
+            <div class="bg-gray-800 bg-opacity-50 backdrop-blur-sm rounded-2xl p-8 shadow-2xl border border-gray-700">
+                <h2 class="text-white text-xl font-semibold mb-6 flex items-center gap-2">
+                    <svg class="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                    </svg>
+                    Paso 2: Verificación Facial
+                </h2>
+
+                <!-- Estado -->
+                <div id="estadoInicial" class="text-center py-12">
+                    <div class="inline-flex items-center justify-center w-20 h-20 bg-gray-700 rounded-full mb-4">
+                        <svg class="w-10 h-10 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                        </svg>
+                    </div>
+                    <p class="text-gray-400 text-sm">
+                        Ingrese sus credenciales para iniciar la verificación facial
+                    </p>
+                </div>
+
+                <!-- Video y Canvas -->
+                <div id="videoContainer" class="hidden">
+                    <div class="relative">
+                        <video id="video" autoplay playsinline class="w-full h-auto rounded-lg border-2 border-gray-600"></video>
+                        <canvas id="canvas" class="absolute top-0 left-0 w-full h-full pointer-events-none"></canvas>
+                        
+                        <!-- Línea de escaneo -->
+                        <div id="scannerLine" class="absolute left-0 right-0 h-1 bg-gradient-to-r from-transparent via-green-400 to-transparent scanner-line hidden"></div>
+                    </div>
+
+                    <!-- Contador de Matches -->
+                    <div class="mt-4 bg-gray-700 rounded-lg p-4">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-gray-300 text-sm font-medium">Progreso de Verificación</span>
+                            <span id="matchCounter" class="text-2xl font-bold text-green-400">0/50</span>
+                        </div>
+                        
+                        <!-- Barra de progreso -->
+                        <div class="w-full bg-gray-600 rounded-full h-3 overflow-hidden">
+                            <div id="progressBar" class="bg-gradient-to-r from-green-500 to-blue-500 h-3 transition-all duration-300" style="width: 0%"></div>
+                        </div>
+                        
+                        <!-- Estadísticas -->
+                        <div class="mt-3 grid grid-cols-2 gap-2 text-xs text-gray-400">
+                            <div>
+                                <span class="font-medium">Frames procesados:</span>
+                                <span id="totalFrames" class="text-white ml-1">0</span>
+                            </div>
+                            <div>
+                                <span class="font-medium">Distancia:</span>
+                                <span id="distancia" class="text-white ml-1">-</span>
+                            </div>
+                        </div>
+
+                        <!-- Estado del rostro -->
+                        <div id="estadoRostro" class="mt-3 text-center py-2 rounded-lg bg-gray-600">
+                            <span class="text-gray-300 text-sm">Buscando rostro...</span>
+                        </div>
+                    </div>
+
+                    <!-- Botón Cancelar -->
+                    <button 
+                        type="button"
+                        id="btnCancelar"
+                        class="w-full mt-4 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition-all duration-200"
+                        onclick="cancelarVerificacion()"
+                    >
+                        Cancelar Verificación
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let video = null;
+        let canvas = null;
+        let ctx = null;
+        let stream = null;
+        let verificacionActiva = false;
+        let framesRequeridos = 50;
+        let matchCount = 0;
+        let totalFrames = 0;
+
+        // Elementos del DOM
+        const credencialesForm = document.getElementById('credencialesForm');
+        const estadoInicial = document.getElementById('estadoInicial');
+        const videoContainer = document.getElementById('videoContainer');
+        const matchCounter = document.getElementById('matchCounter');
+        const progressBar = document.getElementById('progressBar');
+        const estadoRostro = document.getElementById('estadoRostro');
+        const totalFramesSpan = document.getElementById('totalFrames');
+        const distanciaSpan = document.getElementById('distancia');
+        const scannerLine = document.getElementById('scannerLine');
+
+        // Iniciar verificación
+        credencialesForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const correo = document.getElementById('correo').value;
+            const contrasena = document.getElementById('contrasena').value;
+            
+            if (!correo || !contrasena) {
+                alert('Por favor, complete todos los campos');
+                return;
+            }
+
+            // Deshabilitar formulario
+            document.getElementById('btnIniciarVerificacion').disabled = true;
+            document.getElementById('btnIniciarVerificacion').classList.add('opacity-50');
+
+            try {
+                // Iniciar sesión de verificación
+                const response = await fetch('/api/biometria/iniciar-verificacion-streaming', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ correo, contrasena })
+                });
+
+                const data = await response.json();
+
+                if (data.exito) {
+                    framesRequeridos = data.frames_requeridos;
+                    matchCounter.textContent = `0/${framesRequeridos}`;
+                    
+                    // Mostrar video
+                    estadoInicial.classList.add('hidden');
+                    videoContainer.classList.remove('hidden');
+                    
+                    // Iniciar cámara
+                    await iniciarCamara();
+                    iniciarVerificacionStreaming();
+                } else {
+                    alert(data.mensaje);
+                    document.getElementById('btnIniciarVerificacion').disabled = false;
+                    document.getElementById('btnIniciarVerificacion').classList.remove('opacity-50');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al iniciar verificación');
+                document.getElementById('btnIniciarVerificacion').disabled = false;
+                document.getElementById('btnIniciarVerificacion').classList.remove('opacity-50');
+            }
+        });
+
+        async function iniciarCamara() {
+            try {
+                video = document.getElementById('video');
+                canvas = document.getElementById('canvas');
+                ctx = canvas.getContext('2d');
+
+                stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        width: { ideal: 640 },
+                        height: { ideal: 480 }
+                    } 
+                });
+                
+                video.srcObject = stream;
+                
+                // Esperar a que el video esté listo
+                await new Promise((resolve) => {
+                    video.onloadedmetadata = () => {
+                        // Ajustar canvas al tamaño del video
+                        canvas.width = video.videoWidth;
+                        canvas.height = video.videoHeight;
+                        resolve();
+                    };
+                });
+
+                scannerLine.classList.remove('hidden');
+                
+            } catch (error) {
+                console.error('Error al acceder a la cámara:', error);
+                alert('No se pudo acceder a la cámara. Por favor, verifique los permisos.');
+            }
+        }
+
+        function iniciarVerificacionStreaming() {
+            verificacionActiva = true;
+            verificarFrame();
+        }
+
+        async function verificarFrame() {
+            if (!verificacionActiva) return;
+
+            try {
+                // Capturar frame actual
+                const imagenBase64 = capturarFrame();
+                
+                if (!imagenBase64) {
+                    requestAnimationFrame(verificarFrame);
+                    return;
+                }
+
+                // Enviar frame para verificación
+                const response = await fetch('/api/biometria/verificar-frame', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ imagen_facial: imagenBase64 })
+                });
+
+                const data = await response.json();
+
+                if (data.exito) {
+                    // Actualizar UI
+                    matchCount = data.match_count;
+                    totalFrames = data.total_frames;
+                    
+                    matchCounter.textContent = `${matchCount}/${framesRequeridos}`;
+                    totalFramesSpan.textContent = totalFrames;
+                    progressBar.style.width = `${data.progreso}%`;
+                    
+                    if (data.distancia !== undefined) {
+                        distanciaSpan.textContent = data.distancia.toFixed(4);
+                    }
+
+                    // Actualizar estado del rostro
+                    if (data.coincide) {
+                        estadoRostro.innerHTML = '<span class="text-green-400 text-sm font-bold">✓ Rostro Coincidente</span>';
+                        estadoRostro.className = 'mt-3 text-center py-2 rounded-lg bg-green-900';
+                    } else {
+                        estadoRostro.innerHTML = '<span class="text-red-400 text-sm">✗ No coincide</span>';
+                        estadoRostro.className = 'mt-3 text-center py-2 rounded-lg bg-red-900';
+                    }
+
+                    // Dibujar rectángulo del rostro si se detectó
+                    if (data.face_location) {
+                        dibujarRostro(data.face_location, data.coincide);
+                    }
+
+                    // Si login exitoso
+                    if (data.login_exitoso) {
+                        verificacionActiva = false;
+                        
+                        // Animación de éxito
+                        estadoRostro.innerHTML = '<span class="text-green-400 text-lg font-bold">🎉 ¡Login Exitoso!</span>';
+                        estadoRostro.className = 'mt-3 text-center py-3 rounded-lg bg-green-700 animate-pulse';
+                        
+                        setTimeout(() => {
+                            window.location.href = '/dashboard';
+                        }, 1500);
+                        return;
+                    }
+                }
+
+                // Continuar con el siguiente frame
+                requestAnimationFrame(verificarFrame);
+                
+            } catch (error) {
+                console.error('Error al verificar frame:', error);
+                requestAnimationFrame(verificarFrame);
+            }
+        }
+
+        function capturarFrame() {
+            if (!video || !canvas || !ctx) return null;
+
+            try {
+                // Dibujar el frame actual del video en el canvas
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                
+                // Convertir a base64
+                return canvas.toDataURL('image/jpeg', 0.8);
+            } catch (error) {
+                console.error('Error al capturar frame:', error);
+                return null;
+            }
+        }
+
+        function dibujarRostro(faceLocation, coincide) {
+            // Limpiar canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // faceLocation viene como [top, right, bottom, left]
+            const [top, right, bottom, left] = faceLocation;
+            const width = right - left;
+            const height = bottom - top;
+
+            // Dibujar rectángulo
+            ctx.strokeStyle = coincide ? '#10b981' : '#ef4444';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(left, top, width, height);
+
+            // Dibujar esquinas
+            const cornerSize = 20;
+            ctx.beginPath();
+            
+            // Esquina superior izquierda
+            ctx.moveTo(left, top + cornerSize);
+            ctx.lineTo(left, top);
+            ctx.lineTo(left + cornerSize, top);
+            
+            // Esquina superior derecha
+            ctx.moveTo(right - cornerSize, top);
+            ctx.lineTo(right, top);
+            ctx.lineTo(right, top + cornerSize);
+            
+            // Esquina inferior derecha
+            ctx.moveTo(right, bottom - cornerSize);
+            ctx.lineTo(right, bottom);
+            ctx.lineTo(right - cornerSize, bottom);
+            
+            // Esquina inferior izquierda
+            ctx.moveTo(left + cornerSize, bottom);
+            ctx.lineTo(left, bottom);
+            ctx.lineTo(left, bottom - cornerSize);
+            
+            ctx.stroke();
+        }
+
+        async function cancelarVerificacion() {
+            verificacionActiva = false;
+
+            // Detener cámara
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+
+            // Cancelar verificación en el servidor
+            try {
+                await fetch('/api/biometria/cancelar-verificacion', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+            } catch (error) {
+                console.error('Error al cancelar:', error);
+            }
+
+            // Volver al estado inicial
+            videoContainer.classList.add('hidden');
+            estadoInicial.classList.remove('hidden');
+            document.getElementById('btnIniciarVerificacion').disabled = false;
+            document.getElementById('btnIniciarVerificacion').classList.remove('opacity-50');
+            
+            // Reset contadores
+            matchCount = 0;
+            totalFrames = 0;
+        }
+
+        // Limpiar al salir de la página
+        window.addEventListener('beforeunload', () => {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+        });
+    </script>
+</body>
+</html>
+

@@ -6,6 +6,7 @@ from controllers.control_diagnostico import ControlDiagnosticos
 from controllers.control_notificaciones import ControlNotificaciones
 from controllers.control_evidencias import controlEvidencias
 from controllers.control_biometria import ControlBiometria
+from controllers.control_biometria_opencv import ControlBiometriaOpenCV
 from controllers.control_predicciones import ControlPredicciones
 from datetime import datetime
 import os
@@ -117,6 +118,11 @@ def index():
     return redirect(url_for('login'))
 
 
+@app.route('/login_streaming')
+def login_streaming():
+    """Login con video streaming y reconocimiento facial en tiempo real"""
+    return render_template('login_streaming.html')
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     """Ruta para el login"""
@@ -170,15 +176,15 @@ def login_biometrico():
         flash('Por favor, capture su rostro para la verificación biométrica', 'error')
         return render_template('login.html')
     
-    # Verificar credenciales y rostro
-    resultado = ControlBiometria.verificar_rostro(correo, contrasena, imagen_facial)
+    # Verificar credenciales y rostro con OpenCV ORB
+    resultado = ControlBiometriaOpenCV.verificar_rostro(correo, contrasena, imagen_facial)
     
     if resultado['exito']:
         usuario = resultado['usuario']
         session['user_id'] = str(usuario['id_usuario'])
         session['user_name'] = f"{usuario['nombre']} {usuario['ape_pat']} {usuario['ape_mat']}"
         session['user_role'] = usuario['id_rol']
-        flash(f'Inicio de sesión biométrico exitoso. Similitud: {resultado.get("similitud", 0):.1f}%', 'success')
+        flash(f'Inicio de sesión biométrico exitoso (Distancia: {resultado.get("distancia", 0):.2f})', 'success')
         return redirect(url_for('index'))
     else:
         # Si requiere registro de rostro, redirigir a enrolamiento
@@ -215,7 +221,7 @@ def api_verificar_credenciales():
             return jsonify({'exito': False, 'mensaje': 'Usuario inactivo'})
         
         # Verificar si ya tiene biometría
-        if ControlBiometria.tiene_biometria(usuario['id_usuario']):
+        if ControlBiometriaOpenCV.tiene_biometria(usuario['id_usuario']):
             return jsonify({
                 'exito': False, 
                 'mensaje': 'Ya tiene un rostro registrado. Si desea actualizarlo, contacte al administrador.'
@@ -233,7 +239,7 @@ def api_verificar_credenciales():
 
 @app.route('/api/biometria/registrar-rostro', methods=['POST'])
 def api_registrar_rostro():
-    """API para registrar el rostro de un usuario"""
+    """API para registrar el rostro de un usuario usando face_recognition"""
     try:
         data = request.get_json()
         id_usuario = data.get('id_usuario')
@@ -242,8 +248,8 @@ def api_registrar_rostro():
         if not id_usuario or not imagen_facial:
             return jsonify({'exito': False, 'mensaje': 'Datos incompletos'})
         
-        # Registrar rostro
-        resultado = ControlBiometria.registrar_rostro(id_usuario, imagen_facial)
+        # Registrar rostro con OpenCV
+        resultado = ControlBiometriaOpenCV.registrar_rostro(id_usuario, imagen_facial)
         
         return jsonify(resultado)
         
@@ -279,6 +285,167 @@ def api_estado_biometria(id_usuario):
     """API para verificar si un usuario tiene biometría registrada"""
     tiene = ControlBiometria.tiene_biometria(id_usuario)
     return jsonify({'tiene_biometria': tiene})
+
+# ============================================================================
+# NUEVAS RUTAS - SISTEMA DE VIDEO STREAMING CON FACE_RECOGNITION
+# ============================================================================
+
+@app.route('/api/biometria/iniciar-verificacion-streaming', methods=['POST'])
+def api_iniciar_verificacion_streaming():
+    """
+    Inicia la verificación por video streaming.
+    Obtiene el encoding del usuario y lo guarda en la sesión.
+    """
+    try:
+        data = request.get_json()
+        correo = data.get('correo')
+        contrasena = data.get('contrasena')
+        
+        if not correo or not contrasena:
+            return jsonify({'exito': False, 'mensaje': 'Credenciales incompletas'})
+        
+        # Obtener rostro del usuario
+        resultado = ControlBiometriaOpenCV.obtener_rostro_usuario(correo, contrasena)
+        
+        if resultado['exito']:
+            # Guardar el rostro en la sesión temporalmente
+            import pickle
+            import base64
+            
+            rostro_serializado = base64.b64encode(pickle.dumps(resultado['rostro'])).decode('utf-8')
+            
+            session['temp_rostro'] = rostro_serializado
+            session['temp_usuario'] = resultado['usuario']
+            session['match_count'] = 0  # Contador de matches
+            session['total_frames'] = 0  # Total de frames procesados
+            
+            return jsonify({
+                'exito': True,
+                'mensaje': 'Verificación iniciada',
+                'frames_requeridos': ControlBiometriaOpenCV.FRAMES_REQUERIDOS,
+                'usuario': resultado['usuario']
+            })
+        else:
+            return jsonify(resultado)
+        
+    except Exception as e:
+        print(f"❌ Error en api_iniciar_verificacion_streaming: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'exito': False, 'mensaje': f'Error: {str(e)}'}), 500
+
+@app.route('/api/biometria/verificar-frame', methods=['POST'])
+def api_verificar_frame():
+    """
+    Verifica un frame del video contra el encoding almacenado en la sesión.
+    Cuenta los matches consecutivos.
+    """
+    try:
+        # Verificar que hay una sesión activa
+        if 'temp_rostro' not in session:
+            return jsonify({
+                'exito': False,
+                'mensaje': 'No hay sesión de verificación activa',
+                'reiniciar': True
+            })
+        
+        data = request.get_json()
+        imagen_base64 = data.get('imagen_facial')
+        
+        if not imagen_base64:
+            return jsonify({'exito': False, 'mensaje': 'Imagen no proporcionada'})
+        
+        # Deserializar el rostro de la sesión
+        import pickle
+        import base64
+        
+        rostro_bytes = base64.b64decode(session['temp_rostro'])
+        rostro_guardado = pickle.loads(rostro_bytes)
+        
+        # Verificar el frame
+        resultado = ControlBiometriaOpenCV.verificar_frame(rostro_guardado, imagen_base64)
+        
+        # Actualizar contadores
+        session['total_frames'] = session.get('total_frames', 0) + 1
+        
+        if resultado['coincide']:
+            session['match_count'] = session.get('match_count', 0) + 1
+        else:
+            # Reiniciar contador si no coincide
+            session['match_count'] = 0
+        
+        match_count = session['match_count']
+        total_frames = session['total_frames']
+        frames_requeridos = ControlBiometriaOpenCV.FRAMES_REQUERIDOS
+        
+        # Verificar si se alcanzó el umbral
+        if match_count >= frames_requeridos:
+            # Login exitoso
+            usuario = session['temp_usuario']
+            
+            # Establecer sesión de usuario
+            session['user_id'] = str(usuario['id_usuario'])
+            session['user_name'] = f"{usuario['nombre']} {usuario['ape_pat']} {usuario['ape_mat']}"
+            session['user_role'] = usuario['id_rol']
+            
+            # Limpiar datos temporales
+            session.pop('temp_rostro', None)
+            session.pop('temp_usuario', None)
+            session.pop('match_count', None)
+            session.pop('total_frames', None)
+            
+            return jsonify({
+                'exito': True,
+                'login_exitoso': True,
+                'coincide': True,
+                'match_count': match_count,
+                'total_frames': total_frames,
+                'frames_requeridos': frames_requeridos,
+                'progreso': 100,
+                'mensaje': f'¡Login exitoso! {match_count} frames coincidentes',
+                'distancia': resultado.get('distancia', 0),
+                'face_location': resultado.get('face_location')
+            })
+        
+        # Calcular progreso
+        progreso = int((match_count / frames_requeridos) * 100)
+        
+        return jsonify({
+            'exito': True,
+            'login_exitoso': False,
+            'coincide': resultado['coincide'],
+            'match_count': match_count,
+            'total_frames': total_frames,
+            'frames_requeridos': frames_requeridos,
+            'progreso': progreso,
+            'mensaje': resultado['mensaje'],
+            'distancia': resultado.get('distancia', 0),
+            'face_location': resultado.get('face_location')
+        })
+        
+    except Exception as e:
+        print(f"❌ Error en api_verificar_frame: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'exito': False, 'mensaje': f'Error: {str(e)}'}), 500
+
+@app.route('/api/biometria/cancelar-verificacion', methods=['POST'])
+def api_cancelar_verificacion():
+    """Cancela la verificación en curso y limpia la sesión"""
+    try:
+        session.pop('temp_rostro', None)
+        session.pop('temp_usuario', None)
+        session.pop('match_count', None)
+        session.pop('total_frames', None)
+        
+        return jsonify({'exito': True, 'mensaje': 'Verificación cancelada'})
+        
+    except Exception as e:
+        return jsonify({'exito': False, 'mensaje': str(e)}), 500
+
+# ============================================================================
+# FIN NUEVAS RUTAS - VIDEO STREAMING
+# ============================================================================
 
 @app.route('/dashboard')
 def dashboard():

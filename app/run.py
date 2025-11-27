@@ -8,6 +8,7 @@ from controllers.control_evidencias import controlEvidencias
 from controllers.control_biometria import ControlBiometria
 from controllers.control_biometria_opencv import ControlBiometriaOpenCV
 from controllers.control_predicciones import ControlPredicciones
+from controllers.control_contratos import ControlContratos
 from datetime import datetime
 import os
 from werkzeug.utils import secure_filename
@@ -2056,6 +2057,249 @@ def api_recomendaciones():
         })
     except Exception as e:
         print(f"Error en API recomendaciones => {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# ============================================
+# RUTAS PARA GESTIÓN DE CONTRATOS Y FIRMAS
+# ============================================
+
+@app.route('/contratos')
+def contratos():
+    """Vista principal de contratos"""
+    if 'user_id' not in session:
+        flash('Por favor inicia sesión', 'error')
+        return redirect(url_for('login'))
+    
+    # Verificar permisos (solo Jefe de TI puede ver todos los contratos)
+    es_jefe_ti = controlUsuarios.es_jefe_ti_rol_1(int(session['user_id']))
+    
+    return render_template(
+        'gestionContratos.html',
+        es_jefe_ti=es_jefe_ti
+    )
+
+@app.route('/crear_contrato', methods=['GET', 'POST'])
+def crear_contrato():
+    """Crear un nuevo contrato"""
+    if 'user_id' not in session:
+        flash('Por favor inicia sesión', 'error')
+        return redirect(url_for('login'))
+    
+    # Solo Jefe de TI puede crear contratos
+    if not controlUsuarios.es_jefe_ti_rol_1(int(session['user_id'])):
+        flash('No tienes permisos para crear contratos', 'error')
+        return redirect(url_for('index'))
+    
+    if request.method == 'POST':
+        try:
+            titulo = request.form.get('titulo')
+            descripcion = request.form.get('descripcion')
+            pdf_file = request.files.get('pdf_file')
+            
+            # Validar campos
+            if not titulo or not descripcion or not pdf_file:
+                flash('Todos los campos son obligatorios', 'error')
+                return redirect(url_for('crear_contrato'))
+            
+            # Validar que sea PDF
+            if not pdf_file.filename.lower().endswith('.pdf'):
+                flash('El archivo debe ser un PDF', 'error')
+                return redirect(url_for('crear_contrato'))
+            
+            # Leer el PDF
+            pdf_bytes = pdf_file.read()
+            
+            # Obtener firmantes desde el formulario
+            # Formato: firmantes_ids[] y firmantes_orden[]
+            firmantes_ids = request.form.getlist('firmantes_ids[]')
+            firmantes_orden = request.form.getlist('firmantes_orden[]')
+            
+            if not firmantes_ids:
+                flash('Debes agregar al menos un firmante', 'error')
+                return redirect(url_for('crear_contrato'))
+            
+            # Construir lista de firmantes
+            firmantes_data = []
+            for i, id_usuario in enumerate(firmantes_ids):
+                firmantes_data.append({
+                    'id_usuario': int(id_usuario),
+                    'orden': int(firmantes_orden[i]) if i < len(firmantes_orden) else i + 1
+                })
+            
+            # Crear contrato
+            resultado = ControlContratos.crear_contrato(
+                titulo=titulo,
+                descripcion=descripcion,
+                pdf_bytes=pdf_bytes,
+                firmantes_data=firmantes_data,
+                id_usuario_creador=int(session['user_id'])
+            )
+            
+            if resultado['success']:
+                flash(resultado['message'], 'success')
+                return redirect(url_for('contratos'))
+            else:
+                flash(resultado['message'], 'error')
+                return redirect(url_for('crear_contrato'))
+                
+        except Exception as e:
+            print(f"Error al crear contrato: {e}")
+            import traceback
+            traceback.print_exc()
+            flash(f'Error al crear contrato: {str(e)}', 'error')
+            return redirect(url_for('crear_contrato'))
+    
+    # GET: Mostrar formulario
+    # Obtener lista de jefes para seleccionar firmantes
+    jefes = controlUsuarios.obtener_jefes_por_area()  # Necesitarás implementar este método
+    
+    return render_template('formCrearContrato.html', jefes=jefes)
+
+@app.route('/firmar_contrato/<int:id_contrato>')
+def firmar_contrato(id_contrato):
+    """Vista para firmar un contrato"""
+    if 'user_id' not in session:
+        flash('Por favor inicia sesión', 'error')
+        return redirect(url_for('login'))
+    
+    id_usuario = int(session['user_id'])
+    
+    # Verificar que es el turno del usuario
+    if not ControlContratos.es_turno_de_firmar(id_contrato, id_usuario):
+        flash('Aún no es tu turno para firmar este contrato', 'warning')
+        return redirect(url_for('contratos'))
+    
+    # Obtener datos del contrato
+    contrato = ControlContratos.obtener_contrato_por_id(id_contrato)
+    if not contrato:
+        flash('Contrato no encontrado', 'error')
+        return redirect(url_for('contratos'))
+    
+    # Obtener historial
+    historial = ControlContratos.obtener_historial_contrato(id_contrato)
+    
+    return render_template(
+        'firmarContrato.html',
+        contrato=contrato,
+        historial=historial
+    )
+
+@app.route('/api/contrato/<int:id_contrato>/firmar', methods=['POST'])
+def api_firmar_contrato(id_contrato):
+    """API para firmar un contrato"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'No autorizado'}), 401
+    
+    try:
+        id_usuario = int(session['user_id'])
+        data = request.get_json()
+        firma_base64 = data.get('firma')
+        
+        if not firma_base64:
+            return jsonify({'success': False, 'message': 'Firma no proporcionada'}), 400
+        
+        # Firmar contrato
+        resultado = ControlContratos.firmar_contrato(
+            id_contrato=id_contrato,
+            id_usuario=id_usuario,
+            firma_base64=firma_base64
+        )
+        
+        if resultado['success']:
+            return jsonify(resultado)
+        else:
+            return jsonify(resultado), 400
+            
+    except Exception as e:
+        print(f"Error al firmar contrato: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'message': f'Error: {str(e)}'}), 500
+
+@app.route('/api/contrato/<int:id_contrato>/rechazar', methods=['POST'])
+def api_rechazar_contrato(id_contrato):
+    """API para rechazar un contrato"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'No autorizado'}), 401
+    
+    try:
+        id_usuario = int(session['user_id'])
+        data = request.get_json()
+        motivo = data.get('motivo', 'Sin motivo especificado')
+        
+        # Rechazar contrato
+        resultado = ControlContratos.rechazar_contrato(
+            id_contrato=id_contrato,
+            id_usuario=id_usuario,
+            motivo=motivo
+        )
+        
+        if resultado['success']:
+            return jsonify(resultado)
+        else:
+            return jsonify(resultado), 400
+            
+    except Exception as e:
+        print(f"Error al rechazar contrato: {e}")
+        return jsonify({'success': False, 'message': f'Error: {str(e)}'}), 500
+
+@app.route('/api/contratos/pendientes')
+def api_contratos_pendientes():
+    """API para obtener contratos pendientes del usuario"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'No autorizado'}), 401
+    
+    try:
+        id_usuario = int(session['user_id'])
+        contratos = ControlContratos.obtener_contratos_pendientes_usuario(id_usuario)
+        
+        return jsonify({
+            'success': True,
+            'contratos': contratos
+        })
+    except Exception as e:
+        print(f"Error al obtener contratos pendientes: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/contratos/todos')
+def api_todos_contratos():
+    """API para obtener todos los contratos (solo Jefe de TI)"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'No autorizado'}), 401
+    
+    # Verificar que sea Jefe de TI
+    if not controlUsuarios.es_jefe_ti_rol_1(int(session['user_id'])):
+        return jsonify({'success': False, 'message': 'No tiene permisos'}), 403
+    
+    try:
+        contratos = ControlContratos.obtener_todos_contratos()
+        
+        return jsonify({
+            'success': True,
+            'contratos': contratos
+        })
+    except Exception as e:
+        print(f"Error al obtener todos los contratos: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/contrato/<int:id_contrato>/historial')
+def api_historial_contrato(id_contrato):
+    """API para obtener el historial de un contrato"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'No autorizado'}), 401
+    
+    try:
+        historial = ControlContratos.obtener_historial_contrato(id_contrato)
+        
+        if historial is not None:
+            return jsonify({
+                'success': True,
+                'historial': historial
+            })
+        else:
+            return jsonify({'success': False, 'message': 'Contrato no encontrado'}), 404
+    except Exception as e:
+        print(f"Error al obtener historial: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 if __name__ == '__main__':

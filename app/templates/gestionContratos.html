@@ -1,0 +1,355 @@
+{% extends 'sidebar.html' %}
+
+{% block title %}Gestión de Contratos{% endblock %}
+
+{% block nav_links %}
+{{ super() }}
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-8 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-7xl mx-auto">
+        <!-- Header -->
+        <div class="bg-white rounded-xl shadow-md p-6 mb-6">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900 mb-2">
+                        📄 Gestión de Contratos
+                    </h1>
+                    <p class="text-gray-600">Sistema de firmas electrónicas</p>
+                </div>
+                {% if es_jefe_ti %}
+                <div class="mt-4 md:mt-0">
+                    <a href="{{ url_for('crear_contrato') }}" 
+                       class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold rounded-lg shadow-md hover:from-blue-700 hover:to-blue-800 transition duration-200">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                        </svg>
+                        Nuevo Contrato
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="bg-white rounded-xl shadow-md overflow-hidden">
+            <div class="border-b border-gray-200">
+                <nav class="flex -mb-px">
+                    <button onclick="cambiarTab('pendientes')" 
+                            id="tab-pendientes"
+                            class="tab-button active whitespace-nowrap py-4 px-6 border-b-2 font-medium text-sm">
+                        <span class="flex items-center">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            Mis Pendientes
+                            <span id="badge-pendientes" class="ml-2 bg-yellow-100 text-yellow-800 text-xs font-semibold px-2.5 py-0.5 rounded-full">0</span>
+                        </span>
+                    </button>
+                    {% if es_jefe_ti %}
+                    <button onclick="cambiarTab('todos')" 
+                            id="tab-todos"
+                            class="tab-button whitespace-nowrap py-4 px-6 border-b-2 font-medium text-sm">
+                        <span class="flex items-center">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                            Todos los Contratos
+                            <span id="badge-todos" class="ml-2 bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded-full">0</span>
+                        </span>
+                    </button>
+                    {% endif %}
+                </nav>
+            </div>
+
+            <!-- Contenido de Tabs -->
+            <div class="p-6">
+                <!-- Tab: Mis Pendientes -->
+                <div id="content-pendientes" class="tab-content">
+                    <div id="lista-pendientes" class="space-y-4">
+                        <!-- Se llenará con JavaScript -->
+                        <div class="text-center py-12">
+                            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                            <p class="text-gray-600">Cargando contratos...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab: Todos los Contratos (Solo Jefe de TI) -->
+                {% if es_jefe_ti %}
+                <div id="content-todos" class="tab-content hidden">
+                    <div id="lista-todos" class="space-y-4">
+                        <!-- Se llenará con JavaScript -->
+                        <div class="text-center py-12">
+                            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                            <p class="text-gray-600">Cargando contratos...</p>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Historial -->
+<div id="modalHistorial" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+    <div class="relative top-20 mx-auto p-5 border w-full max-w-3xl shadow-lg rounded-lg bg-white">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-2xl font-bold text-gray-900">Historial del Contrato</h3>
+            <button onclick="cerrarModal()" class="text-gray-400 hover:text-gray-600">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+        </div>
+        <div id="contenidoHistorial" class="max-h-96 overflow-y-auto">
+            <!-- Se llenará con JavaScript -->
+        </div>
+    </div>
+</div>
+
+<script>
+let tabActual = 'pendientes';
+
+// Cambiar entre tabs
+function cambiarTab(tab) {
+    tabActual = tab;
+    
+    // Actualizar botones
+    document.querySelectorAll('.tab-button').forEach(btn => {
+        btn.classList.remove('active', 'border-blue-500', 'text-blue-600');
+        btn.classList.add('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300');
+    });
+    
+    const btnActivo = document.getElementById(`tab-${tab}`);
+    btnActivo.classList.remove('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300');
+    btnActivo.classList.add('active', 'border-blue-500', 'text-blue-600');
+    
+    // Actualizar contenido
+    document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.add('hidden');
+    });
+    document.getElementById(`content-${tab}`).classList.remove('hidden');
+    
+    // Cargar datos
+    if (tab === 'pendientes') {
+        cargarContratosPendientes();
+    } else if (tab === 'todos') {
+        cargarTodosContratos();
+    }
+}
+
+// Cargar contratos pendientes del usuario
+async function cargarContratosPendientes() {
+    try {
+        const response = await fetch('/api/contratos/pendientes');
+        const data = await response.json();
+        
+        const lista = document.getElementById('lista-pendientes');
+        
+        if (data.success && data.contratos.length > 0) {
+            document.getElementById('badge-pendientes').textContent = data.contratos.length;
+            
+            lista.innerHTML = data.contratos.map(contrato => `
+                <div class="bg-white border-2 ${contrato.es_su_turno ? 'border-green-300 shadow-lg' : 'border-gray-200'} rounded-lg p-6 hover:shadow-md transition">
+                    ${contrato.es_su_turno ? '<div class="mb-2"><span class="bg-green-100 text-green-800 text-xs font-semibold px-2.5 py-0.5 rounded-full">🟢 Es tu turno</span></div>' : '<div class="mb-2"><span class="bg-yellow-100 text-yellow-800 text-xs font-semibold px-2.5 py-0.5 rounded-full">⏳ Esperando</span></div>'}
+                    <div class="flex items-start justify-between">
+                        <div class="flex-1">
+                            <h3 class="text-xl font-bold text-gray-900 mb-2">${contrato.titulo}</h3>
+                            <p class="text-gray-600 mb-4">${contrato.descripcion || 'Sin descripción'}</p>
+                            <div class="flex items-center gap-4 text-sm text-gray-500">
+                                <span>📅 ${new Date(contrato.fecha_creacion).toLocaleDateString('es-ES')}</span>
+                                <span>📝 Firma #${contrato.orden}</span>
+                            </div>
+                        </div>
+                        <div class="flex gap-2 ml-4">
+                            <a href="${contrato.url_archivo}" target="_blank" 
+                               class="inline-flex items-center px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                </svg>
+                                Ver PDF
+                            </a>
+                            ${contrato.es_su_turno ? `
+                            <a href="/firmar_contrato/${contrato.id_contrato}" 
+                               class="inline-flex items-center px-6 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white font-semibold rounded-lg hover:from-green-700 hover:to-green-800 transition shadow-md">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
+                                </svg>
+                                Firmar Ahora
+                            </a>
+                            ` : '<span class="text-gray-400 text-sm">Esperando firmas anteriores</span>'}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        } else {
+            lista.innerHTML = `
+                <div class="text-center py-12">
+                    <svg class="mx-auto h-24 w-24 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    <h3 class="mt-4 text-lg font-medium text-gray-900">No tienes contratos pendientes</h3>
+                    <p class="mt-2 text-gray-500">Cuando te asignen un contrato para firmar, aparecerá aquí.</p>
+                </div>
+            `;
+            document.getElementById('badge-pendientes').textContent = '0';
+        }
+    } catch (error) {
+        console.error('Error al cargar contratos pendientes:', error);
+        document.getElementById('lista-pendientes').innerHTML = `
+            <div class="text-center py-12">
+                <p class="text-red-600">❌ Error al cargar contratos</p>
+            </div>
+        `;
+    }
+}
+
+// Cargar todos los contratos (Solo Jefe de TI)
+async function cargarTodosContratos() {
+    try {
+        const response = await fetch('/api/contratos/todos');
+        const data = await response.json();
+        
+        const lista = document.getElementById('lista-todos');
+        
+        if (data.success && data.contratos.length > 0) {
+            document.getElementById('badge-todos').textContent = data.contratos.length;
+            
+            const estadoMap = {
+                'P': { texto: 'Pendiente', clase: 'bg-yellow-100 text-yellow-800' },
+                'F': { texto: 'Firmado', clase: 'bg-green-100 text-green-800' },
+                'R': { texto: 'Rechazado', clase: 'bg-red-100 text-red-800' }
+            };
+            
+            lista.innerHTML = data.contratos.map(contrato => {
+                const estado = estadoMap[contrato.estado] || { texto: 'Desconocido', clase: 'bg-gray-100 text-gray-800' };
+                return `
+                    <div class="bg-white border-2 border-gray-200 rounded-lg p-6 hover:shadow-md transition">
+                        <div class="flex items-start justify-between">
+                            <div class="flex-1">
+                                <div class="flex items-center gap-3 mb-2">
+                                    <h3 class="text-xl font-bold text-gray-900">${contrato.titulo}</h3>
+                                    <span class="${estado.clase} text-xs font-semibold px-2.5 py-0.5 rounded-full">${estado.texto}</span>
+                                </div>
+                                <p class="text-gray-600 mb-4">${contrato.descripcion || 'Sin descripción'}</p>
+                                <div class="flex items-center gap-4 text-sm text-gray-500">
+                                    <span>📅 ${new Date(contrato.fecha_creacion).toLocaleDateString('es-ES')}</span>
+                                    <span>✍️ ${contrato.firmados}/${contrato.total_firmantes} firmas</span>
+                                </div>
+                            </div>
+                            <div class="flex gap-2 ml-4">
+                                <button onclick="verHistorial(${contrato.id_contrato})" 
+                                        class="inline-flex items-center px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition">
+                                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                    Historial
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        } else {
+            lista.innerHTML = `
+                <div class="text-center py-12">
+                    <svg class="mx-auto h-24 w-24 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    <h3 class="mt-4 text-lg font-medium text-gray-900">No hay contratos registrados</h3>
+                    <p class="mt-2 text-gray-500">Crea el primer contrato para empezar.</p>
+                </div>
+            `;
+            document.getElementById('badge-todos').textContent = '0';
+        }
+    } catch (error) {
+        console.error('Error al cargar todos los contratos:', error);
+        document.getElementById('lista-todos').innerHTML = `
+            <div class="text-center py-12">
+                <p class="text-red-600">❌ Error al cargar contratos</p>
+            </div>
+        `;
+    }
+}
+
+// Ver historial de un contrato
+async function verHistorial(idContrato) {
+    try {
+        const response = await fetch(`/api/contrato/${idContrato}/historial`);
+        const data = await response.json();
+        
+        if (data.success) {
+            const historial = data.historial;
+            let html = '<div class="space-y-4">';
+            
+            // Firmantes
+            html += '<div><h4 class="font-bold text-lg mb-3">Firmantes:</h4>';
+            historial.firmantes.forEach(firmante => {
+                const icono = firmante.firmado ? '✅' : (firmante.rechazo ? '❌' : '⏳');
+                const estado = firmante.firmado ? 'Firmado' : (firmante.rechazo ? 'Rechazado' : 'Pendiente');
+                const fecha = firmante.fecha_firma ? new Date(firmante.fecha_firma).toLocaleString('es-ES') : '-';
+                
+                html += `
+                    <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg mb-2">
+                        <div>
+                            <p class="font-semibold">${icono} Firma #${firmante.orden}: ${firmante.nombre_completo}</p>
+                            <p class="text-sm text-gray-600">${estado}${firmante.firmado ? ` - ${fecha}` : ''}</p>
+                            ${firmante.comentario_rechazo ? `<p class="text-sm text-red-600 mt-1">Motivo: ${firmante.comentario_rechazo}</p>` : ''}
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            
+            // Rechazos
+            if (historial.rechazos.length > 0) {
+                html += '<div class="mt-6"><h4 class="font-bold text-lg mb-3 text-red-600">Historial de Rechazos:</h4>';
+                historial.rechazos.forEach(rechazo => {
+                    html += `
+                        <div class="p-4 bg-red-50 rounded-lg mb-2 border border-red-200">
+                            <p class="font-semibold text-red-900">${rechazo.nombre_completo}</p>
+                            <p class="text-sm text-red-700">${new Date(rechazo.fecha).toLocaleString('es-ES')}</p>
+                            <p class="text-sm text-red-800 mt-1">Motivo: ${rechazo.motivo}</p>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+            }
+            
+            html += '</div>';
+            
+            document.getElementById('contenidoHistorial').innerHTML = html;
+            document.getElementById('modalHistorial').classList.remove('hidden');
+        }
+    } catch (error) {
+        console.error('Error al cargar historial:', error);
+        alert('Error al cargar el historial');
+    }
+}
+
+function cerrarModal() {
+    document.getElementById('modalHistorial').classList.add('hidden');
+}
+
+// Cargar contratos al iniciar
+document.addEventListener('DOMContentLoaded', function() {
+    cargarContratosPendientes();
+});
+</script>
+
+<style>
+.tab-button.active {
+    @apply border-blue-500 text-blue-600;
+}
+
+.tab-button:not(.active) {
+    @apply border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300;
+}
+</style>
+
+{% endblock %}
+

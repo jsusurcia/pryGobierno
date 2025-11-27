@@ -56,3 +56,11 @@ pandas>=2.0.0          # Manipulación de datos
 scikit-learn>=1.3.0    # Algoritmos de Machine Learning
 scipy>=1.11.0          # Cálculos científicos
 # numpy ya está incluido arriba
+
+# ========================================
+# Dependencias para Firmas Electrónicas
+# ========================================
+PyPDF2>=3.0.0          # Manipulación y lectura de PDFs
+reportlab>=4.0.0       # Generación de PDFs y añadir firmas
+requests>=2.31.0       # Subir archivos a Catbox API
+# Pillow ya está incluido arriba para imágenes de firmas

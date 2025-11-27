@@ -385,5 +385,119 @@ class controlUsuarios:
         except Exception as e:
             print(f"Error en contar_tickets_en_equipo => {e}")
             return 0
+    
+    @staticmethod
+    def obtener_jefes_por_area():
+        """
+        Obtiene todos los usuarios con rol de tipo 'J' (Jefe) agrupados por área
+        
+        Returns:
+            list: Lista de usuarios jefes con información de su rol y área
+        """
+        try:
+            sql = """
+                SELECT 
+                    u.id_usuario,
+                    u.nombre,
+                    u.ape_pat,
+                    u.ape_mat,
+                    u.correo,
+                    r.nombre as nombre_rol,
+                    a.nombre as nombre_area,
+                    r.id_rol,
+                    r.id_area
+                FROM USUARIO u
+                INNER JOIN ROL r ON u.id_rol = r.id_rol
+                INNER JOIN AREA a ON r.id_area = a.id_area
+                WHERE r.tipo = 'J' AND u.estado = TRUE
+                ORDER BY a.nombre, u.nombre
+            """
+            
+            conexion = get_connection()
+            if not conexion:
+                print("No se pudo conectar a la base de datos.")
+                return []
+            
+            with conexion.cursor() as cursor:
+                cursor.execute(sql)
+                resultados = cursor.fetchall()
+            
+            conexion.close()
+            
+            jefes = []
+            for row in resultados:
+                jefes.append({
+                    'id_usuario': row[0],
+                    'nombre': row[1],
+                    'ape_pat': row[2],
+                    'ape_mat': row[3],
+                    'nombre_completo': f"{row[1]} {row[2]} {row[3]}",
+                    'correo': row[4],
+                    'nombre_rol': row[5],
+                    'nombre_area': row[6],
+                    'id_rol': row[7],
+                    'id_area': row[8]
+                })
+            
+            return jefes
+            
+        except Exception as e:
+            print(f"Error en obtener_jefes_por_area => {e}")
+            return []
+    
+    @staticmethod
+    def obtener_usuarios_por_rol(id_rol):
+        """
+        Obtiene todos los usuarios con un rol específico
+        
+        Args:
+            id_rol: ID del rol a buscar
+            
+        Returns:
+            list: Lista de usuarios con ese rol
+        """
+        try:
+            sql = """
+                SELECT 
+                    id_usuario,
+                    nombre,
+                    ape_pat,
+                    ape_mat,
+                    correo,
+                    id_rol,
+                    estado
+                FROM USUARIO
+                WHERE id_rol = %s AND estado = TRUE
+                ORDER BY nombre, ape_pat
+            """
+            
+            conexion = get_connection()
+            if not conexion:
+                return []
+            
+            with conexion.cursor() as cursor:
+                cursor.execute(sql, (id_rol,))
+                resultados = cursor.fetchall()
+            
+            conexion.close()
+            
+            usuarios = []
+            for row in resultados:
+                usuarios.append({
+                    'id_usuario': row[0],
+                    'nombre': row[1],
+                    'ape_pat': row[2],
+                    'ape_mat': row[3],
+                    'nombre_completo': f"{row[1]} {row[2]} {row[3]}",
+                    'correo': row[4],
+                    'id_rol': row[5],
+                    'estado': row[6]
+                })
+            
+            return usuarios
+            
+        except Exception as e:
+            print(f"Error en obtener_usuarios_por_rol => {e}")
+            return []
 
          

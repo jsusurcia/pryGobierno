@@ -736,3 +736,4 @@ Este módulo convierte los datos históricos de incidentes en **inteligencia acc
 
 
 
+

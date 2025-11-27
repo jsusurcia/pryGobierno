@@ -72,18 +72,6 @@ document.addEventListener('DOMContentLoaded', function() {
           {% endfor %}
         </select>
       </div>
-
-      <!-- Botón Exportar -->
-      <button onclick="exportarPDF()" 
-              class="bg-gray-900 hover:bg-black text-white font-semibold px-6 py-2 rounded-lg 
-                     transition-colors duration-200 flex items-center gap-2 shadow-md"
-              aria-label="Exportar reporte a PDF">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-        </svg>
-        Exportar PDF
-      </button>
     </div>
   </header>
 
@@ -280,10 +268,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
 {% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <script>
   // Variables globales para almacenar datos
+  // eslint-disable-next-line
   let datosOriginales = {{ mttr_data|tojson if mttr_data else '[]' }};
   let estadisticasOriginales = {{ estadisticas|tojson if estadisticas else '{}' }};
   let tendenciaOriginales = {{ tendencia_data|tojson if tendencia_data else '[]' }};
@@ -596,65 +584,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       }
     });
-  }
-
-  // Función para exportar a PDF
-  function exportarPDF() {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-
-    // Título del reporte
-    doc.setFontSize(20);
-    doc.text('Reporte de Métricas MTTR', 20, 30);
-
-    // Fecha de generación
-    doc.setFontSize(12);
-    doc.text(`Generado el: ${new Date().toLocaleDateString()}`, 20, 45);
-
-    // Métricas principales
-    doc.setFontSize(14);
-    doc.text('Métricas Principales:', 20, 65);
-
-    doc.setFontSize(11);
-    const mttrGlobal = document.getElementById('mttr-global').textContent.split(' ')[0];
-    const totalIncidentes = document.getElementById('total-incidentes').textContent;
-    const mejorCategoria = document.getElementById('mejor-categoria').textContent;
-    const categoriaCritica = document.getElementById('categoria-critica').textContent;
-
-    doc.text(`• MTTR Global: ${mttrGlobal} horas`, 25, 80);
-    doc.text(`• Total de Incidentes: ${totalIncidentes}`, 25, 95);
-    doc.text(`• Mejor Categoría: ${mejorCategoria}`, 25, 110);
-    doc.text(`• Categoría Crítica: ${categoriaCritica}`, 25, 125);
-
-    // Tabla de detalles
-    doc.setFontSize(14);
-    doc.text('Detalles por Categoría:', 20, 145);
-
-    doc.setFontSize(11);
-    let yPos = 160;
-    const rows = document.querySelectorAll('#tabla-body tr');
-    
-    if (rows.length > 0 && !rows[0].querySelector('td[colspan]')) {
-      doc.text('Categoría', 25, yPos);
-      doc.text('MTTR (hrs)', 80, yPos);
-      doc.text('Incidentes', 130, yPos);
-      yPos += 10;
-
-      rows.forEach(row => {
-        const cells = row.querySelectorAll('td');
-        if (cells.length === 3) {
-          doc.text(cells[0].textContent, 25, yPos);
-          doc.text(cells[1].textContent, 80, yPos);
-          doc.text(cells[2].textContent, 130, yPos);
-          yPos += 15;
-        }
-      });
-    } else {
-      doc.text('No hay datos disponibles', 25, yPos);
-    }
-
-    // Guardar el PDF
-    doc.save('reporte-mttr.pdf');
   }
 
   // Inicializar la página

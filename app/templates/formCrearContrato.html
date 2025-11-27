@@ -16,7 +16,7 @@
                     <h1 class="text-3xl font-bold text-gray-900 mb-2">
                         📝 Crear Nuevo Contrato
                     </h1>
-                    <p class="text-gray-600">Configure el contrato y defina el orden de firmas</p>
+                    <p class="text-gray-600">Sube el PDF con tu sello institucional. Los firmantes se asignarán automáticamente.</p>
                 </div>
                 <a href="{{ url_for('contratos') }}" 
                    class="inline-flex items-center px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition">
@@ -59,6 +59,41 @@
                     <p class="text-xs text-gray-500 mt-1">Máximo 500 caracteres</p>
                 </div>
 
+                <!-- Sello Institucional -->
+                <div class="mb-6">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        Tu Sello Institucional
+                    </label>
+                    <div id="selloActual" class="hidden p-4 bg-green-50 border-2 border-green-200 rounded-xl mb-3">
+                        <div class="flex items-center gap-3">
+                            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                            <div class="flex-1">
+                                <p class="text-sm font-semibold text-green-900">Ya tienes un sello registrado</p>
+                                <img id="imgSelloActual" src="" alt="Sello" class="mt-2 max-w-xs border-2 border-gray-300 rounded-lg">
+                            </div>
+                        </div>
+                    </div>
+                    <div id="subirSello" class="p-4 bg-blue-50 border-2 border-blue-200 rounded-xl">
+                        <input type="file" 
+                               id="archivo_sello" 
+                               accept="image/*"
+                               class="w-full px-4 py-2 bg-white border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500
+                                      file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold
+                                      file:bg-blue-600 file:text-white hover:file:bg-blue-700">
+                        <p class="text-xs text-blue-700 mt-2">
+                            Sube tu sello institucional (PNG, JPG). Máximo 5MB.
+                        </p>
+                        <button type="button" 
+                                onclick="subirSello()"
+                                id="btnSubirSello"
+                                class="mt-3 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-semibold">
+                            📤 Subir Sello
+                        </button>
+                    </div>
+                </div>
+
                 <!-- Archivo PDF -->
                 <div class="mb-6">
                     <label for="pdf_file" class="block text-sm font-semibold text-gray-700 mb-2">
@@ -75,7 +110,7 @@
                                       file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
                     </div>
                     <p class="text-xs text-gray-500 mt-1">
-                        Solo archivos PDF. Máximo 10MB.
+                        Solo archivos PDF. Máximo 10MB. El PDF debe incluir tu sello institucional.
                     </p>
                     <div id="pdfInfo" class="hidden mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                         <p class="text-sm text-blue-800 font-medium">
@@ -87,31 +122,38 @@
                     </div>
                 </div>
 
-                <!-- Lista de Firmantes -->
+                <!-- Información de Firmantes Automáticos -->
                 <div class="mb-6">
-                    <div class="flex items-center justify-between mb-3">
-                        <label class="block text-sm font-semibold text-gray-700">
-                            Firmantes *
-                        </label>
-                        <button type="button" 
-                                onclick="agregarFirmante()" 
-                                class="inline-flex items-center px-3 py-1 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition text-sm font-semibold">
-                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        Firmantes Electrónicos
+                    </label>
+                    <div class="p-4 bg-blue-50 border-2 border-blue-200 rounded-xl">
+                        <div class="flex items-start">
+                            <svg class="w-5 h-5 text-blue-600 mt-0.5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                             </svg>
-                            Agregar Firmante
-                        </button>
-                    </div>
-                    <p class="text-xs text-gray-500 mb-4">
-                        Selecciona los usuarios que deben firmar el contrato en el orden que desees.
-                    </p>
-                    
-                    <div id="listaFirmantes" class="space-y-3">
-                        <!-- Se llenará con JavaScript -->
-                    </div>
-                    
-                    <div id="errorFirmantes" class="hidden mt-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-                        Debes agregar al menos un firmante
+                            <div class="flex-1">
+                                <h4 class="text-sm font-semibold text-blue-900 mb-2">Los firmantes se asignarán automáticamente</h4>
+                                <p class="text-xs text-blue-800 mb-3">
+                                    El sistema buscará usuarios activos con los siguientes roles (en este orden):
+                                </p>
+                                <ol class="text-xs text-blue-800 space-y-1 ml-4 list-decimal">
+                                    {% if roles_firmantes %}
+                                        {% for rol in roles_firmantes %}
+                                        <li>
+                                            <span class="font-semibold">{{ rol.nombre }}</span> 
+                                            - {{ 'Primera' if rol.orden == 1 else 'Segunda' if rol.orden == 2 else 'Tercera' if rol.orden == 3 else 'Cuarta' if rol.orden == 4 else 'Quinta' }} firma electrónica{{ ' (final)' if rol.orden == 5 else '' }}
+                                        </li>
+                                        {% endfor %}
+                                    {% else %}
+                                        <li class="text-red-600">⚠️ No se pudieron cargar los roles de firmantes</li>
+                                    {% endif %}
+                                </ol>
+                                <p class="text-xs text-blue-700 mt-3 font-medium">
+                                    ℹ️ Cada firmante recibirá una notificación cuando sea su turno
+                                </p>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -134,39 +176,78 @@
     </div>
 </div>
 
-<!-- Modal para seleccionar usuario -->
-<div id="modalSeleccionarUsuario" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-    <div class="relative top-20 mx-auto p-5 border w-full max-w-2xl shadow-lg rounded-lg bg-white">
-        <div class="flex items-center justify-between mb-4">
-            <h3 class="text-2xl font-bold text-gray-900">Seleccionar Firmante</h3>
-            <button onclick="cerrarModalUsuario()" class="text-gray-400 hover:text-gray-600">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                </svg>
-            </button>
-        </div>
-        
-        <div class="mb-4">
-            <input type="text" 
-                   id="buscarUsuario" 
-                   placeholder="Buscar por nombre o ID..."
-                   class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-500">
-        </div>
-        
-        <div id="listaUsuarios" class="max-h-96 overflow-y-auto space-y-2">
-            <!-- Se llenará con JavaScript -->
-            <div class="text-center py-8 text-gray-500">
-                <p>Ingresa un ID de usuario o busca por nombre</p>
-                <p class="text-sm mt-2">Por ejemplo: 1, 2, 3, etc.</p>
-            </div>
-        </div>
-    </div>
-</div>
-
 <script>
-let firmantes = [];
-let contadorFirmantes = 0;
-let usuarioSeleccionandoPara = null;
+// Cargar sello actual al cargar la página
+document.addEventListener('DOMContentLoaded', function() {
+    cargarSelloActual();
+});
+
+// Cargar sello actual del usuario
+async function cargarSelloActual() {
+    try {
+        const response = await fetch('/api/sello/obtener');
+        const data = await response.json();
+        
+        if (data.success && data.tiene_sello) {
+            document.getElementById('selloActual').classList.remove('hidden');
+            document.getElementById('imgSelloActual').src = data.url_sello;
+            document.getElementById('subirSello').classList.add('hidden');
+        }
+    } catch (error) {
+        console.error('Error al cargar sello:', error);
+    }
+}
+
+// Subir sello
+async function subirSello() {
+    const archivoSello = document.getElementById('archivo_sello').files[0];
+    
+    if (!archivoSello) {
+        alert('❌ Por favor, selecciona una imagen para tu sello');
+        return;
+    }
+    
+    // Validar tamaño (5MB)
+    if (archivoSello.size > 5 * 1024 * 1024) {
+        alert('❌ El archivo es muy grande. Máximo 5MB.');
+        return;
+    }
+    
+    // Validar que sea imagen
+    if (!archivoSello.type.startsWith('image/')) {
+        alert('❌ El archivo debe ser una imagen (PNG, JPG, etc.)');
+        return;
+    }
+    
+    const btnSubir = document.getElementById('btnSubirSello');
+    btnSubir.disabled = true;
+    btnSubir.innerHTML = '<svg class="animate-spin h-5 w-5 inline mr-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Subiendo...';
+    
+    try {
+        const formData = new FormData();
+        formData.append('sello', archivoSello);
+        
+        const response = await fetch('/api/sello/subir', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            alert('✅ ' + data.message);
+            cargarSelloActual();
+        } else {
+            alert('❌ ' + data.message);
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('❌ Error al subir el sello');
+    } finally {
+        btnSubir.disabled = false;
+        btnSubir.innerHTML = '📤 Subir Sello';
+    }
+}
 
 // Mostrar info del PDF seleccionado
 document.getElementById('pdf_file').addEventListener('change', function(e) {
@@ -178,161 +259,46 @@ document.getElementById('pdf_file').addEventListener('change', function(e) {
         const tamañoMB = (archivo.size / (1024 * 1024)).toFixed(2);
         nombreSpan.textContent = `${archivo.name} (${tamañoMB} MB)`;
         infoDiv.classList.remove('hidden');
+        
+        // Validar tamaño
+        if (archivo.size > 10 * 1024 * 1024) {
+            alert('⚠️ El archivo es muy grande. El tamaño máximo es 10MB.');
+            this.value = '';
+            infoDiv.classList.add('hidden');
+        }
     } else {
         infoDiv.classList.add('hidden');
     }
 });
 
-// Agregar firmante
-function agregarFirmante() {
-    // Por ahora, pedimos el ID directamente
-    const idUsuario = prompt('Ingresa el ID del usuario firmante:');
-    
-    if (!idUsuario || isNaN(idUsuario)) {
-        alert('ID de usuario inválido');
-        return;
-    }
-    
-    // Verificar que no esté repetido
-    if (firmantes.find(f => f.id_usuario == idUsuario)) {
-        alert('Este usuario ya está en la lista de firmantes');
-        return;
-    }
-    
-    contadorFirmantes++;
-    const orden = firmantes.length + 1;
-    
-    firmantes.push({
-        id: contadorFirmantes,
-        id_usuario: parseInt(idUsuario),
-        orden: orden
-    });
-    
-    actualizarListaFirmantes();
-    document.getElementById('errorFirmantes').classList.add('hidden');
-}
-
-// Actualizar lista visual de firmantes
-function actualizarListaFirmantes() {
-    const lista = document.getElementById('listaFirmantes');
-    
-    if (firmantes.length === 0) {
-        lista.innerHTML = `
-            <div class="text-center py-8 text-gray-400 border-2 border-dashed border-gray-300 rounded-lg">
-                <svg class="mx-auto h-12 w-12 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
-                </svg>
-                <p>No hay firmantes agregados</p>
-                <p class="text-sm mt-1">Haz clic en "Agregar Firmante" para empezar</p>
-            </div>
-        `;
-        return;
-    }
-    
-    // Reordenar por orden
-    firmantes.sort((a, b) => a.orden - b.orden);
-    
-    lista.innerHTML = firmantes.map((firmante, index) => `
-        <div class="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-blue-100 border-2 border-blue-200 rounded-lg">
-            <div class="flex items-center gap-4">
-                <div class="flex items-center justify-center w-10 h-10 bg-blue-600 text-white rounded-full font-bold">
-                    ${firmante.orden}
-                </div>
-                <div>
-                    <p class="font-semibold text-gray-900">Usuario ID: ${firmante.id_usuario}</p>
-                    <p class="text-sm text-gray-600">Firma en orden #${firmante.orden}</p>
-                </div>
-            </div>
-            <div class="flex items-center gap-2">
-                ${index > 0 ? `
-                <button type="button" 
-                        onclick="moverFirmante(${firmante.id}, 'arriba')" 
-                        class="p-2 text-blue-600 hover:bg-blue-200 rounded-lg transition"
-                        title="Mover arriba">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path>
-                    </svg>
-                </button>
-                ` : ''}
-                ${index < firmantes.length - 1 ? `
-                <button type="button" 
-                        onclick="moverFirmante(${firmante.id}, 'abajo')" 
-                        class="p-2 text-blue-600 hover:bg-blue-200 rounded-lg transition"
-                        title="Mover abajo">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                    </svg>
-                </button>
-                ` : ''}
-                <button type="button" 
-                        onclick="eliminarFirmante(${firmante.id})" 
-                        class="p-2 text-red-600 hover:bg-red-100 rounded-lg transition"
-                        title="Eliminar">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                    </svg>
-                </button>
-            </div>
-        </div>
-    `).join('');
-}
-
-// Mover firmante en el orden
-function moverFirmante(id, direccion) {
-    const index = firmantes.findIndex(f => f.id === id);
-    if (index === -1) return;
-    
-    if (direccion === 'arriba' && index > 0) {
-        // Intercambiar orden
-        const temp = firmantes[index].orden;
-        firmantes[index].orden = firmantes[index - 1].orden;
-        firmantes[index - 1].orden = temp;
-    } else if (direccion === 'abajo' && index < firmantes.length - 1) {
-        const temp = firmantes[index].orden;
-        firmantes[index].orden = firmantes[index + 1].orden;
-        firmantes[index + 1].orden = temp;
-    }
-    
-    actualizarListaFirmantes();
-}
-
-// Eliminar firmante
-function eliminarFirmante(id) {
-    if (!confirm('¿Estás seguro de eliminar este firmante?')) return;
-    
-    firmantes = firmantes.filter(f => f.id !== id);
-    
-    // Reordenar
-    firmantes.forEach((f, index) => {
-        f.orden = index + 1;
-    });
-    
-    actualizarListaFirmantes();
-}
-
-// Validar formulario antes de enviar
+// Validación del formulario
 document.getElementById('formCrearContrato').addEventListener('submit', function(e) {
-    if (firmantes.length === 0) {
+    const titulo = document.getElementById('titulo').value.trim();
+    const pdfFile = document.getElementById('pdf_file').files[0];
+    
+    if (!titulo) {
         e.preventDefault();
-        document.getElementById('errorFirmantes').classList.remove('hidden');
-        alert('Debes agregar al menos un firmante');
+        alert('❌ Por favor, ingresa un título para el contrato');
         return false;
     }
     
-    // Agregar inputs ocultos con los firmantes
-    firmantes.forEach(firmante => {
-        const inputId = document.createElement('input');
-        inputId.type = 'hidden';
-        inputId.name = 'firmantes_ids[]';
-        inputId.value = firmante.id_usuario;
-        this.appendChild(inputId);
-        
-        const inputOrden = document.createElement('input');
-        inputOrden.type = 'hidden';
-        inputOrden.name = 'firmantes_orden[]';
-        inputOrden.value = firmante.orden;
-        this.appendChild(inputOrden);
-    });
+    if (!pdfFile) {
+        e.preventDefault();
+        alert('❌ Por favor, selecciona un archivo PDF');
+        return false;
+    }
+    
+    if (!pdfFile.name.toLowerCase().endsWith('.pdf')) {
+        e.preventDefault();
+        alert('❌ El archivo debe ser un PDF');
+        return false;
+    }
+    
+    // Confirmar antes de crear
+    if (!confirm('¿Estás seguro de crear este contrato? Se asignarán automáticamente los firmantes según los roles establecidos.')) {
+        e.preventDefault();
+        return false;
+    }
     
     return true;
 });

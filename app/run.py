@@ -9,6 +9,7 @@ from controllers.control_biometria import ControlBiometria
 from controllers.control_biometria_opencv import ControlBiometriaOpenCV
 from controllers.control_predicciones import ControlPredicciones
 from controllers.control_contratos import ControlContratos
+from services.sello_service import SelloService
 from datetime import datetime
 import os
 from werkzeug.utils import secure_filename
@@ -1211,6 +1212,8 @@ def inject_user():
     es_jefe_ti_rol_1 = False
     es_tecnico = False
     es_tecnico_area_1 = False
+    es_rol_firmante = False
+    puede_crear_contratos = False
     tipo_rol = None
     notificaciones_no_leidas = 0
     
@@ -1227,6 +1230,8 @@ def inject_user():
                     es_jefe_ti_rol_1 = controlUsuarios.es_jefe_ti_rol_1(int(user_id))
                     es_tecnico = tipo_rol == 'T'
                     es_tecnico_area_1 = controlUsuarios.es_tecnico_area_1(int(user_id))
+                    es_rol_firmante = controlUsuarios.es_rol_firmante(int(user_id))
+                    puede_crear_contratos = controlUsuarios.puede_crear_contratos(int(user_id))
                 
                 # Contar notificaciones no leídas
                 notificaciones_no_leidas = ControlNotificaciones.contar_no_leidas(int(user_id))
@@ -1257,6 +1262,8 @@ def inject_user():
         es_jefe_ti_rol_1=es_jefe_ti_rol_1,
         es_tecnico=es_tecnico,
         es_tecnico_area_1=es_tecnico_area_1,
+        es_rol_firmante=es_rol_firmante,
+        puede_crear_contratos=puede_crear_contratos,
         tipo_rol=tipo_rol,
         notificaciones_no_leidas=notificaciones_no_leidas
     )
@@ -2065,13 +2072,21 @@ def api_recomendaciones():
 
 @app.route('/contratos')
 def contratos():
-    """Vista principal de contratos"""
+    """Vista principal de contratos - Accesible para Jefe de TI y firmantes"""
     if 'user_id' not in session:
         flash('Por favor inicia sesión', 'error')
         return redirect(url_for('login'))
     
-    # Verificar permisos (solo Jefe de TI puede ver todos los contratos)
-    es_jefe_ti = controlUsuarios.es_jefe_ti_rol_1(int(session['user_id']))
+    id_usuario = int(session['user_id'])
+    
+    # Verificar si es Jefe de TI o rol firmante
+    es_jefe_ti = controlUsuarios.es_jefe_ti_rol_1(id_usuario)
+    es_firmante = controlUsuarios.es_rol_firmante(id_usuario)
+    
+    # Permitir acceso a Jefe de TI o firmantes
+    if not es_jefe_ti and not es_firmante:
+        flash('No tienes permisos para acceder a esta sección', 'error')
+        return redirect(url_for('index'))
     
     return render_template(
         'gestionContratos.html',
@@ -2080,13 +2095,13 @@ def contratos():
 
 @app.route('/crear_contrato', methods=['GET', 'POST'])
 def crear_contrato():
-    """Crear un nuevo contrato"""
+    """Crear un nuevo contrato - Accesible para jefes que no sean firmantes"""
     if 'user_id' not in session:
         flash('Por favor inicia sesión', 'error')
         return redirect(url_for('login'))
     
-    # Solo Jefe de TI puede crear contratos
-    if not controlUsuarios.es_jefe_ti_rol_1(int(session['user_id'])):
+    # Solo jefes (tipo 'J') que NO sean firmantes (8,10,11,9,12) pueden crear contratos
+    if not controlUsuarios.puede_crear_contratos(int(session['user_id'])):
         flash('No tienes permisos para crear contratos', 'error')
         return redirect(url_for('index'))
     
@@ -2106,32 +2121,14 @@ def crear_contrato():
                 flash('El archivo debe ser un PDF', 'error')
                 return redirect(url_for('crear_contrato'))
             
-            # Leer el PDF
+            # Leer el PDF (ya debe venir con el sello del creador)
             pdf_bytes = pdf_file.read()
             
-            # Obtener firmantes desde el formulario
-            # Formato: firmantes_ids[] y firmantes_orden[]
-            firmantes_ids = request.form.getlist('firmantes_ids[]')
-            firmantes_orden = request.form.getlist('firmantes_orden[]')
-            
-            if not firmantes_ids:
-                flash('Debes agregar al menos un firmante', 'error')
-                return redirect(url_for('crear_contrato'))
-            
-            # Construir lista de firmantes
-            firmantes_data = []
-            for i, id_usuario in enumerate(firmantes_ids):
-                firmantes_data.append({
-                    'id_usuario': int(id_usuario),
-                    'orden': int(firmantes_orden[i]) if i < len(firmantes_orden) else i + 1
-                })
-            
-            # Crear contrato
+            # Crear contrato (los firmantes se asignan automáticamente)
             resultado = ControlContratos.crear_contrato(
                 titulo=titulo,
                 descripcion=descripcion,
                 pdf_bytes=pdf_bytes,
-                firmantes_data=firmantes_data,
                 id_usuario_creador=int(session['user_id'])
             )
             
@@ -2150,10 +2147,22 @@ def crear_contrato():
             return redirect(url_for('crear_contrato'))
     
     # GET: Mostrar formulario
-    # Obtener lista de jefes para seleccionar firmantes
-    jefes = controlUsuarios.obtener_jefes_por_area()  # Necesitarás implementar este método
+    # Obtener nombres de los roles para mostrar en el formulario
+    from controllers.controlador_rol import ControlRol
     
-    return render_template('formCrearContrato.html', jefes=jefes)
+    roles_firmantes = []
+    orden_roles = [8, 10, 11, 9, 12]
+    
+    for id_rol in orden_roles:
+        rol = ControlRol.buscar_por_IDRol(id_rol)
+        if rol:
+            roles_firmantes.append({
+                'id_rol': id_rol,
+                'nombre': rol.get('nombre', f'Rol {id_rol}'),
+                'orden': len(roles_firmantes) + 1
+            })
+    
+    return render_template('formCrearContrato.html', roles_firmantes=roles_firmantes)
 
 @app.route('/firmar_contrato/<int:id_contrato>')
 def firmar_contrato(id_contrato):
@@ -2282,24 +2291,123 @@ def api_todos_contratos():
         print(f"Error al obtener todos los contratos: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
-@app.route('/api/contrato/<int:id_contrato>/historial')
-def api_historial_contrato(id_contrato):
-    """API para obtener el historial de un contrato"""
+@app.route('/api/contratos/mis-creados')
+def api_contratos_creados():
+    """API para obtener contratos creados por el usuario actual"""
     if 'user_id' not in session:
         return jsonify({'success': False, 'message': 'No autorizado'}), 401
     
     try:
+        id_usuario = int(session['user_id'])
+        contratos = ControlContratos.obtener_contratos_creados_por_usuario(id_usuario)
+        
+        return jsonify({
+            'success': True,
+            'contratos': contratos
+        })
+    except Exception as e:
+        print(f"Error al obtener contratos creados: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/contrato/<int:id_contrato>/historial')
+def api_historial_contrato(id_contrato):
+    """API para obtener el historial de un contrato - Accesible para creador y firmantes"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'No autorizado'}), 401
+    
+    try:
+        id_usuario = int(session['user_id'])
+        
+        # Verificar que el usuario tenga permiso para ver este contrato
+        # (es el creador, es firmante, o es Jefe de TI)
+        contrato = ControlContratos.obtener_contrato_por_id(id_contrato)
+        if not contrato:
+            return jsonify({'success': False, 'message': 'Contrato no encontrado'}), 404
+        
+        es_creador = contrato.get('id_usuario_creador') == id_usuario
+        es_jefe_ti = controlUsuarios.es_jefe_ti_rol_1(id_usuario)
+        
+        # Verificar si es firmante
+        contratos_pendientes = ControlContratos.obtener_contratos_pendientes_usuario(id_usuario)
+        es_firmante = any(c['id_contrato'] == id_contrato for c in contratos_pendientes)
+        
+        if not (es_creador or es_firmante or es_jefe_ti):
+            return jsonify({'success': False, 'message': 'No tienes permisos para ver este contrato'}), 403
+        
         historial = ControlContratos.obtener_historial_contrato(id_contrato)
         
         if historial is not None:
             return jsonify({
                 'success': True,
-                'historial': historial
+                'historial': historial,
+                'es_creador': es_creador
             })
         else:
             return jsonify({'success': False, 'message': 'Contrato no encontrado'}), 404
     except Exception as e:
         print(f"Error al obtener historial: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# ============================================
+# RUTAS PARA GESTIÓN DE SELLOS
+# ============================================
+
+@app.route('/api/sello/subir', methods=['POST'])
+def api_subir_sello():
+    """API para subir el sello institucional del usuario"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'No autorizado'}), 401
+    
+    try:
+        if 'sello' not in request.files:
+            return jsonify({'success': False, 'message': 'No se proporcionó archivo'}), 400
+        
+        archivo_sello = request.files['sello']
+        
+        if archivo_sello.filename == '':
+            return jsonify({'success': False, 'message': 'No se seleccionó archivo'}), 400
+        
+        id_usuario = int(session['user_id'])
+        
+        # Subir a Cloudinary
+        url_sello = SelloService.subir_sello(archivo_sello, id_usuario)
+        
+        if not url_sello:
+            return jsonify({'success': False, 'message': 'Error al subir el sello'}), 500
+        
+        # Actualizar en BD
+        if SelloService.actualizar_sello_usuario(id_usuario, url_sello):
+            return jsonify({
+                'success': True,
+                'message': 'Sello subido exitosamente',
+                'url_sello': url_sello
+            })
+        else:
+            return jsonify({'success': False, 'message': 'Error al guardar en BD'}), 500
+            
+    except Exception as e:
+        print(f"Error al subir sello: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'message': f'Error: {str(e)}'}), 500
+
+@app.route('/api/sello/obtener')
+def api_obtener_sello():
+    """API para obtener el sello del usuario actual"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'No autorizado'}), 401
+    
+    try:
+        id_usuario = int(session['user_id'])
+        url_sello = SelloService.obtener_sello_usuario(id_usuario)
+        
+        return jsonify({
+            'success': True,
+            'url_sello': url_sello,
+            'tiene_sello': url_sello is not None
+        })
+    except Exception as e:
+        print(f"Error al obtener sello: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 if __name__ == '__main__':

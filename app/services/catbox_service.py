@@ -126,28 +126,63 @@ class CatboxService:
             return None
     
     @staticmethod
-    def descargar_pdf(url):
+    def descargar_pdf(url, reintentos=3):
         """
-        Descarga un PDF desde una URL (Catbox u otra)
+        Descarga un PDF desde una URL (Catbox u otra) con reintentos
         
         Args:
             url: URL del archivo PDF
+            reintentos: Número de reintentos en caso de fallo
             
         Returns:
             bytes: Contenido del PDF o None si falla
         """
-        try:
-            print(f"📥 Descargando PDF desde: {url}")
-            response = requests.get(url, timeout=30)
-            
-            if response.status_code == 200:
-                print(f"✅ PDF descargado exitosamente ({len(response.content)} bytes)")
-                return response.content
-            else:
-                print(f"❌ Error al descargar PDF. Status: {response.status_code}")
-                return None
+        import time
+        
+        for intento in range(reintentos):
+            try:
+                print(f"📥 Descargando PDF desde: {url} (intento {intento + 1}/{reintentos})")
                 
-        except Exception as e:
-            print(f"❌ Error al descargar PDF: {e}")
-            return None
+                # Configurar headers para evitar bloqueos
+                headers = {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                }
+                
+                response = requests.get(
+                    url, 
+                    timeout=60,  # Aumentado a 60 segundos
+                    headers=headers,
+                    stream=True  # Descargar en streaming
+                )
+                
+                if response.status_code == 200:
+                    # Leer contenido en chunks
+                    contenido = b''
+                    for chunk in response.iter_content(chunk_size=8192):
+                        if chunk:
+                            contenido += chunk
+                    
+                    print(f"✅ PDF descargado exitosamente ({len(contenido)} bytes)")
+                    return contenido
+                else:
+                    print(f"❌ Error al descargar PDF. Status: {response.status_code}")
+                    if intento < reintentos - 1:
+                        time.sleep(2 ** intento)  # Backoff exponencial
+                        continue
+                    return None
+                    
+            except requests.exceptions.Timeout:
+                print(f"⏱️ Timeout al descargar PDF (intento {intento + 1}/{reintentos})")
+                if intento < reintentos - 1:
+                    time.sleep(2 ** intento)
+                    continue
+                return None
+            except Exception as e:
+                print(f"❌ Error al descargar PDF: {e}")
+                if intento < reintentos - 1:
+                    time.sleep(2 ** intento)
+                    continue
+                return None
+        
+        return None
 

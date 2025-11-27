@@ -12,27 +12,93 @@ class ControlContratos:
     """Controlador para gestión de contratos con firmas electrónicas"""
     
     @staticmethod
-    def crear_contrato(titulo, descripcion, pdf_bytes, firmantes_data, id_usuario_creador):
+    def obtener_firmantes_automaticos():
         """
-        Crea un nuevo contrato con lista de firmantes
+        Obtiene los firmantes en el orden establecido por roles:
+        Orden de id_rol: 8, 10, 11, 9, 12
+        
+        Returns:
+            list: Lista de dicts con {'id_usuario': int, 'orden': int, 'nombre_completo': str, 'nombre_rol': str}
+        """
+        try:
+            # Orden de roles establecido
+            orden_roles = [8, 10, 11, 9, 12]
+            firmantes = []
+            orden = 1
+            
+            conexion = get_connection()
+            if not conexion:
+                return []
+            
+            for id_rol in orden_roles:
+                sql = """
+                    SELECT u.id_usuario, u.nombre, u.ape_pat, u.ape_mat, r.nombre as nombre_rol
+                    FROM USUARIO u
+                    INNER JOIN ROL r ON u.id_rol = r.id_rol
+                    WHERE u.id_rol = %s AND u.estado = TRUE
+                    ORDER BY u.nombre, u.ape_pat
+                    LIMIT 1
+                """
+                
+                with conexion.cursor() as cursor:
+                    cursor.execute(sql, (id_rol,))
+                    resultado = cursor.fetchone()
+                    
+                    if resultado:
+                        firmantes.append({
+                            'id_usuario': resultado[0],
+                            'orden': orden,
+                            'nombre_completo': f"{resultado[1]} {resultado[2]} {resultado[3]}",
+                            'nombre_rol': resultado[4]
+                        })
+                        orden += 1
+            
+            conexion.close()
+            
+            print(f"✅ Se encontraron {len(firmantes)} firmantes automáticos")
+            for f in firmantes:
+                print(f"   {f['orden']}. {f['nombre_completo']} ({f['nombre_rol']})")
+            
+            return firmantes
+            
+        except Exception as e:
+            print(f"❌ Error al obtener firmantes automáticos: {e}")
+            import traceback
+            traceback.print_exc()
+            return []
+    
+    @staticmethod
+    def crear_contrato(titulo, descripcion, pdf_bytes, id_usuario_creador):
+        """
+        Crea un nuevo contrato con firmantes automáticos según roles
+        El PDF debe venir ya con el sello del creador
         
         Args:
             titulo: Título del contrato
             descripcion: Descripción del contrato
-            pdf_bytes: Bytes del PDF original (sin firmar)
-            firmantes_data: Lista de dicts con {'id_usuario': int, 'orden': int}
+            pdf_bytes: Bytes del PDF con sello del creador
             id_usuario_creador: ID del usuario que crea el contrato
             
         Returns:
-            dict: {'success': bool, 'id_contrato': int, 'message': str}
+            dict: {'success': bool, 'id_contrato': int, 'message': str, 'firmantes': list}
         """
         try:
             # Validar PDF
             if not FirmaService.verificar_pdf_valido(pdf_bytes):
                 return {'success': False, 'message': 'El archivo no es un PDF válido'}
             
-            # Subir PDF original a Catbox
-            print("📤 Subiendo PDF original a Catbox...")
+            # Obtener firmantes automáticamente según roles
+            print("🔍 Buscando firmantes automáticos...")
+            firmantes_data = ControlContratos.obtener_firmantes_automaticos()
+            
+            if not firmantes_data:
+                return {
+                    'success': False, 
+                    'message': 'No se encontraron usuarios activos con los roles de firmantes necesarios (8, 10, 11, 9, 12)'
+                }
+            
+            # Subir PDF original a Catbox (ya viene con sello del creador)
+            print("📤 Subiendo PDF con sello a Catbox...")
             nombre_archivo = f"contrato_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
             pdf_temporal = FirmaService.guardar_pdf_temporal(pdf_bytes, nombre_archivo)
             
@@ -57,13 +123,13 @@ class ControlContratos:
                 return {'success': False, 'message': 'Error de conexión a la BD'}
             
             with conexion.cursor() as cursor:
-                # Insertar contrato
+                # Insertar contrato con el ID del creador
                 sql_contrato = """
-                    INSERT INTO CONTRATO (titulo, descripcion, url_archivo, estado, fecha_creacion)
-                    VALUES (%s, %s, %s, 'P', NOW())
+                    INSERT INTO CONTRATO (titulo, descripcion, url_archivo, estado, fecha_creacion, id_usuario_creador)
+                    VALUES (%s, %s, %s, 'P', NOW(), %s)
                     RETURNING id_contrato
                 """
-                cursor.execute(sql_contrato, (titulo, descripcion, url_catbox))
+                cursor.execute(sql_contrato, (titulo, descripcion, url_catbox, id_usuario_creador))
                 id_contrato = cursor.fetchone()[0]
                 
                 # Insertar firmantes con su orden
@@ -86,19 +152,22 @@ class ControlContratos:
             # Notificar al primer firmante (orden = 1)
             primer_firmante = next((f for f in firmantes_data if f['orden'] == 1), None)
             if primer_firmante:
+                nombre_rol_firmante = primer_firmante.get('nombre_rol', 'Firmante')
                 ControlNotificaciones.crear_notificacion(
                     id_usuario=primer_firmante['id_usuario'],
                     titulo=f"Nuevo Contrato para Firmar: {titulo}",
-                    mensaje=f"Tienes un nuevo contrato pendiente de firma. Eres el primer firmante.",
+                    mensaje=f"Tienes un nuevo contrato pendiente de firma electrónica. Como {nombre_rol_firmante}, eres el primer firmante.",
                     tipo="contrato",
                     id_referencia=id_contrato
                 )
             
             print(f"✅ Contrato creado exitosamente (ID: {id_contrato})")
+            print(f"   Firmantes asignados: {len(firmantes_data)}")
             return {
                 'success': True,
                 'id_contrato': id_contrato,
-                'message': 'Contrato creado exitosamente'
+                'message': f'Contrato creado exitosamente con {len(firmantes_data)} firmantes',
+                'firmantes': firmantes_data
             }
             
         except Exception as e:
@@ -328,12 +397,30 @@ class ControlContratos:
                     mensaje_resultado = 'Contrato firmado completamente'
                 else:
                     # Notificar al siguiente firmante
+                    # Obtener nombre del rol del siguiente firmante
+                    sql_rol_siguiente = """
+                        SELECT r.nombre
+                        FROM CONTRATO_FIRMA_PENDIENTE cfp
+                        INNER JOIN USUARIO u ON cfp.id_usuario = u.id_usuario
+                        INNER JOIN ROL r ON u.id_rol = r.id_rol
+                        WHERE cfp.id_contrato = %s AND cfp.id_usuario = %s
+                    """
+                    cursor.execute(sql_rol_siguiente, (id_contrato, siguiente_firmante[0]))
+                    nombre_rol_siguiente = cursor.fetchone()
+                    nombre_rol_siguiente_text = nombre_rol_siguiente[0] if nombre_rol_siguiente else ''
+                    
                     conexion.commit()
+                    
+                    mensaje_notif = f"{nombre_completo} ha firmado el contrato. Ahora es tu turno (Firma #{siguiente_firmante[1]})"
+                    if nombre_rol_siguiente_text:
+                        mensaje_notif += f" como {nombre_rol_siguiente_text}."
+                    else:
+                        mensaje_notif += "."
                     
                     ControlNotificaciones.crear_notificacion(
                         id_usuario=siguiente_firmante[0],
                         titulo=f"Tu Turno para Firmar: {contrato['titulo']}",
-                        mensaje=f"{nombre_completo} ha firmado el contrato. Ahora es tu turno (Firma #{siguiente_firmante[1]}).",
+                        mensaje=mensaje_notif,
                         tipo="contrato",
                         id_referencia=id_contrato
                     )
@@ -355,6 +442,7 @@ class ControlContratos:
     def rechazar_contrato(id_contrato, id_usuario, motivo):
         """
         Rechaza un contrato y registra el motivo
+        Notifica a todos los firmantes Y al creador del contrato
         
         Returns:
             dict: {'success': bool, 'message': str}
@@ -384,6 +472,14 @@ class ControlContratos:
                 cursor.execute(sql_get_firma, (id_contrato, id_usuario))
                 resultado_firma = cursor.fetchone()
                 id_firma = resultado_firma[0] if resultado_firma else None
+                
+                # Obtener el creador del contrato
+                sql_creador = """
+                    SELECT id_usuario_creador FROM CONTRATO WHERE id_contrato = %s
+                """
+                cursor.execute(sql_creador, (id_contrato,))
+                resultado_creador = cursor.fetchone()
+                id_creador = resultado_creador[0] if resultado_creador and resultado_creador[0] else None
                 
                 # Marcar contrato como rechazado
                 sql_update_contrato = """
@@ -426,6 +522,17 @@ class ControlContratos:
                         tipo="contrato",
                         id_referencia=id_contrato
                     )
+                
+                # Notificar al CREADOR del contrato (si existe y no es el que rechazó)
+                if id_creador and id_creador != id_usuario:
+                    ControlNotificaciones.crear_notificacion(
+                        id_usuario=id_creador,
+                        titulo=f"❌ Tu Contrato fue Rechazado: {contrato['titulo']}",
+                        mensaje=f"{nombre_completo} ha rechazado el contrato que creaste. Motivo: {motivo}",
+                        tipo="contrato",
+                        id_referencia=id_contrato
+                    )
+                    print(f"📧 Notificación enviada al creador del contrato (ID: {id_creador})")
             
             conexion.close()
             
@@ -440,11 +547,11 @@ class ControlContratos:
     
     @staticmethod
     def obtener_contrato_por_id(id_contrato):
-        """Obtiene un contrato por su ID"""
+        """Obtiene un contrato por su ID incluyendo el creador"""
         try:
             sql = """
                 SELECT id_contrato, titulo, descripcion, url_archivo, 
-                       estado, fecha_creacion
+                       estado, fecha_creacion, id_usuario_creador
                 FROM CONTRATO WHERE id_contrato = %s
             """
             
@@ -467,7 +574,8 @@ class ControlContratos:
                 'descripcion': row[2],
                 'url_archivo': row[3],
                 'estado': row[4],
-                'fecha_creacion': row[5]
+                'fecha_creacion': row[5],
+                'id_usuario_creador': row[6] if len(row) > 6 else None
             }
             
         except Exception as e:
@@ -578,12 +686,16 @@ class ControlContratos:
             return None
     
     @staticmethod
-    def obtener_todos_contratos(limite=50):
+    def obtener_contratos_creados_por_usuario(id_usuario, limite=50):
         """
-        Obtiene todos los contratos (para administradores)
+        Obtiene los contratos creados por un usuario específico
         
+        Args:
+            id_usuario: ID del usuario creador
+            limite: Número máximo de contratos a retornar
+            
         Returns:
-            list: Lista de contratos
+            list: Lista de contratos creados por el usuario
         """
         try:
             sql = """
@@ -597,7 +709,64 @@ class ControlContratos:
                     COUNT(cfp.id_firma) as total_firmantes
                 FROM CONTRATO c
                 LEFT JOIN CONTRATO_FIRMA_PENDIENTE cfp ON c.id_contrato = cfp.id_contrato
+                WHERE c.id_usuario_creador = %s
                 GROUP BY c.id_contrato, c.titulo, c.descripcion, c.estado, c.fecha_creacion
+                ORDER BY c.fecha_creacion DESC
+                LIMIT %s
+            """
+            
+            conexion = get_connection()
+            if not conexion:
+                return []
+            
+            with conexion.cursor() as cursor:
+                cursor.execute(sql, (id_usuario, limite))
+                rows = cursor.fetchall()
+            
+            conexion.close()
+            
+            contratos = []
+            for row in rows:
+                contratos.append({
+                    'id_contrato': row[0],
+                    'titulo': row[1],
+                    'descripcion': row[2],
+                    'estado': row[3],
+                    'fecha_creacion': row[4],
+                    'firmados': row[5],
+                    'total_firmantes': row[6]
+                })
+            
+            return contratos
+            
+        except Exception as e:
+            print(f"❌ Error al obtener contratos creados: {e}")
+            return []
+    
+    @staticmethod
+    def obtener_todos_contratos(limite=50):
+        """
+        Obtiene todos los contratos (para administradores)
+        
+        Returns:
+            list: Lista de contratos con información del creador
+        """
+        try:
+            sql = """
+                SELECT 
+                    c.id_contrato,
+                    c.titulo,
+                    c.descripcion,
+                    c.estado,
+                    c.fecha_creacion,
+                    COUNT(CASE WHEN cfp.firmado = TRUE THEN 1 END) as firmados,
+                    COUNT(cfp.id_firma) as total_firmantes,
+                    c.id_usuario_creador,
+                    CONCAT(u.nombre, ' ', u.ape_pat) as nombre_creador
+                FROM CONTRATO c
+                LEFT JOIN CONTRATO_FIRMA_PENDIENTE cfp ON c.id_contrato = cfp.id_contrato
+                LEFT JOIN USUARIO u ON c.id_usuario_creador = u.id_usuario
+                GROUP BY c.id_contrato, c.titulo, c.descripcion, c.estado, c.fecha_creacion, c.id_usuario_creador, u.nombre, u.ape_pat
                 ORDER BY c.fecha_creacion DESC
                 LIMIT %s
             """
@@ -621,7 +790,9 @@ class ControlContratos:
                     'estado': row[3],
                     'fecha_creacion': row[4],
                     'firmados': row[5],
-                    'total_firmantes': row[6]
+                    'total_firmantes': row[6],
+                    'id_usuario_creador': row[7],
+                    'nombre_creador': row[8] if row[8] else 'Desconocido'
                 })
             
             return contratos

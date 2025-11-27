@@ -446,6 +446,60 @@ class controlUsuarios:
             return []
     
     @staticmethod
+    def es_rol_firmante(id_usuario):
+        """
+        Verifica si un usuario tiene un rol de firmante de contratos
+        Roles de firmantes: 8, 10, 11, 9, 12
+        
+        Returns:
+            bool: True si el usuario es firmante
+        """
+        try:
+            usuario = controlUsuarios.buscar_por_ID(id_usuario)
+            if not usuario:
+                return False
+            
+            roles_firmantes = [8, 10, 11, 9, 12]
+            return usuario.get('id_rol') in roles_firmantes
+            
+        except Exception as e:
+            print(f"Error en es_rol_firmante => {e}")
+            return False
+    
+    @staticmethod
+    def puede_crear_contratos(id_usuario):
+        """
+        Verifica si un usuario puede crear contratos
+        Puede crear: Jefes (tipo 'J') que NO sean firmantes (roles 8, 10, 11, 9, 12)
+        
+        Returns:
+            bool: True si puede crear contratos
+        """
+        try:
+            usuario = controlUsuarios.buscar_por_ID(id_usuario)
+            if not usuario:
+                return False
+            
+            from controllers.controlador_rol import ControlRol
+            rol = ControlRol.buscar_por_IDRol(usuario['id_rol'])
+            if not rol:
+                return False
+            
+            # Debe ser tipo 'J' (Jefe)
+            es_jefe = rol.get('tipo') == 'J'
+            
+            # NO debe ser rol firmante
+            roles_firmantes = [8, 10, 11, 9, 12]
+            es_firmante = usuario.get('id_rol') in roles_firmantes
+            
+            # Puede crear contratos si es jefe Y NO es firmante
+            return es_jefe and not es_firmante
+            
+        except Exception as e:
+            print(f"Error en puede_crear_contratos => {e}")
+            return False
+    
+    @staticmethod
     def obtener_usuarios_por_rol(id_rol):
         """
         Obtiene todos los usuarios con un rol específico

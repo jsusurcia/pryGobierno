@@ -145,6 +145,20 @@
                 </li>
                 {% endif %}
                 
+                <!-- Para firmantes de contratos (roles 8, 10, 11, 9, 12) -->
+                {% if es_rol_firmante and not es_jefe_ti_rol_1 %}
+                <li>
+                    <a href="{{ url_for('contratos') }}" class="flex items-center p-2 text-gray-900 rounded-lg hover:bg-gray-100 group">
+                        <svg class="w-5 h-5 text-gray-500 transition duration-75 group-hover:text-gray-900" 
+                             fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
+                        </svg>
+                        <span class="ms-3">Mis Contratos</span>
+                    </a>
+                </li>
+                {% endif %}
+                
                 {% endblock nav_links %}
                 <li>
                     <a href="{{ url_for('logout') }}" class="flex items-center p-2 text-gray-900 rounded-lg hover:bg-gray-100 group">

@@ -2094,12 +2094,12 @@ def contratos():
 
 @app.route('/crear_contrato', methods=['GET', 'POST'])
 def crear_contrato():
-    """Crear un nuevo contrato - Accesible para jefes que no sean firmantes"""
+    """Crear un nuevo contrato - Accesible para TODOS los jefes de CUALQUIER área"""
     if 'user_id' not in session:
         flash('Por favor inicia sesión', 'error')
         return redirect(url_for('login'))
     
-    # Solo jefes (tipo 'J') que NO sean firmantes (8,10,11,9,12) pueden crear contratos
+    # Todos los jefes (tipo 'J') de cualquier área pueden crear contratos
     if not controlUsuarios.puede_crear_contratos(int(session['user_id'])):
         flash('No tienes permisos para crear contratos', 'error')
         return redirect(url_for('index'))
@@ -2110,53 +2110,89 @@ def crear_contrato():
             descripcion = request.form.get('descripcion')
             pdf_file = request.files.get('pdf_file')
             firmantes_json = request.form.get('firmantes')  # Lista de firmantes en JSON
+            firma_creador_base64 = request.form.get('firma_creador')  # Firma del creador (obligatorio)
+            sello_creador_base64 = request.form.get('sello_creador')  # Sello del creador (opcional, solo jefes)
             
-            # Validar campos
-            if not titulo or not descripcion or not pdf_file or not firmantes_json:
-                flash('Todos los campos son obligatorios', 'error')
-                return redirect(url_for('crear_contrato'))
+            # Validar campos obligatorios
+            if not titulo or not descripcion or not pdf_file or not firmantes_json or not firma_creador_base64:
+                return jsonify({'success': False, 'message': 'Todos los campos son obligatorios, incluyendo tu firma'}), 400
             
             # Parsear firmantes
             import json
             firmantes_lista = json.loads(firmantes_json)
             
             if not firmantes_lista or len(firmantes_lista) == 0:
-                flash('Debes seleccionar al menos un firmante', 'error')
-                return redirect(url_for('crear_contrato'))
+                return jsonify({'success': False, 'message': 'Debes seleccionar al menos un firmante'}), 400
             
             # Validar que sea PDF
             if not pdf_file.filename.lower().endswith('.pdf'):
-                flash('El archivo debe ser un PDF', 'error')
-                return redirect(url_for('crear_contrato'))
+                return jsonify({'success': False, 'message': 'El archivo debe ser un PDF'}), 400
             
-            # Leer el PDF (ya debe venir con el sello y firma del creador)
+            # Leer el PDF original
             pdf_bytes = pdf_file.read()
             
-            # Crear contrato con firmantes seleccionados manualmente
+            print(f"✍️ Creando contrato con firma del creador...")
+            if sello_creador_base64:
+                print(f"🔐 El creador también subió su sello institucional")
+            
+            # Crear contrato (el controlador agregará la firma y sello del creador al PDF)
             resultado = ControlContratos.crear_contrato(
                 titulo=titulo,
                 descripcion=descripcion,
                 pdf_bytes=pdf_bytes,
                 id_usuario_creador=int(session['user_id']),
-                firmantes_lista=firmantes_lista
+                firmantes_lista=firmantes_lista,
+                firma_creador_base64=firma_creador_base64,
+                sello_creador_base64=sello_creador_base64
             )
             
             if resultado['success']:
-                flash(resultado['message'], 'success')
-                return redirect(url_for('contratos'))
+                return jsonify({'success': True, 'message': resultado['message']}), 200
             else:
-                flash(resultado['message'], 'error')
-                return redirect(url_for('crear_contrato'))
+                return jsonify({'success': False, 'message': resultado['message']}), 400
                 
         except Exception as e:
-            print(f"Error al crear contrato: {e}")
+            print(f"❌ Error al crear contrato: {e}")
             import traceback
             traceback.print_exc()
-            flash(f'Error al crear contrato: {str(e)}', 'error')
-            return redirect(url_for('crear_contrato'))
+            return jsonify({'success': False, 'message': f'Error al crear contrato: {str(e)}'}), 500
     
     # GET: Mostrar formulario
     return render_template('formCrearContrato.html')
+
+@app.route('/ver_contrato/<int:id_contrato>')
+def ver_contrato(id_contrato):
+    """Vista para ver un contrato (para firmantes que ya firmaron o contratos completados)"""
+    if 'user_id' not in session:
+        flash('Por favor inicia sesión', 'error')
+        return redirect(url_for('login'))
+    
+    id_usuario = int(session['user_id'])
+    
+    # Obtener datos del contrato
+    contrato = ControlContratos.obtener_contrato_por_id(id_contrato)
+    if not contrato:
+        flash('Contrato no encontrado', 'error')
+        return redirect(url_for('contratos'))
+    
+    # Verificar permisos (creador, jefe TI, o alguien que firmó)
+    es_creador = contrato.get('id_usuario_creador') == id_usuario
+    es_jefe_ti = controlUsuarios.es_jefe_ti_rol_1(id_usuario)
+    contratos_firmados = ControlContratos.obtener_contratos_firmados_por_usuario(id_usuario)
+    ya_firmo = any(c['id_contrato'] == id_contrato for c in contratos_firmados)
+    
+    if not (es_creador or es_jefe_ti or ya_firmo):
+        flash('No tienes permisos para ver este contrato', 'error')
+        return redirect(url_for('contratos'))
+    
+    # Obtener historial
+    historial = ControlContratos.obtener_historial_contrato(id_contrato)
+    
+    return render_template(
+        'verContrato.html',
+        contrato=contrato,
+        historial=historial
+    )
 
 @app.route('/firmar_contrato/<int:id_contrato>')
 def firmar_contrato(id_contrato):
@@ -2309,6 +2345,24 @@ def api_contratos_creados():
         print(f"Error al obtener contratos creados: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route('/api/contratos/firmados')
+def api_contratos_firmados():
+    """API para obtener contratos firmados por el usuario actual"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'No autorizado'}), 401
+    
+    try:
+        id_usuario = int(session['user_id'])
+        contratos = ControlContratos.obtener_contratos_firmados_por_usuario(id_usuario)
+        
+        return jsonify({
+            'success': True,
+            'contratos': contratos
+        })
+    except Exception as e:
+        print(f"Error al obtener contratos firmados: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @app.route('/api/areas')
 def api_obtener_areas():
     """API para obtener todas las áreas"""
@@ -2328,16 +2382,20 @@ def api_obtener_areas():
 
 @app.route('/api/usuarios/por-area/<int:id_area>')
 def api_obtener_usuarios_por_area(id_area):
-    """API para obtener usuarios de un área específica"""
+    """API para obtener usuarios de un área específica (excluyendo al usuario actual)"""
     if 'user_id' not in session:
         return jsonify({'success': False, 'message': 'No autorizado'}), 401
     
     try:
+        id_usuario_actual = int(session['user_id'])
         usuarios = controlUsuarios.obtener_usuarios_por_area(id_area)
+        
+        # Filtrar al usuario actual de la lista
+        usuarios_filtrados = [u for u in usuarios if u['id_usuario'] != id_usuario_actual]
         
         return jsonify({
             'success': True,
-            'usuarios': usuarios
+            'usuarios': usuarios_filtrados
         })
     except Exception as e:
         print(f"Error al obtener usuarios por área: {e}")
@@ -2353,7 +2411,7 @@ def api_historial_contrato(id_contrato):
         id_usuario = int(session['user_id'])
         
         # Verificar que el usuario tenga permiso para ver este contrato
-        # (es el creador, es firmante, o es Jefe de TI)
+        # (es el creador, es firmante actual, ya firmó, o es Jefe de TI)
         contrato = ControlContratos.obtener_contrato_por_id(id_contrato)
         if not contrato:
             return jsonify({'success': False, 'message': 'Contrato no encontrado'}), 404
@@ -2361,11 +2419,15 @@ def api_historial_contrato(id_contrato):
         es_creador = contrato.get('id_usuario_creador') == id_usuario
         es_jefe_ti = controlUsuarios.es_jefe_ti_rol_1(id_usuario)
         
-        # Verificar si es firmante
+        # Verificar si es firmante pendiente
         contratos_pendientes = ControlContratos.obtener_contratos_pendientes_usuario(id_usuario)
-        es_firmante = any(c['id_contrato'] == id_contrato for c in contratos_pendientes)
+        es_firmante_pendiente = any(c['id_contrato'] == id_contrato for c in contratos_pendientes)
         
-        if not (es_creador or es_firmante or es_jefe_ti):
+        # Verificar si ya firmó este contrato
+        contratos_firmados = ControlContratos.obtener_contratos_firmados_por_usuario(id_usuario)
+        ya_firmo = any(c['id_contrato'] == id_contrato for c in contratos_firmados)
+        
+        if not (es_creador or es_firmante_pendiente or ya_firmo or es_jefe_ti):
             return jsonify({'success': False, 'message': 'No tienes permisos para ver este contrato'}), 403
         
         historial = ControlContratos.obtener_historial_contrato(id_contrato)

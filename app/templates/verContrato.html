@@ -1,0 +1,197 @@
+{% extends 'sidebar.html' %}
+
+{% block title %}Ver Contrato{% endblock %}
+
+{% block nav_links %}
+{{ super() }}
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-8 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-5xl mx-auto">
+        <!-- Header -->
+        <div class="bg-white rounded-xl shadow-md p-6 mb-6">
+            <div class="flex items-center justify-between">
+                <div class="flex-1">
+                    <div class="flex items-center gap-3 mb-2">
+                        <h1 class="text-3xl font-bold text-gray-900">
+                            📄 {{ contrato.titulo }}
+                        </h1>
+                        {% if contrato.estado == 'F' %}
+                        <span class="px-3 py-1 bg-green-100 text-green-800 text-sm font-semibold rounded-full">
+                            ✅ Completado
+                        </span>
+                        {% elif contrato.estado == 'P' %}
+                        <span class="px-3 py-1 bg-yellow-100 text-yellow-800 text-sm font-semibold rounded-full">
+                            ⏳ En Proceso
+                        </span>
+                        {% elif contrato.estado == 'R' %}
+                        <span class="px-3 py-1 bg-red-100 text-red-800 text-sm font-semibold rounded-full">
+                            ❌ Rechazado
+                        </span>
+                        {% endif %}
+                    </div>
+                    {% if contrato.descripcion %}
+                    <p class="text-gray-600">{{ contrato.descripcion }}</p>
+                    {% endif %}
+                    <p class="text-sm text-gray-500 mt-2">
+                        Creado el {{ contrato.fecha_creacion.strftime('%d/%m/%Y %H:%M') if contrato.fecha_creacion else 'N/A' }}
+                    </p>
+                </div>
+                <a href="{{ url_for('contratos') }}" 
+                   class="inline-flex items-center px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                    </svg>
+                    Volver
+                </a>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Columna Izquierda: Documento -->
+            <div class="bg-white rounded-xl shadow-md p-6">
+                <h2 class="text-xl font-bold text-gray-900 mb-4">📄 Documento Final</h2>
+                
+                <div class="border-2 border-gray-200 rounded-lg p-6 bg-gray-50 text-center">
+                    <svg class="w-24 h-24 text-red-500 mx-auto mb-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"/>
+                    </svg>
+                    
+                    <h3 class="font-semibold text-gray-900 text-lg mb-2">{{ contrato.titulo }}</h3>
+                    
+                    {% if contrato.estado == 'F' %}
+                    <p class="text-sm text-green-700 font-medium mb-4">
+                        ✅ Este contrato está completado con todas las firmas
+                    </p>
+                    {% else %}
+                    <p class="text-sm text-gray-600 mb-4">
+                        Versión actual del contrato
+                    </p>
+                    {% endif %}
+                    
+                    <div class="flex flex-col gap-3">
+                        <a href="{{ contrato.url_archivo }}" 
+                           target="_blank"
+                           class="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white font-semibold rounded-lg hover:from-red-700 hover:to-red-800 transition shadow-md">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                            </svg>
+                            Ver PDF
+                        </a>
+                        
+                        <a href="{{ contrato.url_archivo }}" 
+                           download
+                           class="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-blue-800 transition shadow-md">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                            </svg>
+                            Descargar PDF
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Columna Derecha: Historial -->
+            <div class="bg-white rounded-xl shadow-md p-6">
+                <h2 class="text-xl font-bold text-gray-900 mb-4">📋 Historial de Firmas</h2>
+                
+                {% if historial and historial.firmantes %}
+                <div class="space-y-3">
+                    {% for firmante in historial.firmantes %}
+                    <div class="p-4 rounded-lg border-2 
+                                {% if firmante.firmado %}bg-green-50 border-green-200
+                                {% elif firmante.rechazo %}bg-red-50 border-red-200
+                                {% else %}bg-yellow-50 border-yellow-200{% endif %}">
+                        <div class="flex items-start gap-3">
+                            <div class="flex items-center justify-center w-10 h-10 rounded-full font-bold text-sm flex-shrink-0
+                                        {% if firmante.firmado %}bg-green-100 text-green-700
+                                        {% elif firmante.rechazo %}bg-red-100 text-red-700
+                                        {% else %}bg-yellow-100 text-yellow-700{% endif %}">
+                                {{ firmante.orden }}
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="font-semibold text-gray-900">{{ firmante.nombre_completo }}</p>
+                                <div class="mt-1">
+                                    {% if firmante.firmado %}
+                                    <div class="flex items-center text-green-700 text-sm">
+                                        <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                                        </svg>
+                                        <span class="font-medium">
+                                            Firmado {% if firmante.fecha_firma %}el {{ firmante.fecha_firma.strftime('%d/%m/%Y %H:%M') }}{% endif %}
+                                        </span>
+                                    </div>
+                                    {% elif firmante.rechazo %}
+                                    <div class="flex items-center text-red-700 text-sm">
+                                        <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                                        </svg>
+                                        <span class="font-medium">Rechazado</span>
+                                    </div>
+                                    {% if firmante.comentario_rechazo %}
+                                    <p class="text-xs text-red-600 mt-1 italic">
+                                        "{{ firmante.comentario_rechazo }}"
+                                    </p>
+                                    {% endif %}
+                                    {% else %}
+                                    <div class="flex items-center text-yellow-700 text-sm">
+                                        <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
+                                        </svg>
+                                        <span class="font-medium">Pendiente de firma</span>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                <!-- Progreso de firmas -->
+                {% if contrato.estado == 'P' %}
+                <div class="mt-6 p-4 bg-blue-50 border-l-4 border-blue-500 rounded-r-lg">
+                    <div class="flex items-start">
+                        <svg class="h-5 w-5 text-blue-500 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                        </svg>
+                        <div>
+                            <p class="text-sm font-medium text-blue-900">
+                                Contrato en proceso
+                            </p>
+                            <p class="text-xs text-blue-700 mt-1">
+                                Esperando las firmas pendientes
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                {% elif contrato.estado == 'F' %}
+                <div class="mt-6 p-4 bg-green-50 border-l-4 border-green-500 rounded-r-lg">
+                    <div class="flex items-start">
+                        <svg class="h-5 w-5 text-green-500 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                        </svg>
+                        <div>
+                            <p class="text-sm font-medium text-green-900">
+                                ✅ Contrato completado
+                            </p>
+                            <p class="text-xs text-green-700 mt-1">
+                                Todas las firmas han sido recolectadas
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                
+                {% else %}
+                <p class="text-gray-500 text-sm text-center py-8">No hay información de historial</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+

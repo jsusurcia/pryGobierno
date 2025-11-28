@@ -6,7 +6,7 @@ def get_connection():
         # Configurar conexión con UTF-8 explícitamente
         conexion = psycopg2.connect(
             host="localhost",
-            database="Gobierno3",
+            database="Gobierno2",
             user="postgres",
             password="070905",
             client_encoding='UTF8'

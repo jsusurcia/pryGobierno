@@ -470,7 +470,8 @@ class controlUsuarios:
     def puede_crear_contratos(id_usuario):
         """
         Verifica si un usuario puede crear contratos
-        Puede crear: Jefes (tipo 'J') que NO sean firmantes (roles 8, 10, 11, 9, 12)
+        Puede crear: TODOS los jefes (tipo 'J') de CUALQUIER área
+        Los jefes que también son firmantes pueden crear Y firmar contratos
         
         Returns:
             bool: True si puede crear contratos
@@ -478,25 +479,31 @@ class controlUsuarios:
         try:
             usuario = controlUsuarios.buscar_por_ID(id_usuario)
             if not usuario:
+                print(f"❌ Usuario {id_usuario} no encontrado")
                 return False
             
             from controllers.controlador_rol import ControlRol
             rol = ControlRol.buscar_por_IDRol(usuario['id_rol'])
             if not rol:
+                print(f"❌ Rol {usuario['id_rol']} no encontrado")
                 return False
             
-            # Debe ser tipo 'J' (Jefe)
+            # Debe ser tipo 'J' (Jefe) - CUALQUIER JEFE PUEDE CREAR
             es_jefe = rol.get('tipo') == 'J'
             
-            # NO debe ser rol firmante
-            roles_firmantes = [8, 10, 11, 9, 12]
-            es_firmante = usuario.get('id_rol') in roles_firmantes
+            if es_jefe:
+                print(f"✅ Usuario {id_usuario} ({usuario.get('nombre')}) es JEFE - Puede crear contratos")
+                print(f"   Rol: {rol.get('nombre')} (ID: {usuario['id_rol']})")
+            else:
+                print(f"⚠️ Usuario {id_usuario} NO es jefe (tipo: {rol.get('tipo')})")
             
-            # Puede crear contratos si es jefe Y NO es firmante
-            return es_jefe and not es_firmante
+            # TODOS los jefes pueden crear contratos
+            return es_jefe
             
         except Exception as e:
-            print(f"Error en puede_crear_contratos => {e}")
+            print(f"❌ Error en puede_crear_contratos => {e}")
+            import traceback
+            traceback.print_exc()
             return False
     
     @staticmethod

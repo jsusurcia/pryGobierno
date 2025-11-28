@@ -7,157 +7,291 @@
 {% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-8 px-4 sm:px-6 lg:px-8">
-    <div class="max-w-6xl mx-auto">
-        <!-- Header -->
-        <div class="bg-white rounded-xl shadow-md p-6 mb-6">
-            <div class="flex items-center justify-between">
+<div class="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 py-6 px-4 sm:px-6 lg:px-8 pb-12">
+    <div class="max-w-7xl mx-auto">
+        <!-- Header con Progreso -->
+        <div class="bg-white rounded-2xl shadow-lg p-6 mb-6 border-t-4 border-blue-600">
+            <div class="flex items-center justify-between mb-4">
                 <div>
-                    <h1 class="text-3xl font-bold text-gray-900 mb-2">
-                        📝 Crear Nuevo Contrato
+                    <h1 class="text-4xl font-bold text-gray-900 mb-2 flex items-center gap-3">
+                        <span class="bg-blue-600 text-white w-12 h-12 rounded-full flex items-center justify-center text-2xl">📝</span>
+                        Crear Nuevo Contrato
                     </h1>
-                    <p class="text-gray-600">Sube el PDF, tu sello y firma. Luego selecciona los firmantes.</p>
+                    <p class="text-gray-600">Completa todos los pasos para crear tu contrato con firmas electrónicas</p>
                 </div>
                 <a href="{{ url_for('contratos') }}" 
-                   class="inline-flex items-center px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition">
+                   class="inline-flex items-center px-5 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-all duration-200 shadow-sm hover:shadow-md">
                     <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
                     </svg>
-                    Volver
+                    Cancelar
                 </a>
+            </div>
+            
+            <!-- Barra de Progreso -->
+            <div class="mt-4">
+                <div class="flex items-center justify-between text-sm mb-2">
+                    <span class="text-gray-600 font-medium">Progreso</span>
+                    <span id="progresoTexto" class="text-blue-600 font-semibold">0% Completado</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                    <div id="barraProgreso" class="bg-gradient-to-r from-blue-600 to-indigo-600 h-3 rounded-full transition-all duration-500" style="width: 0%"></div>
+                </div>
             </div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <!-- Columna Izquierda: Formulario Principal -->
-            <div class="lg:col-span-2 bg-white rounded-xl shadow-md p-8">
-                <form action="{{ url_for('crear_contrato') }}" method="POST" enctype="multipart/form-data" id="formCrearContrato">
-                    <!-- Campo oculto para firmantes -->
-                    <input type="hidden" name="firmantes" id="firmantes_input" value="[]">
+        <form id="formCrearContrato" method="POST" enctype="multipart/form-data">
+            <!-- Campo oculto para firmantes -->
+            <input type="hidden" name="firmantes" id="firmantes_input" value="[]">
+            
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+                <!-- Columna Principal: Información del Contrato -->
+                <div class="lg:col-span-2 space-y-6">
                     
-                    <!-- Título -->
-                    <div class="mb-6">
-                        <label for="titulo" class="block text-sm font-semibold text-gray-700 mb-2">
-                            Título del Contrato *
-                        </label>
-                        <input type="text" 
-                               id="titulo" 
-                               name="titulo" 
-                               required
-                               maxlength="200"
-                               class="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
-                               placeholder="Ej: Contrato de Mantenimiento 2025">
-                    </div>
-
-                    <!-- Descripción -->
-                    <div class="mb-6">
-                        <label for="descripcion" class="block text-sm font-semibold text-gray-700 mb-2">
-                            Descripción
-                        </label>
-                        <textarea id="descripcion" 
-                                  name="descripcion" 
-                                  rows="3"
-                                  maxlength="500"
-                                  class="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 focus:bg-white transition-all resize-none"
-                                  placeholder="Breve descripción del contrato"></textarea>
-                    </div>
-
-                    <!-- Archivo PDF -->
-                    <div class="mb-6">
-                        <label for="pdf_file" class="block text-sm font-semibold text-gray-700 mb-2">
-                            Archivo PDF del Contrato *
-                        </label>
-                        <input type="file" 
-                               id="pdf_file" 
-                               name="pdf_file" 
-                               accept=".pdf"
-                               required
-                               class="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 focus:bg-white transition-all
-                                      file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold
-                                      file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
-                    </div>
-
-                    <!-- Tu Sello Institucional -->
-                    <div class="mb-6">
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">
-                            Tu Sello Institucional *
-                        </label>
-                        <input type="file" 
-                               id="archivo_sello" 
-                               accept="image/*"
-                               required
-                               class="w-full px-4 py-2 bg-gray-50 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-500
-                                      file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold
-                                      file:bg-blue-600 file:text-white hover:file:bg-blue-700">
-                        <p class="text-xs text-gray-500 mt-2">Sube tu sello institucional (PNG, JPG). Máximo 5MB.</p>
-                    </div>
-
-                    <!-- Tu Firma Electrónica -->
-                    <div class="mb-6">
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">
-                            Tu Firma Electrónica *
-                        </label>
-                        <div class="border-2 border-gray-300 rounded-xl overflow-hidden bg-white">
-                            <canvas id="canvasFirma" width="600" height="200" class="w-full cursor-crosshair"></canvas>
+                    <!-- Paso 1: Información Básica -->
+                    <div class="bg-white rounded-2xl shadow-lg p-6 border-l-4 border-blue-500 transform transition-all duration-300 hover:shadow-xl">
+                        <div class="flex items-center gap-3 mb-6">
+                            <span class="bg-blue-100 text-blue-700 w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg">1</span>
+                            <h2 class="text-2xl font-bold text-gray-900">Información del Contrato</h2>
                         </div>
-                        <div class="flex gap-2 mt-2">
-                            <button type="button" onclick="limpiarFirma()" 
-                                    class="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 text-sm font-semibold">
-                                🗑️ Limpiar
-                            </button>
+                        
+                        <!-- Título -->
+                        <div class="mb-5">
+                            <label for="titulo" class="block text-sm font-bold text-gray-700 mb-2">
+                                Título del Contrato *
+                            </label>
+                            <input type="text" 
+                                   id="titulo" 
+                                   name="titulo" 
+                                   required
+                                   maxlength="200"
+                                   class="w-full px-4 py-3 bg-gray-50 border-2 border-gray-300 rounded-xl focus:outline-none focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-200 transition-all"
+                                   placeholder="Ej: Contrato de Mantenimiento Anual 2025"
+                                   oninput="actualizarProgreso()">
+                            <p class="text-xs text-gray-500 mt-1 flex items-center gap-1">
+                                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                                </svg>
+                                <span id="tituloContador">0/200 caracteres</span>
+                            </p>
+                        </div>
+
+                        <!-- Descripción -->
+                        <div class="mb-5">
+                            <label for="descripcion" class="block text-sm font-bold text-gray-700 mb-2">
+                                Descripción (Opcional)
+                            </label>
+                            <textarea id="descripcion" 
+                                      name="descripcion" 
+                                      rows="3"
+                                      maxlength="500"
+                                      class="w-full px-4 py-3 bg-gray-50 border-2 border-gray-300 rounded-xl focus:outline-none focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-200 transition-all resize-none"
+                                      placeholder="Breve descripción del propósito del contrato..."
+                                      oninput="actualizarProgreso()"></textarea>
+                            <p class="text-xs text-gray-500 mt-1" id="descripcionContador">0/500 caracteres</p>
+                        </div>
+
+                        <!-- Archivo PDF -->
+                        <div class="mb-5">
+                            <label for="pdf_file" class="block text-sm font-bold text-gray-700 mb-2">
+                                📄 Archivo PDF del Contrato *
+                            </label>
+                            <div class="relative">
+                                <input type="file" 
+                                       id="pdf_file" 
+                                       name="pdf_file" 
+                                       accept=".pdf"
+                                       required
+                                       onchange="actualizarProgreso()"
+                                       class="hidden">
+                                <label for="pdf_file" class="flex items-center justify-center w-full px-6 py-8 bg-gradient-to-br from-blue-50 to-indigo-50 border-3 border-dashed border-blue-300 rounded-xl cursor-pointer hover:from-blue-100 hover:to-indigo-100 transition-all group">
+                                    <div class="text-center">
+                                        <svg class="w-16 h-16 text-blue-500 mx-auto mb-3 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                                        </svg>
+                                        <p class="text-blue-600 font-semibold mb-1">Haz clic para subir el PDF</p>
+                                        <p class="text-sm text-gray-500">o arrastra y suelta aquí</p>
+                                        <p class="text-xs text-gray-400 mt-2">Máximo 10MB • Solo archivos PDF</p>
+                                    </div>
+                                </label>
+                            </div>
+                            <div id="pdfInfo" class="hidden mt-3 p-4 bg-green-50 border-l-4 border-green-500 rounded-r-lg">
+                                <div class="flex items-center">
+                                    <svg class="w-6 h-6 text-green-600 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                                    </svg>
+                                    <div class="flex-1">
+                                        <p class="font-semibold text-green-900" id="pdfNombre"></p>
+                                        <p class="text-sm text-green-700" id="pdfTamano"></p>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Botones -->
-                    <div class="flex gap-4 mt-8">
-                        <button type="submit" 
-                                id="btnCrearContrato"
-                                class="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold rounded-lg shadow-md hover:from-blue-700 hover:to-blue-800 transition duration-200">
+                    <!-- Paso 2: Tu Firma y Sello -->
+                    <div class="bg-white rounded-2xl shadow-lg p-6 border-l-4 border-indigo-500 transform transition-all duration-300 hover:shadow-xl">
+                        <div class="flex items-center gap-3 mb-6">
+                            <span class="bg-indigo-100 text-indigo-700 w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg">2</span>
+                            <h2 class="text-2xl font-bold text-gray-900">Tu Firma y Sello</h2>
+                        </div>
+
+                        <!-- Sello Institucional -->
+                        <div class="mb-6">
+                            <label class="block text-sm font-bold text-gray-700 mb-2">
+                                🔐 Tu Sello Institucional *
+                            </label>
+                            <input type="file" 
+                                   id="archivo_sello" 
+                                   accept="image/*"
+                                   required
+                                   onchange="previsualizarSello(); actualizarProgreso()"
+                                   class="hidden">
+                            <label for="archivo_sello" class="flex items-center justify-center w-full px-6 py-6 bg-gradient-to-br from-amber-50 to-orange-50 border-3 border-dashed border-amber-300 rounded-xl cursor-pointer hover:from-amber-100 hover:to-orange-100 transition-all group">
+                                <div class="text-center">
+                                    <div id="selloPreview" class="hidden mb-3">
+                                        <img id="selloImagen" src="" alt="Sello" class="max-w-xs max-h-32 mx-auto rounded-lg border-2 border-amber-300 shadow-md">
+                                    </div>
+                                    <div id="selloPlaceholder">
+                                        <svg class="w-12 h-12 text-amber-500 mx-auto mb-2 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                        </svg>
+                                        <p class="text-amber-600 font-semibold">Subir Sello Institucional</p>
+                                        <p class="text-xs text-gray-500 mt-1">PNG, JPG • Máximo 5MB</p>
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+
+                        <!-- Firma Electrónica -->
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-2">
+                                ✍️ Tu Firma Electrónica *
+                            </label>
+                            <div class="bg-gradient-to-br from-purple-50 to-pink-50 p-4 rounded-xl border-2 border-purple-200">
+                                <div class="border-4 border-purple-300 rounded-xl overflow-hidden bg-white shadow-inner">
+                                    <canvas id="canvasFirma" width="600" height="200" class="w-full block cursor-crosshair" style="touch-action: none;"></canvas>
+                                </div>
+                                <div class="flex gap-2 mt-3">
+                                    <button type="button" onclick="limpiarFirma()" 
+                                            class="flex-1 px-4 py-2 bg-gradient-to-r from-red-500 to-pink-500 text-white rounded-lg hover:from-red-600 hover:to-pink-600 transition-all font-semibold shadow-md hover:shadow-lg transform hover:-translate-y-0.5">
+                                        <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                        </svg>
+                                        Limpiar Firma
+                                    </button>
+                                </div>
+                                <p class="text-xs text-center text-purple-600 mt-2 font-medium">
+                                    💡 Dibuja tu firma usando el mouse o pantalla táctil
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Columna Derecha: Selección de Firmantes -->
+                <div class="lg:col-span-1">
+                    <div class="bg-white rounded-2xl shadow-lg p-6 border-l-4 border-green-500">
+                        <div class="flex items-center gap-3 mb-6">
+                            <span class="bg-green-100 text-green-700 w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg">3</span>
+                            <h2 class="text-xl font-bold text-gray-900">Firmantes</h2>
+                        </div>
+                        
+                        <!-- Selector de Área -->
+                        <div class="mb-4">
+                            <label class="block text-sm font-bold text-gray-700 mb-2">📍 Área</label>
+                            <select id="selectArea" class="w-full px-4 py-3 bg-gray-50 border-2 border-gray-300 rounded-xl focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-200 transition-all">
+                                <option value="">Selecciona un área...</option>
+                            </select>
+                        </div>
+
+                        <!-- Selector de Usuario -->
+                        <div class="mb-4">
+                            <label class="block text-sm font-bold text-gray-700 mb-2">👤 Usuario</label>
+                            <select id="selectUsuario" class="w-full px-4 py-3 bg-gray-50 border-2 border-gray-300 rounded-xl focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-200 transition-all" disabled>
+                                <option value="">Primero selecciona un área</option>
+                            </select>
+                        </div>
+
+                        <button type="button" onclick="agregarFirmante()" 
+                                class="w-full px-5 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 font-bold transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5 mb-6">
                             <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
                             </svg>
-                            Crear Contrato
+                            Agregar Firmante
                         </button>
-                        <a href="{{ url_for('contratos') }}" 
-                           class="px-6 py-3 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300 transition text-center">
-                            Cancelar
-                        </a>
+
+                        <!-- Lista de Firmantes -->
+                        <div class="border-t-2 border-gray-200 pt-4">
+                            <h4 class="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
+                                <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                Orden de Firmas
+                                <span id="contadorFirmantes" class="ml-auto text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full font-semibold">0</span>
+                            </h4>
+                            <div id="listaFirmantes" class="space-y-2 max-h-64 overflow-y-auto">
+                                <div class="text-center py-8 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300">
+                                    <svg class="w-12 h-12 text-gray-300 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                                    </svg>
+                                    <p class="text-sm text-gray-500 italic">Aún no hay firmantes</p>
+                                    <p class="text-xs text-gray-400 mt-1">Agrega al menos uno</p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                </form>
+                    
+                    <!-- Botón Crear Contrato - Dentro de la columna izquierda -->
+                    <div class="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 rounded-2xl shadow-xl p-1 mt-6">
+                        <div class="bg-white rounded-xl p-6">
+                            <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+                                <div class="flex-1 text-center md:text-left">
+                                    <h3 class="text-xl font-bold text-gray-900 mb-1 flex items-center justify-center md:justify-start gap-2">
+                                        <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                        </svg>
+                                        ¿Todo listo?
+                                    </h3>
+                                    <p class="text-sm text-gray-600">Revisa toda la información antes de crear el contrato</p>
+                                </div>
+                                <button type="submit" 
+                                        id="btnCrearContrato"
+                                        class="w-full md:w-auto px-8 py-4 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white font-bold text-lg rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-105 flex items-center justify-center gap-2">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                    Crear Contrato
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
+        </form>
+    </div>
+</div>
 
-            <!-- Columna Derecha: Selección de Firmantes -->
-            <div class="lg:col-span-1 bg-white rounded-xl shadow-md p-6">
-                <h3 class="text-xl font-bold text-gray-900 mb-4">👥 Seleccionar Firmantes</h3>
-                
-                <!-- Selector de Área -->
-                <div class="mb-4">
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">Área</label>
-                    <select id="selectArea" class="w-full px-3 py-2 bg-gray-50 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-500">
-                        <option value="">Selecciona un área...</option>
-                    </select>
-                </div>
-
-                <!-- Selector de Usuario -->
-                <div class="mb-4">
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">Usuario</label>
-                    <select id="selectUsuario" class="w-full px-3 py-2 bg-gray-50 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-500" disabled>
-                        <option value="">Primero selecciona un área</option>
-                    </select>
-                </div>
-
-                <button type="button" onclick="agregarFirmante()" 
-                        class="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold mb-4">
-                    ➕ Agregar Firmante
+<!-- Modal de Confirmación -->
+<div id="modalConfirmacion" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 transform transition-all">
+        <div class="text-center">
+            <div class="w-20 h-20 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+            </div>
+            <h3 class="text-2xl font-bold text-gray-900 mb-2">¿Crear Contrato?</h3>
+            <p class="text-gray-600 mb-6">Esta acción creará el contrato y notificará al primer firmante</p>
+            <div class="flex gap-3">
+                <button type="button" onclick="cerrarModalConfirmacion()" 
+                        class="flex-1 px-4 py-3 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 transition font-semibold">
+                    Cancelar
                 </button>
-
-                <!-- Lista de Firmantes Seleccionados -->
-                <div class="border-t-2 border-gray-200 pt-4">
-                    <h4 class="text-sm font-bold text-gray-700 mb-3">Orden de Firmas:</h4>
-                    <div id="listaFirmantes" class="space-y-2">
-                        <p class="text-sm text-gray-500 italic text-center py-4">Aún no hay firmantes</p>
-                    </div>
-                </div>
+                <button type="button" onclick="confirmarCreacion()" 
+                        class="flex-1 px-4 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 transition font-semibold shadow-md">
+                    Confirmar
+                </button>
             </div>
         </div>
     </div>
@@ -166,61 +300,100 @@
 <script>
 // Variables globales
 let firmantesSeleccionados = [];
-let areas = [];
 let canvas, ctx, dibujando = false;
+let firmaVacia = true;
 
-// Inicializar al cargar la página
+// Inicializar
 document.addEventListener('DOMContentLoaded', function() {
     cargarAreas();
     inicializarCanvas();
+    actualizarProgreso();
+    
+    // Contador de caracteres del título
+    document.getElementById('titulo').addEventListener('input', function() {
+        document.getElementById('tituloContador').textContent = `${this.value.length}/200 caracteres`;
+    });
+    
+    // Contador de caracteres de descripción
+    document.getElementById('descripcion').addEventListener('input', function() {
+        document.getElementById('descripcionContador').textContent = `${this.value.length}/500 caracteres`;
+    });
+    
+    // Manejo del archivo PDF
+    document.getElementById('pdf_file').addEventListener('change', function(e) {
+        const archivo = e.target.files[0];
+        if (archivo) {
+            const tamañoMB = (archivo.size / (1024 * 1024)).toFixed(2);
+            document.getElementById('pdfNombre').textContent = archivo.name;
+            document.getElementById('pdfTamano').textContent = `Tamaño: ${tamañoMB} MB`;
+            document.getElementById('pdfInfo').classList.remove('hidden');
+            
+            if (archivo.size > 10 * 1024 * 1024) {
+                alert('⚠️ El archivo es muy grande. El tamaño máximo es 10MB.');
+                this.value = '';
+                document.getElementById('pdfInfo').classList.add('hidden');
+            }
+        }
+    });
 });
 
 // Canvas de firma
 function inicializarCanvas() {
     canvas = document.getElementById('canvasFirma');
     ctx = canvas.getContext('2d');
+    
+    const rect = canvas.getBoundingClientRect();
+    const ratio = window.devicePixelRatio || 1;
+    
+    canvas.width = rect.width * ratio;
+    canvas.height = rect.height * ratio;
+    canvas.style.width = rect.width + 'px';
+    canvas.style.height = rect.height + 'px';
+    
+    ctx.scale(ratio, ratio);
     ctx.strokeStyle = '#000';
     ctx.lineWidth = 2;
     ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
 
     canvas.addEventListener('mousedown', iniciarDibujo);
     canvas.addEventListener('mousemove', dibujar);
     canvas.addEventListener('mouseup', detenerDibujo);
     canvas.addEventListener('mouseout', detenerDibujo);
 
-    // Touch events para móviles
     canvas.addEventListener('touchstart', (e) => {
         e.preventDefault();
         const touch = e.touches[0];
-        const mouseEvent = new MouseEvent('mousedown', {
-            clientX: touch.clientX,
-            clientY: touch.clientY
-        });
-        canvas.dispatchEvent(mouseEvent);
+        const rect = canvas.getBoundingClientRect();
+        dibujando = true;
+        firmaVacia = false;
+        ctx.beginPath();
+        ctx.moveTo(touch.clientX - rect.left, touch.clientY - rect.top);
+        actualizarProgreso();
     });
 
     canvas.addEventListener('touchmove', (e) => {
         e.preventDefault();
+        if (!dibujando) return;
         const touch = e.touches[0];
-        const mouseEvent = new MouseEvent('mousemove', {
-            clientX: touch.clientX,
-            clientY: touch.clientY
-        });
-        canvas.dispatchEvent(mouseEvent);
+        const rect = canvas.getBoundingClientRect();
+        ctx.lineTo(touch.clientX - rect.left, touch.clientY - rect.top);
+        ctx.stroke();
     });
 
     canvas.addEventListener('touchend', (e) => {
         e.preventDefault();
-        const mouseEvent = new MouseEvent('mouseup', {});
-        canvas.dispatchEvent(mouseEvent);
+        dibujando = false;
     });
 }
 
 function iniciarDibujo(e) {
     dibujando = true;
+    firmaVacia = false;
     const rect = canvas.getBoundingClientRect();
     ctx.beginPath();
     ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+    actualizarProgreso();
 }
 
 function dibujar(e) {
@@ -236,10 +409,58 @@ function detenerDibujo() {
 
 function limpiarFirma() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    firmaVacia = true;
+    actualizarProgreso();
 }
 
 function obtenerFirmaBase64() {
     return canvas.toDataURL('image/png');
+}
+
+// Previsualizar sello
+function previsualizarSello() {
+    const archivo = document.getElementById('archivo_sello').files[0];
+    if (archivo) {
+        if (archivo.size > 5 * 1024 * 1024) {
+            alert('❌ El sello es muy grande. Máximo 5MB.');
+            document.getElementById('archivo_sello').value = '';
+            return;
+        }
+        
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('selloImagen').src = e.target.result;
+            document.getElementById('selloPreview').classList.remove('hidden');
+            document.getElementById('selloPlaceholder').classList.add('hidden');
+        };
+        reader.readAsDataURL(archivo);
+    }
+}
+
+// Actualizar progreso
+function actualizarProgreso() {
+    let progreso = 0;
+    let pasos = 0;
+    let completados = 0;
+    
+    // Paso 1: Info básica (40%)
+    if (document.getElementById('titulo').value.trim()) completados += 20;
+    if (document.getElementById('pdf_file').files.length > 0) completados += 20;
+    pasos += 40;
+    
+    // Paso 2: Firma y sello (30%)
+    if (document.getElementById('archivo_sello').files.length > 0) completados += 15;
+    if (!firmaVacia) completados += 15;
+    pasos += 30;
+    
+    // Paso 3: Firmantes (30%)
+    if (firmantesSeleccionados.length > 0) completados += 30;
+    pasos += 30;
+    
+    progreso = Math.round((completados / 100) * 100);
+    
+    document.getElementById('barraProgreso').style.width = progreso + '%';
+    document.getElementById('progresoTexto').textContent = progreso + '% Completado';
 }
 
 // Cargar áreas
@@ -249,7 +470,6 @@ async function cargarAreas() {
         const data = await response.json();
         
         if (data.success) {
-            areas = data.areas;
             const select = document.getElementById('selectArea');
             select.innerHTML = '<option value="">Selecciona un área...</option>';
             
@@ -262,7 +482,6 @@ async function cargarAreas() {
         }
     } catch (error) {
         console.error('Error al cargar áreas:', error);
-        alert('❌ Error al cargar las áreas');
     }
 }
 
@@ -297,7 +516,6 @@ document.getElementById('selectArea').addEventListener('change', async function(
         }
     } catch (error) {
         console.error('Error al cargar usuarios:', error);
-        alert('❌ Error al cargar los usuarios');
     }
 });
 
@@ -307,13 +525,22 @@ function agregarFirmante() {
     const idUsuario = parseInt(selectUsuario.value);
     
     if (!idUsuario) {
-        alert('⚠️ Por favor, selecciona un usuario');
+        Swal.fire({
+            icon: 'warning',
+            title: 'Selecciona un usuario',
+            text: 'Por favor, selecciona un usuario para agregar',
+            confirmButtonColor: '#3B82F6'
+        });
         return;
     }
     
-    // Verificar que no esté ya agregado
     if (firmantesSeleccionados.some(f => f.id_usuario === idUsuario)) {
-        alert('⚠️ Este usuario ya está en la lista de firmantes');
+        Swal.fire({
+            icon: 'info',
+            title: 'Usuario ya agregado',
+            text: 'Este usuario ya está en la lista de firmantes',
+            confirmButtonColor: '#3B82F6'
+        });
         return;
     }
     
@@ -321,7 +548,6 @@ function agregarFirmante() {
     const nombre = option.dataset.nombre;
     const rol = option.dataset.rol;
     
-    // Agregar a la lista
     firmantesSeleccionados.push({
         id_usuario: idUsuario,
         orden: firmantesSeleccionados.length + 1,
@@ -330,32 +556,40 @@ function agregarFirmante() {
     });
     
     actualizarListaFirmantes();
+    actualizarProgreso();
+    selectUsuario.value = '';
 }
 
 // Actualizar lista visual
 function actualizarListaFirmantes() {
     const lista = document.getElementById('listaFirmantes');
+    const contador = document.getElementById('contadorFirmantes');
+    contador.textContent = firmantesSeleccionados.length;
     
     if (firmantesSeleccionados.length === 0) {
-        lista.innerHTML = '<p class="text-sm text-gray-500 italic text-center py-4">Aún no hay firmantes</p>';
+        lista.innerHTML = `
+            <div class="text-center py-8 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300">
+                <svg class="w-12 h-12 text-gray-300 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                </svg>
+                <p class="text-sm text-gray-500 italic">Aún no hay firmantes</p>
+                <p class="text-xs text-gray-400 mt-1">Agrega al menos uno</p>
+            </div>
+        `;
         return;
     }
     
     lista.innerHTML = firmantesSeleccionados.map((f, index) => `
-        <div class="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-lg">
-            <div class="flex-1">
-                <div class="flex items-center gap-2">
-                    <span class="flex items-center justify-center w-6 h-6 bg-blue-600 text-white rounded-full text-xs font-bold">
-                        ${f.orden}
-                    </span>
-                    <div>
-                        <p class="text-xs font-semibold text-blue-900">${f.nombre_rol}</p>
-                        <p class="text-xs text-blue-700">${f.nombre_completo}</p>
-                    </div>
-                </div>
+        <div class="flex items-center gap-3 p-3 bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-xl hover:shadow-md transition-all group">
+            <div class="flex items-center justify-center w-8 h-8 bg-gradient-to-br from-green-600 to-emerald-600 text-white rounded-full text-sm font-bold flex-shrink-0 shadow-md">
+                ${f.orden}
+            </div>
+            <div class="flex-1 min-w-0">
+                <p class="text-sm font-bold text-gray-900 truncate">${f.nombre_rol}</p>
+                <p class="text-xs text-gray-600 truncate">${f.nombre_completo}</p>
             </div>
             <button type="button" onclick="eliminarFirmante(${index})" 
-                    class="text-red-600 hover:text-red-800 p-1">
+                    class="text-red-500 hover:text-red-700 hover:bg-red-100 p-2 rounded-lg transition-all opacity-0 group-hover:opacity-100">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                 </svg>
@@ -367,97 +601,201 @@ function actualizarListaFirmantes() {
 // Eliminar firmante
 function eliminarFirmante(index) {
     firmantesSeleccionados.splice(index, 1);
-    // Reordenar
     firmantesSeleccionados.forEach((f, i) => f.orden = i + 1);
     actualizarListaFirmantes();
+    actualizarProgreso();
 }
 
-// Validación y envío del formulario
-document.getElementById('formCrearContrato').addEventListener('submit', async function(e) {
+// Validación y envío
+document.getElementById('formCrearContrato').addEventListener('submit', function(e) {
     e.preventDefault();
     
     const titulo = document.getElementById('titulo').value.trim();
     const pdfFile = document.getElementById('pdf_file').files[0];
     const selloFile = document.getElementById('archivo_sello').files[0];
-    const firmaBase64 = obtenerFirmaBase64();
     
-    // Validaciones
     if (!titulo) {
-        alert('❌ Por favor, ingresa un título');
+        Swal.fire({icon: 'error', title: 'Falta el título', text: 'Ingresa un título para el contrato'});
         return;
     }
     
     if (!pdfFile) {
-        alert('❌ Por favor, selecciona un archivo PDF');
+        Swal.fire({icon: 'error', title: 'Falta el PDF', text: 'Selecciona el archivo PDF del contrato'});
         return;
     }
     
-    if (!selloFile) {
-        alert('❌ Por favor, selecciona tu sello institucional');
+    if (firmaVacia) {
+        Swal.fire({
+            icon: 'error', 
+            title: 'Falta tu firma', 
+            text: 'Dibuja tu firma electrónica en el recuadro morado',
+            confirmButtonColor: '#8B5CF6'
+        });
         return;
     }
     
     if (firmantesSeleccionados.length === 0) {
-        alert('❌ Debes agregar al menos un firmante');
+        Swal.fire({icon: 'error', title: 'Faltan firmantes', text: 'Agrega al menos un firmante'});
         return;
     }
     
-    // Verificar que haya dibujado la firma
-    const canvasBlanco = !ctx.getImageData(0, 0, canvas.width, canvas.height).data.some(channel => channel !== 0);
-    if (canvasBlanco) {
-        alert('❌ Por favor, dibuja tu firma electrónica');
-        return;
-    }
+    // Mostrar modal de confirmación
+    document.getElementById('modalConfirmacion').classList.remove('hidden');
+});
+
+function cerrarModalConfirmacion() {
+    document.getElementById('modalConfirmacion').classList.add('hidden');
+}
+
+async function confirmarCreacion() {
+    cerrarModalConfirmacion();
     
-    if (!confirm(`¿Crear contrato con ${firmantesSeleccionados.length} firmante(s)?`)) {
-        return;
-    }
-    
-    // Deshabilitar botón
     const btn = document.getElementById('btnCrearContrato');
     btn.disabled = true;
-    btn.innerHTML = '<svg class="animate-spin h-5 w-5 inline mr-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Procesando...';
+    btn.innerHTML = '<svg class="animate-spin h-6 w-6 inline mr-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Procesando...';
     
     try {
-        // Agregar sello y firma al PDF
-        const pdfConFirma = await agregarSelloYFirmaAPDF(pdfFile, selloFile, firmaBase64);
-        
-        // Actualizar campo hidden con firmantes
+        // Preparar lista de firmantes
         document.getElementById('firmantes_input').value = JSON.stringify(
             firmantesSeleccionados.map(f => ({ id_usuario: f.id_usuario, orden: f.orden }))
         );
         
-        // Crear FormData con el PDF modificado
-        const formData = new FormData(this);
-        formData.set('pdf_file', pdfConFirma, pdfFile.name);
+        // Obtener firma del canvas (obligatoria)
+        const firmaBase64 = obtenerFirmaBase64();
+        if (!firmaBase64 || firmaVacia) {
+            throw new Error('Debes dibujar tu firma antes de crear el contrato');
+        }
         
-        // Enviar
-        const response = await fetch(this.action, {
+        // Obtener sello (opcional - solo para jefes)
+        let selloBase64 = null;
+        const selloFile = document.getElementById('archivo_sello').files[0];
+        if (selloFile) {
+            selloBase64 = await convertirArchivoABase64(selloFile);
+        }
+        
+        // Preparar FormData con todos los datos
+        const pdfFile = document.getElementById('pdf_file').files[0];
+        const formData = new FormData(document.getElementById('formCrearContrato'));
+        formData.set('pdf_file', pdfFile, pdfFile.name);
+        formData.set('firma_creador', firmaBase64);  // ✅ Firma del creador
+        if (selloBase64) {
+            formData.set('sello_creador', selloBase64);  // ✅ Sello del creador (si es jefe)
+        }
+        
+        const response = await fetch('{{ url_for("crear_contrato") }}', {
             method: 'POST',
             body: formData
         });
         
         if (response.ok) {
-            window.location.href = "{{ url_for('contratos') }}";
+            Swal.fire({
+                icon: 'success',
+                title: '¡Contrato Creado!',
+                text: 'El contrato se creó con tu firma inicial',
+                confirmButtonColor: '#3B82F6'
+            }).then(() => {
+                window.location.href = "{{ url_for('contratos') }}";
+            });
         } else {
-            alert('❌ Error al crear contrato');
-            btn.disabled = false;
-            btn.innerHTML = '<svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Crear Contrato';
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Error al crear contrato');
         }
     } catch (error) {
         console.error('Error:', error);
-        alert('❌ Error al procesar: ' + error.message);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: error.message || 'Ocurrió un error al crear el contrato'
+        });
         btn.disabled = false;
-        btn.innerHTML = '<svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Crear Contrato';
+        btn.innerHTML = '<svg class="w-6 h-6 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> Crear Contrato';
     }
-});
-
-// Función para agregar sello y firma al PDF (simplificado - el backend hace el trabajo real)
-async function agregarSelloYFirmaAPDF(pdfFile, selloFile, firmaBase64) {
-    // Por ahora, solo retornamos el PDF original
-    // El procesamiento real se hará en el backend
-    return pdfFile;
 }
+
+// Función para convertir archivo a Base64
+function convertirArchivoABase64(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+}
+
 </script>
+
+<!-- SweetAlert2 para mejores alertas -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<!-- Estilos personalizados para SweetAlert2 -->
+<style>
+    /* Mejorar visibilidad de botones de SweetAlert2 */
+    .swal2-confirm {
+        background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%) !important;
+        color: white !important;
+        font-weight: 700 !important;
+        padding: 12px 32px !important;
+        border-radius: 12px !important;
+        border: none !important;
+        box-shadow: 0 4px 6px rgba(59, 130, 246, 0.4) !important;
+        transition: all 0.2s !important;
+    }
+    
+    .swal2-confirm:hover {
+        transform: translateY(-2px) !important;
+        box-shadow: 0 6px 12px rgba(59, 130, 246, 0.5) !important;
+        background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%) !important;
+    }
+    
+    .swal2-cancel {
+        background: linear-gradient(135deg, #6B7280 0%, #4B5563 100%) !important;
+        color: white !important;
+        font-weight: 600 !important;
+        padding: 12px 32px !important;
+        border-radius: 12px !important;
+        border: none !important;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+        transition: all 0.2s !important;
+    }
+    
+    .swal2-cancel:hover {
+        transform: translateY(-2px) !important;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3) !important;
+        background: linear-gradient(135deg, #4B5563 0%, #374151 100%) !important;
+    }
+    
+    .swal2-popup {
+        border-radius: 20px !important;
+        padding: 2rem !important;
+    }
+    
+    .swal2-title {
+        color: #1F2937 !important;
+        font-size: 1.75rem !important;
+        font-weight: 800 !important;
+    }
+    
+    .swal2-html-container {
+        color: #4B5563 !important;
+        font-size: 1rem !important;
+    }
+    
+    .swal2-actions {
+        gap: 12px !important;
+        margin-top: 1.5rem !important;
+    }
+    
+    /* Spinner de carga más visible */
+    .swal2-loader {
+        border-color: #3B82F6 transparent #3B82F6 transparent !important;
+    }
+    
+    /* Íconos más grandes */
+    .swal2-icon {
+        width: 5rem !important;
+        height: 5rem !important;
+        margin: 1.5rem auto !important;
+    }
+</style>
 
 {% endblock %}

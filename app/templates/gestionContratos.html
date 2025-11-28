@@ -60,6 +60,17 @@
                         </span>
                     </button>
                     {% endif %}
+                    <button onclick="cambiarTab('firmados')" 
+                            id="tab-firmados"
+                            class="tab-button whitespace-nowrap py-4 px-6 border-b-2 font-medium text-sm">
+                        <span class="flex items-center">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            Mis Contratos Firmados
+                            <span id="badge-firmados" class="ml-2 bg-purple-100 text-purple-800 text-xs font-semibold px-2.5 py-0.5 rounded-full">0</span>
+                        </span>
+                    </button>
                     {% if es_jefe_ti %}
                     <button onclick="cambiarTab('todos')" 
                             id="tab-todos"
@@ -101,6 +112,17 @@
                     </div>
                 </div>
                 {% endif %}
+
+                <!-- Tab: Mis Contratos Firmados -->
+                <div id="content-firmados" class="tab-content hidden">
+                    <div id="lista-firmados" class="space-y-4">
+                        <!-- Se llenará con JavaScript -->
+                        <div class="text-center py-12">
+                            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+                            <p class="text-gray-600">Cargando contratos...</p>
+                        </div>
+                    </div>
+                </div>
 
                 <!-- Tab: Todos los Contratos (Solo Jefe de TI) -->
                 {% if es_jefe_ti %}
@@ -164,6 +186,8 @@ function cambiarTab(tab) {
         cargarContratosPendientes();
     } else if (tab === 'creados') {
         cargarContratosCreados();
+    } else if (tab === 'firmados') {
+        cargarContratosFirmados();
     } else if (tab === 'todos') {
         cargarTodosContratos();
     }
@@ -502,6 +526,16 @@ async function cargarContadoresIniciales() {
             }
         }
         
+        // Cargar contador de contratos firmados
+        const badgeFirmados = document.getElementById('badge-firmados');
+        if (badgeFirmados) {
+            const responseFirmados = await fetch('/api/contratos/firmados');
+            const dataFirmados = await responseFirmados.json();
+            if (dataFirmados.success) {
+                badgeFirmados.textContent = dataFirmados.contratos.length;
+            }
+        }
+        
         // Cargar contador de todos los contratos (solo Jefe de TI)
         const badgeTodos = document.getElementById('badge-todos');
         if (badgeTodos) {
@@ -513,6 +547,86 @@ async function cargarContadoresIniciales() {
         }
     } catch (error) {
         console.error('Error al cargar contadores:', error);
+    }
+}
+
+// Cargar contratos firmados por el usuario
+async function cargarContratosFirmados() {
+    try {
+        const response = await fetch('/api/contratos/firmados');
+        const data = await response.json();
+        
+        const lista = document.getElementById('lista-firmados');
+        
+        if (data.success && data.contratos.length > 0) {
+            lista.innerHTML = data.contratos.map(contrato => {
+                const estadoTexto = contrato.estado === 'F' ? 'Completado' : contrato.estado === 'R' ? 'Rechazado' : 'En Proceso';
+                const estadoColor = contrato.estado === 'F' ? 'green' : contrato.estado === 'R' ? 'red' : 'yellow';
+                const progreso = Math.round((contrato.firmados / contrato.total_firmantes) * 100);
+                
+                return `
+                    <div class="border-2 border-gray-200 rounded-lg p-4 hover:shadow-md transition">
+                        <div class="flex items-start justify-between">
+                            <div class="flex-1">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <h3 class="font-semibold text-gray-900">${contrato.titulo}</h3>
+                                    <span class="px-2 py-1 bg-${estadoColor}-100 text-${estadoColor}-800 text-xs font-semibold rounded-full">
+                                        ${estadoTexto}
+                                    </span>
+                                </div>
+                                ${contrato.descripcion ? `<p class="text-sm text-gray-600 mb-2">${contrato.descripcion}</p>` : ''}
+                                <div class="flex items-center gap-3 text-xs text-gray-500">
+                                    <span>📅 Firmaste: ${new Date(contrato.fecha_firma).toLocaleDateString('es-ES')}</span>
+                                    <span>Tu orden: #${contrato.orden}</span>
+                                </div>
+                                
+                                <!-- Barra de progreso -->
+                                <div class="mt-3">
+                                    <div class="flex justify-between items-center text-xs text-gray-600 mb-1">
+                                        <span>Progreso de firmas</span>
+                                        <span>${contrato.firmados}/${contrato.total_firmantes} (${progreso}%)</span>
+                                    </div>
+                                    <div class="w-full bg-gray-200 rounded-full h-2">
+                                        <div class="bg-${estadoColor}-500 h-2 rounded-full transition-all" style="width: ${progreso}%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex gap-2 mt-4">
+                            <a href="/ver_contrato/${contrato.id_contrato}" 
+                               class="flex-1 text-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-semibold">
+                                👁️ Ver Contrato
+                            </a>
+                            ${contrato.estado === 'F' ? `
+                            <a href="${contrato.url_archivo}" 
+                               download
+                               class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm font-semibold">
+                                📥 Descargar
+                            </a>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        } else {
+            lista.innerHTML = `
+                <div class="text-center py-12">
+                    <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    <p class="text-gray-500 font-medium">No has firmado ningún contrato</p>
+                    <p class="text-sm text-gray-400 mt-1">Los contratos que firmes aparecerán aquí</p>
+                </div>
+            `;
+        }
+    } catch (error) {
+        console.error('Error al cargar contratos firmados:', error);
+        document.getElementById('lista-firmados').innerHTML = `
+            <div class="text-center py-12">
+                <p class="text-red-600 font-medium">❌ Error al cargar contratos</p>
+                <p class="text-sm text-gray-500 mt-1">${error.message}</p>
+            </div>
+        `;
     }
 }
 </script>

@@ -68,17 +68,20 @@ class ControlContratos:
             return []
     
     @staticmethod
-    def crear_contrato(titulo, descripcion, pdf_bytes, id_usuario_creador, firmantes_lista):
+    def crear_contrato(titulo, descripcion, pdf_bytes, id_usuario_creador, firmantes_lista, 
+                       firma_creador_base64=None, sello_creador_base64=None):
         """
         Crea un nuevo contrato con firmantes seleccionados manualmente
-        El PDF debe venir ya con el sello y firma del creador
+        Agrega la firma (y sello si es jefe) del creador al PDF inicial
         
         Args:
             titulo: Título del contrato
             descripcion: Descripción del contrato
-            pdf_bytes: Bytes del PDF con sello y firma del creador
+            pdf_bytes: Bytes del PDF original (sin firmas)
             id_usuario_creador: ID del usuario que crea el contrato
             firmantes_lista: Lista de {'id_usuario': int, 'orden': int}
+            firma_creador_base64: Firma del creador en base64
+            sello_creador_base64: Sello del creador en base64 (opcional, solo jefes)
             
         Returns:
             dict: {'success': bool, 'id_contrato': int, 'message': str, 'firmantes': list}
@@ -92,12 +95,36 @@ class ControlContratos:
             if not firmantes_lista or len(firmantes_lista) == 0:
                 return {'success': False, 'message': 'Debe seleccionar al menos un firmante'}
             
+            # Validar firma del creador
+            if not firma_creador_base64:
+                return {'success': False, 'message': 'La firma del creador es obligatoria'}
+            
             print(f"📋 Creando contrato con {len(firmantes_lista)} firmantes seleccionados...")
             
-            # Subir PDF original a Catbox (ya viene con sello y firma del creador)
-            print("📤 Subiendo PDF con sello y firma del creador a Catbox...")
+            # ✅ AGREGAR FIRMA (Y SELLO) DEL CREADOR AL PDF INICIAL
+            from controllers.control_Usuarios import controlUsuarios
+            usuario_creador = controlUsuarios.buscar_por_ID(id_usuario_creador)
+            nombre_creador = f"{usuario_creador['nombre']} {usuario_creador['ape_pat']}"
+            
+            print(f"✍️ Agregando firma del creador ({nombre_creador}) al PDF inicial...")
+            if sello_creador_base64:
+                print(f"🔐 También agregando sello institucional del creador...")
+            
+            pdf_con_firma = FirmaService.agregar_firma_a_pdf(
+                pdf_bytes=pdf_bytes,
+                firma_base64=firma_creador_base64,
+                nombre_firmante=nombre_creador,
+                orden_firma=0,  # El creador es orden 0 (antes de los firmantes)
+                sello_base64=sello_creador_base64
+            )
+            
+            if not pdf_con_firma:
+                return {'success': False, 'message': 'Error al agregar firma del creador al PDF'}
+            
+            # Subir PDF con firma del creador a Catbox
+            print("📤 Subiendo PDF con firma inicial a Catbox...")
             nombre_archivo = f"contrato_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
-            pdf_temporal = FirmaService.guardar_pdf_temporal(pdf_bytes, nombre_archivo)
+            pdf_temporal = FirmaService.guardar_pdf_temporal(pdf_con_firma, nombre_archivo)
             
             if not pdf_temporal:
                 return {'success': False, 'message': 'Error al guardar PDF temporal'}
@@ -165,11 +192,15 @@ class ControlContratos:
                     )
             
             print(f"✅ Contrato creado exitosamente (ID: {id_contrato})")
-            print(f"   Firmantes asignados: {len(firmantes_lista)}")
+            print(f"   ✍️ Incluye firma del creador: {nombre_creador}")
+            if sello_creador_base64:
+                print(f"   🔐 Incluye sello institucional del creador")
+            print(f"   👥 Firmantes asignados: {len(firmantes_lista)}")
+            
             return {
                 'success': True,
                 'id_contrato': id_contrato,
-                'message': f'Contrato creado exitosamente con {len(firmantes_lista)} firmantes',
+                'message': f'Contrato creado con tu firma inicial. Asignado a {len(firmantes_lista)} firmante(s)',
                 'firmantes': firmantes_lista
             }
             
@@ -760,6 +791,71 @@ class ControlContratos:
             
         except Exception as e:
             print(f"❌ Error al obtener contratos creados: {e}")
+            return []
+    
+    @staticmethod
+    def obtener_contratos_firmados_por_usuario(id_usuario, limite=50):
+        """
+        Obtiene los contratos que ya fueron firmados por el usuario
+        
+        Args:
+            id_usuario: ID del usuario
+            limite: Número máximo de contratos a retornar
+            
+        Returns:
+            list: Lista de contratos firmados por el usuario
+        """
+        try:
+            sql = """
+                SELECT 
+                    c.id_contrato,
+                    c.titulo,
+                    c.descripcion,
+                    c.estado,
+                    c.fecha_creacion,
+                    c.url_archivo,
+                    cfp.fecha_firma,
+                    cfp.orden,
+                    COUNT(CASE WHEN cfp2.firmado = TRUE THEN 1 END) as firmados,
+                    COUNT(cfp2.id_firma) as total_firmantes
+                FROM CONTRATO c
+                INNER JOIN CONTRATO_FIRMA_PENDIENTE cfp ON c.id_contrato = cfp.id_contrato
+                LEFT JOIN CONTRATO_FIRMA_PENDIENTE cfp2 ON c.id_contrato = cfp2.id_contrato
+                WHERE cfp.id_usuario = %s AND cfp.firmado = TRUE
+                GROUP BY c.id_contrato, c.titulo, c.descripcion, c.estado, c.fecha_creacion, c.url_archivo, cfp.fecha_firma, cfp.orden
+                ORDER BY cfp.fecha_firma DESC
+                LIMIT %s
+            """
+            
+            conexion = get_connection()
+            if not conexion:
+                return []
+            
+            with conexion.cursor() as cursor:
+                cursor.execute(sql, (id_usuario, limite))
+                rows = cursor.fetchall()
+            
+            conexion.close()
+            
+            contratos = []
+            for row in rows:
+                contratos.append({
+                    'id_contrato': row[0],
+                    'titulo': row[1],
+                    'descripcion': row[2],
+                    'estado': row[3],
+                    'fecha_creacion': row[4],
+                    'url_archivo': row[5],
+                    'fecha_firma': row[6],
+                    'orden': row[7],
+                    'firmados': row[8],
+                    'total_firmantes': row[9]
+                })
+            
+            return contratos
+            
+        except Exception as e:
+            print(f"❌ Error al obtener contratos firmados: {e}")
             return []
     
     @staticmethod

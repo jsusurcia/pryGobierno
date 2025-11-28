@@ -15,15 +15,43 @@ import base64
 class FirmaService:
     """Servicio para añadir firmas visuales a PDFs"""
     
-    # Posiciones predefinidas para las firmas (en puntos, desde abajo-izquierda)
-    POSICIONES_FIRMA = {
-        1: {'x': 50, 'y': 50, 'ancho': 150, 'alto': 60},    # Primera firma: abajo izquierda
-        2: {'x': 250, 'y': 50, 'ancho': 150, 'alto': 60},   # Segunda firma: abajo centro
-        3: {'x': 450, 'y': 50, 'ancho': 150, 'alto': 60},   # Tercera firma: abajo derecha
-        4: {'x': 50, 'y': 120, 'ancho': 150, 'alto': 60},   # Cuarta firma: segunda fila izquierda
-        5: {'x': 250, 'y': 120, 'ancho': 150, 'alto': 60},  # Quinta firma: segunda fila centro
-        6: {'x': 450, 'y': 120, 'ancho': 150, 'alto': 60},  # Sexta firma: segunda fila derecha
-    }
+    # Configuración de posicionamiento de firmas
+    FIRMA_BASE_Y = 120        # Altura inicial desde abajo (más alto = más arriba)
+    FIRMA_ANCHO = 150         # Ancho de cada firma
+    FIRMA_ALTO = 60           # Alto de cada firma
+    FIRMA_MARGEN_X = 50       # Margen izquierdo
+    FIRMA_ESPACIADO_X = 200   # Espacio horizontal entre firmas
+    FIRMA_ESPACIADO_Y = 100   # Espacio vertical entre filas
+    FIRMAS_POR_FILA = 3       # Número de firmas por fila
+    
+    @staticmethod
+    def calcular_posicion_firma(orden_firma):
+        """
+        Calcula dinámicamente la posición de una firma basándose en su orden
+        Las firmas se distribuyen en una cuadrícula de 3 columnas
+        
+        Args:
+            orden_firma: Orden de la firma (0 = creador, 1+ = firmantes)
+            
+        Returns:
+            dict: {'x': int, 'y': int, 'ancho': int, 'alto': int}
+        """
+        # Calcular fila y columna
+        fila = orden_firma // FirmaService.FIRMAS_POR_FILA
+        columna = orden_firma % FirmaService.FIRMAS_POR_FILA
+        
+        # Calcular posición X (de izquierda a derecha)
+        x = FirmaService.FIRMA_MARGEN_X + (columna * FirmaService.FIRMA_ESPACIADO_X)
+        
+        # Calcular posición Y (de abajo hacia arriba)
+        y = FirmaService.FIRMA_BASE_Y + (fila * FirmaService.FIRMA_ESPACIADO_Y)
+        
+        return {
+            'x': x,
+            'y': y,
+            'ancho': FirmaService.FIRMA_ANCHO,
+            'alto': FirmaService.FIRMA_ALTO
+        }
     
     @staticmethod
     def base64_a_imagen(base64_string):
@@ -87,11 +115,9 @@ class FirmaService:
                 if not sello_imagen:
                     print("⚠️ No se pudo procesar la imagen del sello, continuando sin él")
             
-            # Obtener posición para esta firma
-            posicion = FirmaService.POSICIONES_FIRMA.get(orden_firma)
-            if not posicion:
-                print(f"⚠️ No hay posición definida para firma #{orden_firma}, usando posición por defecto")
-                posicion = {'x': 50, 'y': 50 + ((orden_firma - 1) * 70), 'ancho': 150, 'alto': 60}
+            # Calcular posición dinámica para esta firma (evita superposiciones)
+            posicion = FirmaService.calcular_posicion_firma(orden_firma)
+            print(f"📍 Posición calculada para firma #{orden_firma}: x={posicion['x']}, y={posicion['y']}")
             
             # Leer el PDF original
             pdf_reader = PdfReader(BytesIO(pdf_bytes))
@@ -103,20 +129,27 @@ class FirmaService:
             
             # Si hay sello, dibujarlo primero (a la izquierda)
             if sello_imagen:
+                print(f"🔐 Añadiendo sello institucional al PDF para {nombre_firmante}")
                 sello_buffer = BytesIO()
                 sello_imagen.save(sello_buffer, format='PNG')
                 sello_buffer.seek(0)
                 
-                # Dibujar sello (más pequeño, a la izquierda)
+                # Dibujar sello (tamaño mediano, a la izquierda)
+                sello_size = 55  # Tamaño del sello en puntos
                 can.drawImage(
                     ImageReader(sello_buffer),
                     posicion['x'],
-                    posicion['y'] + 10,  # Un poco más arriba
-                    width=50,  # Sello más pequeño
-                    height=50,
+                    posicion['y'] + 5,  # Alineado verticalmente con la firma
+                    width=sello_size,
+                    height=sello_size,
                     preserveAspectRatio=True,
                     mask='auto'
                 )
+                
+                # Añadir borde alrededor del sello para destacarlo
+                can.setStrokeColorRGB(0.7, 0.7, 0.7)  # Gris
+                can.setLineWidth(0.5)
+                can.rect(posicion['x'], posicion['y'] + 5, sello_size, sello_size, stroke=1, fill=0)
             
             # Guardar la imagen de la firma temporalmente
             firma_buffer = BytesIO()
@@ -124,12 +157,15 @@ class FirmaService:
             firma_buffer.seek(0)
             
             # Dibujar la firma en el canvas (al lado del sello si existe)
-            firma_x_offset = 60 if sello_imagen else 0  # Mover a la derecha si hay sello
+            firma_x_offset = 65 if sello_imagen else 0  # Espacio para el sello si existe
+            firma_ancho_disponible = posicion['ancho'] - firma_x_offset
+            
+            print(f"✍️ Añadiendo firma al PDF para {nombre_firmante}")
             can.drawImage(
                 ImageReader(firma_buffer),
                 posicion['x'] + firma_x_offset,
                 posicion['y'],
-                width=posicion['ancho'] - firma_x_offset,
+                width=firma_ancho_disponible,
                 height=posicion['alto'],
                 preserveAspectRatio=True,
                 mask='auto'
@@ -169,8 +205,13 @@ class FirmaService:
             pdf_writer.write(output_buffer)
             output_buffer.seek(0)
             
-            sello_texto = " con sello" if sello_imagen else ""
-            print(f"✅ Firma{sello_texto} de '{nombre_firmante}' añadida al PDF (orden #{orden_firma})")
+            if sello_imagen:
+                print(f"✅ FIRMA + SELLO de '{nombre_firmante}' añadidos al PDF (orden #{orden_firma})")
+                print(f"   📐 Layout: [🔐 Sello 55x55] → [✍️ Firma {firma_ancho_disponible}x{posicion['alto']}]")
+            else:
+                print(f"✅ FIRMA de '{nombre_firmante}' añadida al PDF (orden #{orden_firma})")
+                print(f"   📐 Layout: [✍️ Firma {posicion['ancho']}x{posicion['alto']}]")
+            
             return output_buffer.getvalue()
             
         except Exception as e:

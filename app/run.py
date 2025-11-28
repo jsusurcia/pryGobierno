@@ -2072,25 +2072,24 @@ def api_recomendaciones():
 
 @app.route('/contratos')
 def contratos():
-    """Vista principal de contratos - Accesible para Jefe de TI y firmantes"""
+    """Vista principal de contratos - Accesible para todos (cada uno verá lo que le corresponde)"""
     if 'user_id' not in session:
         flash('Por favor inicia sesión', 'error')
         return redirect(url_for('login'))
     
     id_usuario = int(session['user_id'])
     
-    # Verificar si es Jefe de TI o rol firmante
+    # Verificar roles y permisos
     es_jefe_ti = controlUsuarios.es_jefe_ti_rol_1(id_usuario)
-    es_firmante = controlUsuarios.es_rol_firmante(id_usuario)
+    puede_crear = controlUsuarios.puede_crear_contratos(id_usuario)
     
-    # Permitir acceso a Jefe de TI o firmantes
-    if not es_jefe_ti and not es_firmante:
-        flash('No tienes permisos para acceder a esta sección', 'error')
-        return redirect(url_for('index'))
+    # Todos los usuarios tienen acceso (verán sus contratos pendientes)
+    # La lógica de qué pueden ver se maneja en el template y en las APIs
     
     return render_template(
         'gestionContratos.html',
-        es_jefe_ti=es_jefe_ti
+        es_jefe_ti=es_jefe_ti,
+        puede_crear_contratos=puede_crear
     )
 
 @app.route('/crear_contrato', methods=['GET', 'POST'])
@@ -2110,10 +2109,19 @@ def crear_contrato():
             titulo = request.form.get('titulo')
             descripcion = request.form.get('descripcion')
             pdf_file = request.files.get('pdf_file')
+            firmantes_json = request.form.get('firmantes')  # Lista de firmantes en JSON
             
             # Validar campos
-            if not titulo or not descripcion or not pdf_file:
+            if not titulo or not descripcion or not pdf_file or not firmantes_json:
                 flash('Todos los campos son obligatorios', 'error')
+                return redirect(url_for('crear_contrato'))
+            
+            # Parsear firmantes
+            import json
+            firmantes_lista = json.loads(firmantes_json)
+            
+            if not firmantes_lista or len(firmantes_lista) == 0:
+                flash('Debes seleccionar al menos un firmante', 'error')
                 return redirect(url_for('crear_contrato'))
             
             # Validar que sea PDF
@@ -2121,15 +2129,16 @@ def crear_contrato():
                 flash('El archivo debe ser un PDF', 'error')
                 return redirect(url_for('crear_contrato'))
             
-            # Leer el PDF (ya debe venir con el sello del creador)
+            # Leer el PDF (ya debe venir con el sello y firma del creador)
             pdf_bytes = pdf_file.read()
             
-            # Crear contrato (los firmantes se asignan automáticamente)
+            # Crear contrato con firmantes seleccionados manualmente
             resultado = ControlContratos.crear_contrato(
                 titulo=titulo,
                 descripcion=descripcion,
                 pdf_bytes=pdf_bytes,
-                id_usuario_creador=int(session['user_id'])
+                id_usuario_creador=int(session['user_id']),
+                firmantes_lista=firmantes_lista
             )
             
             if resultado['success']:
@@ -2147,22 +2156,7 @@ def crear_contrato():
             return redirect(url_for('crear_contrato'))
     
     # GET: Mostrar formulario
-    # Obtener nombres de los roles para mostrar en el formulario
-    from controllers.controlador_rol import ControlRol
-    
-    roles_firmantes = []
-    orden_roles = [8, 10, 11, 9, 12]
-    
-    for id_rol in orden_roles:
-        rol = ControlRol.buscar_por_IDRol(id_rol)
-        if rol:
-            roles_firmantes.append({
-                'id_rol': id_rol,
-                'nombre': rol.get('nombre', f'Rol {id_rol}'),
-                'orden': len(roles_firmantes) + 1
-            })
-    
-    return render_template('formCrearContrato.html', roles_firmantes=roles_firmantes)
+    return render_template('formCrearContrato.html')
 
 @app.route('/firmar_contrato/<int:id_contrato>')
 def firmar_contrato(id_contrato):
@@ -2187,10 +2181,14 @@ def firmar_contrato(id_contrato):
     # Obtener historial
     historial = ControlContratos.obtener_historial_contrato(id_contrato)
     
+    # Verificar si es jefe (necesita sello)
+    es_jefe = controlUsuarios.es_jefe(id_usuario)
+    
     return render_template(
         'firmarContrato.html',
         contrato=contrato,
-        historial=historial
+        historial=historial,
+        es_jefe=es_jefe
     )
 
 @app.route('/api/contrato/<int:id_contrato>/firmar', methods=['POST'])
@@ -2203,15 +2201,17 @@ def api_firmar_contrato(id_contrato):
         id_usuario = int(session['user_id'])
         data = request.get_json()
         firma_base64 = data.get('firma')
+        sello_base64 = data.get('sello')  # Opcional, solo para jefes
         
         if not firma_base64:
             return jsonify({'success': False, 'message': 'Firma no proporcionada'}), 400
         
-        # Firmar contrato
+        # Firmar contrato (con sello opcional)
         resultado = ControlContratos.firmar_contrato(
             id_contrato=id_contrato,
             id_usuario=id_usuario,
-            firma_base64=firma_base64
+            firma_base64=firma_base64,
+            sello_base64=sello_base64
         )
         
         if resultado['success']:
@@ -2307,6 +2307,40 @@ def api_contratos_creados():
         })
     except Exception as e:
         print(f"Error al obtener contratos creados: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/areas')
+def api_obtener_areas():
+    """API para obtener todas las áreas"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'No autorizado'}), 401
+    
+    try:
+        areas = controlUsuarios.obtener_todas_areas()
+        
+        return jsonify({
+            'success': True,
+            'areas': areas
+        })
+    except Exception as e:
+        print(f"Error al obtener áreas: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/usuarios/por-area/<int:id_area>')
+def api_obtener_usuarios_por_area(id_area):
+    """API para obtener usuarios de un área específica"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'No autorizado'}), 401
+    
+    try:
+        usuarios = controlUsuarios.obtener_usuarios_por_area(id_area)
+        
+        return jsonify({
+            'success': True,
+            'usuarios': usuarios
+        })
+    except Exception as e:
+        print(f"Error al obtener usuarios por área: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/contrato/<int:id_contrato>/historial')

@@ -59,18 +59,19 @@ class FirmaService:
             return None
     
     @staticmethod
-    def agregar_firma_a_pdf(pdf_bytes, firma_base64, nombre_firmante, orden_firma):
+    def agregar_firma_a_pdf(pdf_bytes, firma_base64, nombre_firmante, orden_firma, sello_base64=None):
         """
-        Añade una firma visual a un PDF existente
+        Añade una firma visual (y opcionalmente sello) a un PDF existente
         
         Args:
             pdf_bytes: Bytes del PDF original
             firma_base64: Imagen de la firma en base64
             nombre_firmante: Nombre completo del firmante
             orden_firma: Orden de esta firma (1, 2, 3...)
+            sello_base64: Imagen del sello en base64 (opcional, solo para jefes)
             
         Returns:
-            bytes: PDF con la firma añadida o None si falla
+            bytes: PDF con la firma (y sello) añadida o None si falla
         """
         try:
             # Convertir firma base64 a imagen
@@ -78,6 +79,13 @@ class FirmaService:
             if not firma_imagen:
                 print("❌ No se pudo procesar la imagen de la firma")
                 return None
+            
+            # Convertir sello base64 a imagen (si existe)
+            sello_imagen = None
+            if sello_base64:
+                sello_imagen = FirmaService.base64_a_imagen(sello_base64)
+                if not sello_imagen:
+                    print("⚠️ No se pudo procesar la imagen del sello, continuando sin él")
             
             # Obtener posición para esta firma
             posicion = FirmaService.POSICIONES_FIRMA.get(orden_firma)
@@ -93,17 +101,35 @@ class FirmaService:
             packet = BytesIO()
             can = canvas.Canvas(packet, pagesize=letter)
             
+            # Si hay sello, dibujarlo primero (a la izquierda)
+            if sello_imagen:
+                sello_buffer = BytesIO()
+                sello_imagen.save(sello_buffer, format='PNG')
+                sello_buffer.seek(0)
+                
+                # Dibujar sello (más pequeño, a la izquierda)
+                can.drawImage(
+                    ImageReader(sello_buffer),
+                    posicion['x'],
+                    posicion['y'] + 10,  # Un poco más arriba
+                    width=50,  # Sello más pequeño
+                    height=50,
+                    preserveAspectRatio=True,
+                    mask='auto'
+                )
+            
             # Guardar la imagen de la firma temporalmente
             firma_buffer = BytesIO()
             firma_imagen.save(firma_buffer, format='PNG')
             firma_buffer.seek(0)
             
-            # Dibujar la firma en el canvas
+            # Dibujar la firma en el canvas (al lado del sello si existe)
+            firma_x_offset = 60 if sello_imagen else 0  # Mover a la derecha si hay sello
             can.drawImage(
                 ImageReader(firma_buffer),
-                posicion['x'],
+                posicion['x'] + firma_x_offset,
                 posicion['y'],
-                width=posicion['ancho'],
+                width=posicion['ancho'] - firma_x_offset,
                 height=posicion['alto'],
                 preserveAspectRatio=True,
                 mask='auto'
@@ -143,7 +169,8 @@ class FirmaService:
             pdf_writer.write(output_buffer)
             output_buffer.seek(0)
             
-            print(f"✅ Firma de '{nombre_firmante}' añadida al PDF (orden #{orden_firma})")
+            sello_texto = " con sello" if sello_imagen else ""
+            print(f"✅ Firma{sello_texto} de '{nombre_firmante}' añadida al PDF (orden #{orden_firma})")
             return output_buffer.getvalue()
             
         except Exception as e:

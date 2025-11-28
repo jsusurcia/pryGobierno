@@ -95,8 +95,27 @@
             <div class="bg-white rounded-xl shadow-md p-6">
                 <h2 class="text-xl font-bold text-gray-900 mb-4">✍️ Tu Firma</h2>
                 
+                <!-- Sello Institucional (Solo para Jefes) -->
+                <div id="seccionSello" class="mb-6 hidden">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        🔐 Tu Sello Institucional *
+                    </label>
+                    <input type="file" 
+                           id="archivoSello" 
+                           accept="image/*"
+                           class="w-full px-3 py-2 bg-gray-50 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-500
+                                  file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-semibold
+                                  file:bg-blue-600 file:text-white hover:file:bg-blue-700">
+                    <p class="text-xs text-blue-700 mt-2">
+                        Como jefe, debes subir tu sello institucional junto con tu firma
+                    </p>
+                </div>
+                
                 <!-- Canvas de Firma -->
                 <div class="mb-6">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        ✍️ Tu Firma Electrónica *
+                    </label>
                     <div class="border-4 border-blue-300 rounded-lg overflow-hidden bg-white">
                         <canvas id="signaturePad" class="w-full" style="touch-action: none;"></canvas>
                     </div>
@@ -207,9 +226,33 @@ function resizeCanvas() {
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 
+// Verificar si el usuario es jefe y mostrar sección de sello
+document.addEventListener('DOMContentLoaded', async function() {
+    try {
+        // Verificar si es jefe (esto viene del contexto de Flask)
+        const esJefe = {{ 'true' if session.get('es_jefe', False) else 'false' }};
+        
+        if (esJefe) {
+            document.getElementById('seccionSello').classList.remove('hidden');
+        }
+    } catch (error) {
+        console.error('Error al verificar rol:', error);
+    }
+});
+
 // Limpiar firma
 function limpiarFirma() {
     signaturePad.clear();
+}
+
+// Convertir archivo a base64
+function convertirArchivoABase64(archivo) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(archivo);
+    });
 }
 
 // Firmar contrato
@@ -217,6 +260,29 @@ async function firmarContrato() {
     if (signaturePad.isEmpty()) {
         alert('❌ Por favor, firma en el recuadro antes de continuar');
         return;
+    }
+    
+    // Verificar si es jefe y necesita sello
+    const seccionSello = document.getElementById('seccionSello');
+    const archivoSello = document.getElementById('archivoSello');
+    const esJefe = !seccionSello.classList.contains('hidden');
+    
+    if (esJefe && (!archivoSello.files || !archivoSello.files[0])) {
+        alert('❌ Como jefe, debes subir tu sello institucional');
+        return;
+    }
+    
+    // Validar tamaño del sello (si existe)
+    if (esJefe && archivoSello.files[0]) {
+        if (archivoSello.files[0].size > 5 * 1024 * 1024) {
+            alert('❌ El sello es muy grande. Máximo 5MB.');
+            return;
+        }
+        
+        if (!archivoSello.files[0].type.startsWith('image/')) {
+            alert('❌ El sello debe ser una imagen (PNG, JPG, etc.)');
+            return;
+        }
     }
     
     if (!confirm('¿Estás seguro de que deseas firmar este contrato? Esta acción no se puede deshacer.')) {
@@ -231,15 +297,28 @@ async function firmarContrato() {
         // Obtener firma como base64
         const firmaBase64 = signaturePad.toDataURL('image/png');
         
+        // Obtener sello como base64 (si existe)
+        let selloBase64 = null;
+        if (esJefe && archivoSello.files[0]) {
+            selloBase64 = await convertirArchivoABase64(archivoSello.files[0]);
+        }
+        
+        // Preparar datos
+        const datos = {
+            firma: firmaBase64
+        };
+        
+        if (selloBase64) {
+            datos.sello = selloBase64;
+        }
+        
         // Enviar al servidor
         const response = await fetch('/api/contrato/{{ contrato.id_contrato }}/firmar', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({
-                firma: firmaBase64
-            })
+            body: JSON.stringify(datos)
         });
         
         const data = await response.json();

@@ -553,5 +553,101 @@ class controlUsuarios:
         except Exception as e:
             print(f"Error en obtener_usuarios_por_rol => {e}")
             return []
+    
+    @staticmethod
+    def obtener_usuarios_por_area(id_area):
+        """
+        Obtiene todos los usuarios de un área específica
+        
+        Args:
+            id_area: ID del área a buscar
+            
+        Returns:
+            list: Lista de usuarios con información del rol
+        """
+        try:
+            sql = """
+                SELECT 
+                    u.id_usuario,
+                    u.nombre,
+                    u.ape_pat,
+                    u.ape_mat,
+                    u.correo,
+                    u.id_rol,
+                    r.nombre as nombre_rol,
+                    r.tipo as tipo_rol
+                FROM USUARIO u
+                INNER JOIN ROL r ON u.id_rol = r.id_rol
+                WHERE r.id_area = %s AND u.estado = TRUE
+                ORDER BY r.tipo, u.nombre, u.ape_pat
+            """
+            
+            conexion = get_connection()
+            if not conexion:
+                return []
+            
+            with conexion.cursor() as cursor:
+                cursor.execute(sql, (id_area,))
+                resultados = cursor.fetchall()
+            
+            conexion.close()
+            
+            usuarios = []
+            for row in resultados:
+                usuarios.append({
+                    'id_usuario': row[0],
+                    'nombre': row[1],
+                    'ape_pat': row[2],
+                    'ape_mat': row[3],
+                    'nombre_completo': f"{row[1]} {row[2]} {row[3]}",
+                    'correo': row[4],
+                    'id_rol': row[5],
+                    'nombre_rol': row[6],
+                    'tipo_rol': row[7]
+                })
+            
+            return usuarios
+            
+        except Exception as e:
+            print(f"Error en obtener_usuarios_por_area => {e}")
+            return []
+    
+    @staticmethod
+    def obtener_todas_areas():
+        """
+        Obtiene todas las áreas de la organización
+        
+        Returns:
+            list: Lista de áreas
+        """
+        try:
+            sql = """
+                SELECT id_area, nombre
+                FROM AREA
+                ORDER BY nombre
+            """
+            
+            conexion = get_connection()
+            if not conexion:
+                return []
+            
+            with conexion.cursor() as cursor:
+                cursor.execute(sql)
+                resultados = cursor.fetchall()
+            
+            conexion.close()
+            
+            areas = []
+            for row in resultados:
+                areas.append({
+                    'id_area': row[0],
+                    'nombre': row[1]
+                })
+            
+            return areas
+            
+        except Exception as e:
+            print(f"Error en obtener_todas_areas => {e}")
+            return []
 
          

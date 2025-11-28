@@ -68,16 +68,17 @@ class ControlContratos:
             return []
     
     @staticmethod
-    def crear_contrato(titulo, descripcion, pdf_bytes, id_usuario_creador):
+    def crear_contrato(titulo, descripcion, pdf_bytes, id_usuario_creador, firmantes_lista):
         """
-        Crea un nuevo contrato con firmantes automáticos según roles
-        El PDF debe venir ya con el sello del creador
+        Crea un nuevo contrato con firmantes seleccionados manualmente
+        El PDF debe venir ya con el sello y firma del creador
         
         Args:
             titulo: Título del contrato
             descripcion: Descripción del contrato
-            pdf_bytes: Bytes del PDF con sello del creador
+            pdf_bytes: Bytes del PDF con sello y firma del creador
             id_usuario_creador: ID del usuario que crea el contrato
+            firmantes_lista: Lista de {'id_usuario': int, 'orden': int}
             
         Returns:
             dict: {'success': bool, 'id_contrato': int, 'message': str, 'firmantes': list}
@@ -87,18 +88,14 @@ class ControlContratos:
             if not FirmaService.verificar_pdf_valido(pdf_bytes):
                 return {'success': False, 'message': 'El archivo no es un PDF válido'}
             
-            # Obtener firmantes automáticamente según roles
-            print("🔍 Buscando firmantes automáticos...")
-            firmantes_data = ControlContratos.obtener_firmantes_automaticos()
+            # Validar que haya firmantes
+            if not firmantes_lista or len(firmantes_lista) == 0:
+                return {'success': False, 'message': 'Debe seleccionar al menos un firmante'}
             
-            if not firmantes_data:
-                return {
-                    'success': False, 
-                    'message': 'No se encontraron usuarios activos con los roles de firmantes necesarios (8, 10, 11, 9, 12)'
-                }
+            print(f"📋 Creando contrato con {len(firmantes_lista)} firmantes seleccionados...")
             
-            # Subir PDF original a Catbox (ya viene con sello del creador)
-            print("📤 Subiendo PDF con sello a Catbox...")
+            # Subir PDF original a Catbox (ya viene con sello y firma del creador)
+            print("📤 Subiendo PDF con sello y firma del creador a Catbox...")
             nombre_archivo = f"contrato_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
             pdf_temporal = FirmaService.guardar_pdf_temporal(pdf_bytes, nombre_archivo)
             
@@ -138,7 +135,7 @@ class ControlContratos:
                     (id_contrato, id_usuario, orden, firmado)
                     VALUES (%s, %s, %s, FALSE)
                 """
-                for firmante in firmantes_data:
+                for firmante in firmantes_lista:
                     cursor.execute(sql_firmante, (
                         id_contrato,
                         firmante['id_usuario'],
@@ -150,24 +147,30 @@ class ControlContratos:
             conexion.close()
             
             # Notificar al primer firmante (orden = 1)
-            primer_firmante = next((f for f in firmantes_data if f['orden'] == 1), None)
+            primer_firmante = next((f for f in firmantes_lista if f['orden'] == 1), None)
             if primer_firmante:
-                nombre_rol_firmante = primer_firmante.get('nombre_rol', 'Firmante')
-                ControlNotificaciones.crear_notificacion(
-                    id_usuario=primer_firmante['id_usuario'],
-                    titulo=f"Nuevo Contrato para Firmar: {titulo}",
-                    mensaje=f"Tienes un nuevo contrato pendiente de firma electrónica. Como {nombre_rol_firmante}, eres el primer firmante.",
-                    tipo="contrato",
-                    id_referencia=id_contrato
-                )
+                # Obtener nombre del rol del primer firmante
+                usuario_firmante = controlUsuarios.buscar_por_ID(primer_firmante['id_usuario'])
+                if usuario_firmante:
+                    from controllers.controlador_rol import ControlRol
+                    rol_firmante = ControlRol.buscar_por_IDRol(usuario_firmante['id_rol'])
+                    nombre_rol_firmante = rol_firmante.get('nombre', 'Firmante') if rol_firmante else 'Firmante'
+                    
+                    ControlNotificaciones.crear_notificacion(
+                        id_usuario=primer_firmante['id_usuario'],
+                        titulo=f"Nuevo Contrato para Firmar: {titulo}",
+                        mensaje=f"Tienes un nuevo contrato pendiente de firma electrónica. Como {nombre_rol_firmante}, eres el primer firmante.",
+                        tipo="contrato",
+                        id_referencia=id_contrato
+                    )
             
             print(f"✅ Contrato creado exitosamente (ID: {id_contrato})")
-            print(f"   Firmantes asignados: {len(firmantes_data)}")
+            print(f"   Firmantes asignados: {len(firmantes_lista)}")
             return {
                 'success': True,
                 'id_contrato': id_contrato,
-                'message': f'Contrato creado exitosamente con {len(firmantes_data)} firmantes',
-                'firmantes': firmantes_data
+                'message': f'Contrato creado exitosamente con {len(firmantes_lista)} firmantes',
+                'firmantes': firmantes_lista
             }
             
         except Exception as e:
@@ -285,9 +288,15 @@ class ControlContratos:
             return False
     
     @staticmethod
-    def firmar_contrato(id_contrato, id_usuario, firma_base64):
+    def firmar_contrato(id_contrato, id_usuario, firma_base64, sello_base64=None):
         """
-        Firma un contrato: añade la firma visual al PDF y actualiza la BD
+        Firma un contrato: añade la firma y el sello (si aplica) visual al PDF y actualiza la BD
+        
+        Args:
+            id_contrato: ID del contrato
+            id_usuario: ID del usuario que firma
+            firma_base64: Imagen de la firma en base64
+            sello_base64: Imagen del sello en base64 (opcional, solo para jefes)
         
         Returns:
             dict: {'success': bool, 'message': str}
@@ -308,6 +317,15 @@ class ControlContratos:
             
             nombre_completo = f"{usuario['nombre']} {usuario['ape_pat']} {usuario['ape_mat']}"
             
+            # Verificar si el usuario es jefe (necesita sello)
+            from controllers.controlador_rol import ControlRol
+            rol = ControlRol.buscar_por_IDRol(usuario['id_rol'])
+            es_jefe = rol and rol.get('tipo') == 'J'
+            
+            # Validar que los jefes suban sello
+            if es_jefe and not sello_base64:
+                return {'success': False, 'message': 'Los jefes deben subir su sello institucional'}
+            
             # Descargar el PDF actual desde Catbox
             print(f"📥 Descargando PDF actual...")
             pdf_bytes = CatboxService.descargar_pdf(contrato['url_archivo'])
@@ -319,13 +337,14 @@ class ControlContratos:
             if not orden_firma:
                 return {'success': False, 'message': 'No se pudo determinar el orden de firma'}
             
-            # Añadir la firma visual al PDF
+            # Añadir la firma (y sello si aplica) visual al PDF
             print(f"✍️ Añadiendo firma de {nombre_completo}...")
             pdf_firmado = FirmaService.agregar_firma_a_pdf(
                 pdf_bytes,
                 firma_base64,
                 nombre_completo,
-                orden_firma
+                orden_firma,
+                sello_base64  # Pasar sello (puede ser None)
             )
             
             if not pdf_firmado:

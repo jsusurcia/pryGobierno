@@ -270,6 +270,39 @@ document.addEventListener('DOMContentLoaded', function() {
         </tbody>
       </table>
     </div>
+    
+    <!-- Botón Ver Más -->
+    {% if hay_mas_incidentes %}
+    <div class="px-6 py-4 border-t border-gray-200 bg-gray-50">
+      <div class="flex items-center justify-between">
+        <p class="text-sm text-gray-600">
+          Mostrando 10 de {{ total_incidentes }} incidentes
+        </p>
+        <a href="{{ url_for('gestion_incidentes', ver_todos='true', buscar=request.args.get('buscar', ''), fecha_desde=request.args.get('fecha_desde', ''), fecha_hasta=request.args.get('fecha_hasta', ''), categoria=request.args.get('categoria', ''), estado=request.args.get('estado', '')) }}"
+           class="inline-flex items-center px-4 py-2 bg-[#0067b8] hover:bg-[#003d73] text-white font-medium rounded-lg shadow-sm transition">
+          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+          </svg>
+          Ver todos los incidentes
+        </a>
+      </div>
+    </div>
+    {% elif ver_todos and total_incidentes > 10 %}
+    <div class="px-6 py-4 border-t border-gray-200 bg-gray-50">
+      <div class="flex items-center justify-between">
+        <p class="text-sm text-gray-600">
+          Mostrando todos los {{ total_incidentes }} incidentes
+        </p>
+        <a href="{{ url_for('gestion_incidentes', buscar=request.args.get('buscar', ''), fecha_desde=request.args.get('fecha_desde', ''), fecha_hasta=request.args.get('fecha_hasta', ''), categoria=request.args.get('categoria', ''), estado=request.args.get('estado', '')) }}"
+           class="inline-flex items-center px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-lg shadow-sm transition">
+          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/>
+          </svg>
+          Mostrar solo los 10 últimos
+        </a>
+      </div>
+    </div>
+    {% endif %}
   </div>
 </div>
 

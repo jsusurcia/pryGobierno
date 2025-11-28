@@ -1,868 +1,823 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Predicciones con IA - Sistema de Gestión</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+{% extends "sidebar.html" %}
 
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
+{% block title %}Predicciones con IA{% endblock %}
 
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-        }
+{% block nav_links %}
+{{ super() }}
+<script>
+// Marcar el enlace activo
+document.addEventListener('DOMContentLoaded', function() {
+    const links = document.querySelectorAll('aside a[href="{{ url_for("predicciones_ia") }}"]');
+    links.forEach(link => {
+        link.classList.add('bg-blue-50', 'text-blue-600');
+        link.classList.remove('text-gray-900');
+    });
+});
+</script>
+{% endblock nav_links %}
 
-        .header {
-            background: white;
-            border-radius: 15px;
-            padding: 25px;
-            margin-bottom: 25px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
+{% block styles %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+    .filtros {
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 25px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        border: 1px solid #e5e7eb;
+    }
 
-        .header h1 {
-            color: #667eea;
-            font-size: 28px;
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
+    .filtros h3 {
+        color: #0067b8;
+        margin-bottom: 15px;
+        font-size: 18px;
+        font-weight: 600;
+    }
 
-        .header h1 i {
-            font-size: 32px;
-        }
+    .filtros-group {
+        display: flex;
+        gap: 15px;
+        flex-wrap: wrap;
+        align-items: flex-end;
+    }
 
-        .btn-volver {
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
-            padding: 12px 25px;
-            border: none;
-            border-radius: 25px;
-            cursor: pointer;
-            font-size: 15px;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            transition: transform 0.2s;
-        }
+    .filtro-item {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
 
-        .btn-volver:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-        }
+    .filtro-item label {
+        font-size: 14px;
+        color: #374151;
+        font-weight: 500;
+    }
 
-        .filtros {
-            background: white;
-            border-radius: 15px;
-            padding: 20px;
-            margin-bottom: 25px;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
-        }
+    .filtro-item select {
+        padding: 10px 15px;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        font-size: 14px;
+        min-width: 150px;
+        background: #f9fafb;
+        transition: border-color 0.3s;
+    }
 
-        .filtros h3 {
-            color: #667eea;
-            margin-bottom: 15px;
-            font-size: 18px;
-        }
+    .filtro-item select:focus {
+        outline: none;
+        border-color: #0067b8;
+        ring: 2px;
+        ring-color: #0067b8;
+    }
 
-        .filtros-group {
-            display: flex;
-            gap: 15px;
-            flex-wrap: wrap;
-        }
+    .btn-actualizar {
+        background: #0067b8;
+        color: white;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.2s;
+        margin-top: auto;
+    }
 
-        .filtro-item {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-        }
+    .btn-actualizar:hover {
+        background: #003d73;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 6px rgba(0, 103, 184, 0.3);
+    }
 
-        .filtro-item label {
-            font-size: 14px;
-            color: #555;
-            font-weight: 500;
-        }
+    .dashboard {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+        gap: 25px;
+        margin-bottom: 25px;
+    }
 
-        .filtro-item select,
-        .filtro-item input {
-            padding: 10px 15px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 14px;
-            min-width: 150px;
-            transition: border-color 0.3s;
-        }
+    .card {
+        background: white;
+        border-radius: 12px;
+        padding: 25px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        border: 1px solid #e5e7eb;
+        transition: transform 0.3s, box-shadow 0.3s;
+    }
 
-        .filtro-item select:focus,
-        .filtro-item input:focus {
-            outline: none;
-            border-color: #667eea;
-        }
+    .card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
 
-        .btn-actualizar {
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 14px;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            transition: transform 0.2s;
-            margin-top: auto;
-        }
+    .card-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 2px solid #f3f4f6;
+    }
 
-        .btn-actualizar:hover {
-            transform: scale(1.05);
-        }
+    .card-icon {
+        width: 45px;
+        height: 45px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 22px;
+        color: white;
+    }
 
+    .card-icon.purple { background: linear-gradient(135deg, #0067b8, #1a88e1); }
+    .card-icon.orange { background: linear-gradient(135deg, #f5576c, #f093fb); }
+    .card-icon.blue { background: linear-gradient(135deg, #4facfe, #00f2fe); }
+    .card-icon.green { background: linear-gradient(135deg, #43e97b, #38f9d7); }
+
+    .card-title {
+        font-size: 18px;
+        color: #111827;
+        font-weight: 600;
+    }
+
+    .chart-container {
+        position: relative;
+        height: 300px;
+        margin-top: 15px;
+    }
+
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin-top: 15px;
+    }
+
+    .info-card {
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        padding: 15px;
+        border-radius: 10px;
+        text-align: center;
+        border: 1px solid #e5e7eb;
+    }
+
+    .info-card-value {
+        font-size: 28px;
+        font-weight: bold;
+        color: #0067b8;
+        margin-bottom: 5px;
+    }
+
+    .info-card-label {
+        font-size: 13px;
+        color: #6b7280;
+    }
+
+    .recomendaciones-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .recomendacion-item {
+        padding: 15px;
+        border-radius: 10px;
+        border-left: 4px solid;
+        background: #f9fafb;
+        transition: transform 0.2s;
+        border: 1px solid #e5e7eb;
+    }
+
+    .recomendacion-item:hover {
+        transform: translateX(5px);
+    }
+
+    .recomendacion-item.alta {
+        border-color: #dc3545;
+        background: #fff5f5;
+    }
+
+    .recomendacion-item.media {
+        border-color: #ffc107;
+        background: #fffef5;
+    }
+
+    .recomendacion-item.baja {
+        border-color: #28a745;
+        background: #f5fff5;
+    }
+
+    .recomendacion-tipo {
+        font-weight: 600;
+        color: #111827;
+        font-size: 15px;
+        margin-bottom: 5px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .recomendacion-mensaje {
+        color: #374151;
+        font-size: 14px;
+        margin-bottom: 8px;
+    }
+
+    .recomendacion-accion {
+        color: #0067b8;
+        font-size: 13px;
+        font-style: italic;
+    }
+
+    .anomalias-list {
+        max-height: 350px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .anomalia-item {
+        padding: 12px;
+        background: #f9fafb;
+        border-radius: 8px;
+        border-left: 4px solid #ff6b6b;
+        border: 1px solid #e5e7eb;
+    }
+
+    .anomalia-fecha {
+        font-weight: 600;
+        color: #111827;
+        margin-bottom: 5px;
+    }
+
+    .anomalia-detalles {
+        font-size: 13px;
+        color: #6b7280;
+    }
+
+    .loading {
+        text-align: center;
+        padding: 40px;
+        color: #0067b8;
+        font-size: 16px;
+    }
+
+    .loading i {
+        font-size: 32px;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+
+    .badge {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .badge-alza { background: #ffebee; color: #c62828; }
+    .badge-baja { background: #e8f5e9; color: #2e7d32; }
+    .badge-estable { background: #fff3e0; color: #ef6c00; }
+
+    .tecnicos-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 15px;
+        max-height: 400px;
+        overflow-y: auto;
+    }
+
+    .tecnico-card {
+        padding: 15px;
+        border-radius: 10px;
+        background: white;
+        border: 2px solid #e5e7eb;
+        transition: all 0.3s;
+    }
+
+    .tecnico-card.muy-alta {
+        border-color: #dc3545;
+        background: #fff5f5;
+    }
+
+    .tecnico-card.alta {
+        border-color: #fd7e14;
+        background: #fff8f0;
+    }
+
+    .tecnico-card.media {
+        border-color: #ffc107;
+        background: #fffef5;
+    }
+
+    .tecnico-card.baja {
+        border-color: #28a745;
+        background: #f5fff5;
+    }
+
+    .tecnico-nombre {
+        font-weight: 600;
+        color: #111827;
+        margin-bottom: 10px;
+    }
+
+    .tecnico-stat {
+        display: flex;
+        justify-content: space-between;
+        font-size: 13px;
+        color: #6b7280;
+        margin-bottom: 5px;
+    }
+
+    .tecnico-nivel {
+        text-align: center;
+        padding: 8px;
+        border-radius: 6px;
+        font-weight: 600;
+        margin-top: 10px;
+        font-size: 13px;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 40px;
+        color: #9ca3af;
+    }
+
+    .empty-state i {
+        font-size: 48px;
+        margin-bottom: 15px;
+        opacity: 0.5;
+    }
+
+    @media (max-width: 768px) {
         .dashboard {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
-            gap: 25px;
-            margin-bottom: 25px;
+            grid-template-columns: 1fr;
         }
-
-        .card {
-            background: white;
-            border-radius: 15px;
-            padding: 25px;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
-            transition: transform 0.3s, box-shadow 0.3s;
-        }
-
-        .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
-        }
-
-        .card-header {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 20px;
-            padding-bottom: 15px;
-            border-bottom: 2px solid #f0f0f0;
-        }
-
-        .card-icon {
-            width: 45px;
-            height: 45px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 22px;
-            color: white;
-        }
-
-        .card-icon.purple { background: linear-gradient(135deg, #667eea, #764ba2); }
-        .card-icon.orange { background: linear-gradient(135deg, #f093fb, #f5576c); }
-        .card-icon.blue { background: linear-gradient(135deg, #4facfe, #00f2fe); }
-        .card-icon.green { background: linear-gradient(135deg, #43e97b, #38f9d7); }
-
-        .card-title {
-            font-size: 18px;
-            color: #333;
-            font-weight: 600;
-        }
-
-        .chart-container {
-            position: relative;
-            height: 300px;
-            margin-top: 15px;
-        }
-
-        .info-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-top: 15px;
-        }
-
-        .info-card {
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-            padding: 15px;
-            border-radius: 10px;
-            text-align: center;
-        }
-
-        .info-card-value {
-            font-size: 28px;
-            font-weight: bold;
-            color: #667eea;
-            margin-bottom: 5px;
-        }
-
-        .info-card-label {
-            font-size: 13px;
-            color: #666;
-        }
-
-        .recomendaciones-list {
-            display: flex;
+        
+        .filtros-group {
             flex-direction: column;
-            gap: 12px;
         }
+    }
+</style>
+{% endblock styles %}
 
-        .recomendacion-item {
-            padding: 15px;
-            border-radius: 10px;
-            border-left: 4px solid;
-            background: #f8f9fa;
-            transition: transform 0.2s;
-        }
+{% block content %}
 
-        .recomendacion-item:hover {
-            transform: translateX(5px);
-        }
+<div class="max-w-7xl mx-auto">
+  
+  <!-- Encabezado -->
+  <header class="mb-6">
+    <h1 class="text-3xl font-bold text-gray-900 flex items-center gap-3">
+      <i class="fas fa-brain text-[#0067b8]"></i>
+      Predicciones con Inteligencia Artificial
+    </h1>
+  </header>
 
-        .recomendacion-item.alta {
-            border-color: #dc3545;
-            background: #fff5f5;
-        }
+  <!-- Filtros -->
+  <div class="filtros">
+    <h3><i class="fas fa-filter"></i> Filtros de Análisis</h3>
+    <div class="filtros-group">
+      <div class="filtro-item">
+        <label>Meses Históricos:</label>
+        <select id="meses-historico">
+          <option value="1">1 mes</option>
+          <option value="3" selected>3 meses</option>
+          <option value="6">6 meses</option>
+          <option value="12">12 meses</option>
+        </select>
+      </div>
+      <div class="filtro-item">
+        <label>Días para Predicción:</label>
+        <select id="dias-prediccion">
+          <option value="7" selected>7 días</option>
+          <option value="14">14 días</option>
+          <option value="30">30 días</option>
+        </select>
+      </div>
+      <button class="btn-actualizar" onclick="cargarTodasLasPredicciones()">
+        <i class="fas fa-sync-alt"></i>
+        Actualizar Datos
+      </button>
+    </div>
+  </div>
 
-        .recomendacion-item.media {
-            border-color: #ffc107;
-            background: #fffef5;
-        }
-
-        .recomendacion-item.baja {
-            border-color: #28a745;
-            background: #f5fff5;
-        }
-
-        .recomendacion-tipo {
-            font-weight: 600;
-            color: #333;
-            font-size: 15px;
-            margin-bottom: 5px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .recomendacion-mensaje {
-            color: #555;
-            font-size: 14px;
-            margin-bottom: 8px;
-        }
-
-        .recomendacion-accion {
-            color: #667eea;
-            font-size: 13px;
-            font-style: italic;
-        }
-
-        .anomalias-list {
-            max-height: 350px;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .anomalia-item {
-            padding: 12px;
-            background: #f8f9fa;
-            border-radius: 8px;
-            border-left: 4px solid #ff6b6b;
-        }
-
-        .anomalia-fecha {
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 5px;
-        }
-
-        .anomalia-detalles {
-            font-size: 13px;
-            color: #666;
-        }
-
-        .loading {
-            text-align: center;
-            padding: 40px;
-            color: #667eea;
-            font-size: 16px;
-        }
-
-        .loading i {
-            font-size: 32px;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-
-        .badge {
-            display: inline-block;
-            padding: 4px 10px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: 600;
-        }
-
-        .badge-alza { background: #ffebee; color: #c62828; }
-        .badge-baja { background: #e8f5e9; color: #2e7d32; }
-        .badge-estable { background: #fff3e0; color: #ef6c00; }
-
-        .tecnicos-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            gap: 15px;
-            max-height: 400px;
-            overflow-y: auto;
-        }
-
-        .tecnico-card {
-            padding: 15px;
-            border-radius: 10px;
-            background: white;
-            border: 2px solid #e0e0e0;
-            transition: all 0.3s;
-        }
-
-        .tecnico-card.muy-alta {
-            border-color: #dc3545;
-            background: #fff5f5;
-        }
-
-        .tecnico-card.alta {
-            border-color: #fd7e14;
-            background: #fff8f0;
-        }
-
-        .tecnico-card.media {
-            border-color: #ffc107;
-            background: #fffef5;
-        }
-
-        .tecnico-card.baja {
-            border-color: #28a745;
-            background: #f5fff5;
-        }
-
-        .tecnico-nombre {
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 10px;
-        }
-
-        .tecnico-stat {
-            display: flex;
-            justify-content: space-between;
-            font-size: 13px;
-            color: #666;
-            margin-bottom: 5px;
-        }
-
-        .tecnico-nivel {
-            text-align: center;
-            padding: 8px;
-            border-radius: 6px;
-            font-weight: 600;
-            margin-top: 10px;
-            font-size: 13px;
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 40px;
-            color: #999;
-        }
-
-        .empty-state i {
-            font-size: 48px;
-            margin-bottom: 15px;
-            opacity: 0.5;
-        }
-
-        @media (max-width: 768px) {
-            .dashboard {
-                grid-template-columns: 1fr;
-            }
-            
-            .header {
-                flex-direction: column;
-                gap: 15px;
-            }
-            
-            .filtros-group {
-                flex-direction: column;
-            }
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <!-- Header -->
-        <div class="header">
-            <h1>
-                <i class="fas fa-brain"></i>
-                Predicciones con Inteligencia Artificial
-            </h1>
-            <a href="/gestion_incidentes" class="btn-volver">
-                <i class="fas fa-arrow-left"></i>
-                Volver
-            </a>
+  <!-- Dashboard -->
+  <div class="dashboard">
+    <!-- Predicciones por Categoría -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon purple">
+          <i class="fas fa-chart-line"></i>
         </div>
-
-        <!-- Filtros -->
-        <div class="filtros">
-            <h3><i class="fas fa-filter"></i> Filtros de Análisis</h3>
-            <div class="filtros-group">
-                <div class="filtro-item">
-                    <label>Meses Históricos:</label>
-                    <select id="meses-historico">
-                        <option value="1">1 mes</option>
-                        <option value="3" selected>3 meses</option>
-                        <option value="6">6 meses</option>
-                        <option value="12">12 meses</option>
-                    </select>
-                </div>
-                <div class="filtro-item">
-                    <label>Días para Predicción:</label>
-                    <select id="dias-prediccion">
-                        <option value="7" selected>7 días</option>
-                        <option value="14">14 días</option>
-                        <option value="30">30 días</option>
-                    </select>
-                </div>
-                <button class="btn-actualizar" onclick="cargarTodasLasPredicciones()">
-                    <i class="fas fa-sync-alt"></i>
-                    Actualizar Datos
-                </button>
-            </div>
+        <div class="card-title">Predicción de Incidentes por Categoría</div>
+      </div>
+      <div id="predicciones-categorias-content">
+        <div class="loading">
+          <i class="fas fa-spinner"></i>
+          <p>Cargando predicciones...</p>
         </div>
-
-        <!-- Dashboard -->
-        <div class="dashboard">
-            <!-- Predicciones por Categoría -->
-            <div class="card">
-                <div class="card-header">
-                    <div class="card-icon purple">
-                        <i class="fas fa-chart-line"></i>
-                    </div>
-                    <div class="card-title">Predicción de Incidentes por Categoría</div>
-                </div>
-                <div id="predicciones-categorias-content">
-                    <div class="loading">
-                        <i class="fas fa-spinner"></i>
-                        <p>Cargando predicciones...</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Patrones Temporales -->
-            <div class="card">
-                <div class="card-header">
-                    <div class="card-icon orange">
-                        <i class="fas fa-calendar-alt"></i>
-                    </div>
-                    <div class="card-title">Patrones Temporales</div>
-                </div>
-                <div id="patrones-temporales-content">
-                    <div class="loading">
-                        <i class="fas fa-spinner"></i>
-                        <p>Analizando patrones...</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Anomalías Detectadas -->
-            <div class="card">
-                <div class="card-header">
-                    <div class="card-icon blue">
-                        <i class="fas fa-exclamation-triangle"></i>
-                    </div>
-                    <div class="card-title">Anomalías Detectadas</div>
-                </div>
-                <div id="anomalias-content">
-                    <div class="loading">
-                        <i class="fas fa-spinner"></i>
-                        <p>Detectando anomalías...</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Carga de Técnicos -->
-            <div class="card">
-                <div class="card-header">
-                    <div class="card-icon green">
-                        <i class="fas fa-users"></i>
-                    </div>
-                    <div class="card-title">Predicción de Carga de Técnicos</div>
-                </div>
-                <div id="carga-tecnicos-content">
-                    <div class="loading">
-                        <i class="fas fa-spinner"></i>
-                        <p>Calculando cargas...</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Recomendaciones -->
-        <div class="card" style="margin-bottom: 25px;">
-            <div class="card-header">
-                <div class="card-icon purple">
-                    <i class="fas fa-lightbulb"></i>
-                </div>
-                <div class="card-title">Recomendaciones Inteligentes</div>
-            </div>
-            <div id="recomendaciones-content">
-                <div class="loading">
-                    <i class="fas fa-spinner"></i>
-                    <p>Generando recomendaciones...</p>
-                </div>
-            </div>
-        </div>
+      </div>
     </div>
 
-    <script>
-        let chartInstances = {};
+    <!-- Patrones Temporales -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon orange">
+          <i class="fas fa-calendar-alt"></i>
+        </div>
+        <div class="card-title">Patrones Temporales</div>
+      </div>
+      <div id="patrones-temporales-content">
+        <div class="loading">
+          <i class="fas fa-spinner"></i>
+          <p>Analizando patrones...</p>
+        </div>
+      </div>
+    </div>
 
-        // Cargar todas las predicciones al iniciar
-        document.addEventListener('DOMContentLoaded', function() {
-            cargarTodasLasPredicciones();
-        });
+    <!-- Anomalías Detectadas -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon blue">
+          <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        <div class="card-title">Anomalías Detectadas</div>
+      </div>
+      <div id="anomalias-content">
+        <div class="loading">
+          <i class="fas fa-spinner"></i>
+          <p>Detectando anomalías...</p>
+        </div>
+      </div>
+    </div>
 
-        function cargarTodasLasPredicciones() {
-            cargarPrediccionesCategorias();
-            cargarPatronesTemporales();
-            cargarAnomalias();
-            cargarCargaTecnicos();
-            cargarRecomendaciones();
-        }
+    <!-- Carga de Técnicos -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon green">
+          <i class="fas fa-users"></i>
+        </div>
+        <div class="card-title">Predicción de Carga de Técnicos</div>
+      </div>
+      <div id="carga-tecnicos-content">
+        <div class="loading">
+          <i class="fas fa-spinner"></i>
+          <p>Calculando cargas...</p>
+        </div>
+      </div>
+    </div>
+  </div>
 
-        async function cargarPrediccionesCategorias() {
-            try {
-                const meses = document.getElementById('meses-historico').value;
-                const response = await fetch(`/api/predicciones/categorias?meses=${meses}`);
-                const data = await response.json();
+  <!-- Recomendaciones -->
+  <div class="card" style="margin-bottom: 25px;">
+    <div class="card-header">
+      <div class="card-icon purple">
+        <i class="fas fa-lightbulb"></i>
+      </div>
+      <div class="card-title">Recomendaciones Inteligentes</div>
+    </div>
+    <div id="recomendaciones-content">
+      <div class="loading">
+        <i class="fas fa-spinner"></i>
+        <p>Generando recomendaciones...</p>
+      </div>
+    </div>
+  </div>
+</div>
 
-                if (data.success && data.predicciones.length > 0) {
-                    const container = document.getElementById('predicciones-categorias-content');
-                    
-                    // Mostrar top 5
-                    const top5 = data.predicciones.slice(0, 5);
-                    
-                    let html = '<div class="chart-container">';
-                    html += '<canvas id="chart-categorias"></canvas>';
-                    html += '</div>';
-                    html += '<div class="info-grid" style="margin-top: 20px;">';
-                    
-                    top5.forEach(pred => {
-                        const badgeClass = pred.tendencia === 'Alza' ? 'badge-alza' : 
-                                         pred.tendencia === 'Baja' ? 'badge-baja' : 'badge-estable';
-                        html += `
-                            <div class="info-card">
-                                <div class="info-card-value">${pred.prediccion}</div>
-                                <div class="info-card-label">${pred.categoria}</div>
-                                <span class="badge ${badgeClass}">${pred.tendencia}</span>
-                            </div>
-                        `;
-                    });
-                    
-                    html += '</div>';
-                    container.innerHTML = html;
+{% endblock %}
 
-                    // Crear gráfico
-                    if (chartInstances['categorias']) {
-                        chartInstances['categorias'].destroy();
-                    }
-                    
-                    const ctx = document.getElementById('chart-categorias').getContext('2d');
-                    chartInstances['categorias'] = new Chart(ctx, {
-                        type: 'bar',
-                        data: {
-                            labels: top5.map(p => p.categoria),
-                            datasets: [{
-                                label: 'Predicción',
-                                data: top5.map(p => p.prediccion),
-                                backgroundColor: 'rgba(102, 126, 234, 0.7)',
-                                borderColor: 'rgba(102, 126, 234, 1)',
-                                borderWidth: 2
-                            }, {
-                                label: 'Mes Anterior',
-                                data: top5.map(p => p.mes_anterior),
-                                backgroundColor: 'rgba(118, 75, 162, 0.5)',
-                                borderColor: 'rgba(118, 75, 162, 1)',
-                                borderWidth: 2
-                            }]
+{% block scripts %}
+<script>
+    let chartInstances = {};
+
+    // Cargar todas las predicciones al iniciar
+    document.addEventListener('DOMContentLoaded', function() {
+        cargarTodasLasPredicciones();
+    });
+
+    function cargarTodasLasPredicciones() {
+        cargarPrediccionesCategorias();
+        cargarPatronesTemporales();
+        cargarAnomalias();
+        cargarCargaTecnicos();
+        cargarRecomendaciones();
+    }
+
+    async function cargarPrediccionesCategorias() {
+        try {
+            const meses = document.getElementById('meses-historico').value;
+            const response = await fetch(`/api/predicciones/categorias?meses=${meses}`);
+            const data = await response.json();
+
+            if (data.success && data.predicciones.length > 0) {
+                const container = document.getElementById('predicciones-categorias-content');
+                
+                // Mostrar top 5
+                const top5 = data.predicciones.slice(0, 5);
+                
+                let html = '<div class="chart-container">';
+                html += '<canvas id="chart-categorias"></canvas>';
+                html += '</div>';
+                html += '<div class="info-grid" style="margin-top: 20px;">';
+                
+                top5.forEach(pred => {
+                    const badgeClass = pred.tendencia === 'Alza' ? 'badge-alza' : 
+                                     pred.tendencia === 'Baja' ? 'badge-baja' : 'badge-estable';
+                    html += `
+                        <div class="info-card">
+                            <div class="info-card-value">${pred.prediccion}</div>
+                            <div class="info-card-label">${pred.categoria}</div>
+                            <span class="badge ${badgeClass}">${pred.tendencia}</span>
+                        </div>
+                    `;
+                });
+                
+                html += '</div>';
+                container.innerHTML = html;
+
+                // Crear gráfico
+                if (chartInstances['categorias']) {
+                    chartInstances['categorias'].destroy();
+                }
+                
+                const ctx = document.getElementById('chart-categorias').getContext('2d');
+                chartInstances['categorias'] = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: top5.map(p => p.categoria),
+                        datasets: [{
+                            label: 'Predicción',
+                            data: top5.map(p => p.prediccion),
+                            backgroundColor: 'rgba(0, 103, 184, 0.7)',
+                            borderColor: 'rgba(0, 103, 184, 1)',
+                            borderWidth: 2
+                        }, {
+                            label: 'Mes Anterior',
+                            data: top5.map(p => p.mes_anterior),
+                            backgroundColor: 'rgba(26, 136, 225, 0.5)',
+                            borderColor: 'rgba(26, 136, 225, 1)',
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'top'
+                            }
                         },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            plugins: {
-                                legend: {
-                                    display: true,
-                                    position: 'top'
-                                }
-                            },
-                            scales: {
-                                y: {
-                                    beginAtZero: true
-                                }
+                        scales: {
+                            y: {
+                                beginAtZero: true
                             }
                         }
-                    });
-                } else {
-                    mostrarEstadoVacio('predicciones-categorias-content', 'No hay suficientes datos históricos');
-                }
-            } catch (error) {
-                console.error('Error al cargar predicciones:', error);
-                mostrarError('predicciones-categorias-content');
-            }
-        }
-
-        async function cargarPatronesTemporales() {
-            try {
-                const meses = document.getElementById('meses-historico').value;
-                const response = await fetch(`/api/predicciones/patrones-temporales?meses=${meses}`);
-                const data = await response.json();
-
-                if (data.success && data.patrones) {
-                    const container = document.getElementById('patrones-temporales-content');
-                    const p = data.patrones;
-                    
-                    let html = '<div style="margin-bottom: 20px;">';
-                    html += `<p style="text-align: center; color: #666; font-size: 14px;">
-                        <i class="fas fa-database"></i> ${p.total_incidentes} incidentes analizados 
-                        (${p.periodo_analisis})
-                    </p>`;
-                    html += '</div>';
-                    
-                    html += '<div style="display: grid; gap: 15px;">';
-                    
-                    // Días críticos
-                    if (p.dias_criticos && p.dias_criticos.length > 0) {
-                        html += '<div>';
-                        html += '<h4 style="color: #667eea; margin-bottom: 10px; font-size: 15px;">';
-                        html += '<i class="fas fa-calendar-day"></i> Días con más incidentes:';
-                        html += '</h4>';
-                        html += '<div class="info-grid">';
-                        p.dias_criticos.forEach(dia => {
-                            html += `
-                                <div class="info-card">
-                                    <div class="info-card-value">${dia.cantidad}</div>
-                                    <div class="info-card-label">${dia.dia}</div>
-                                    <small style="color: #888;">${dia.porcentaje}%</small>
-                                </div>
-                            `;
-                        });
-                        html += '</div></div>';
                     }
-                    
-                    // Horas críticas
-                    if (p.horas_criticas && p.horas_criticas.length > 0) {
-                        html += '<div>';
-                        html += '<h4 style="color: #667eea; margin-bottom: 10px; font-size: 15px;">';
-                        html += '<i class="fas fa-clock"></i> Horarios pico:';
-                        html += '</h4>';
-                        html += '<div class="info-grid">';
-                        p.horas_criticas.forEach(hora => {
-                            html += `
-                                <div class="info-card">
-                                    <div class="info-card-value">${hora.cantidad}</div>
-                                    <div class="info-card-label">${hora.hora}</div>
-                                    <small style="color: #888;">${hora.porcentaje}%</small>
-                                </div>
-                            `;
-                        });
-                        html += '</div></div>';
-                    }
-                    
-                    html += '</div>';
-                    container.innerHTML = html;
-                } else {
-                    mostrarEstadoVacio('patrones-temporales-content', 'No hay datos suficientes');
-                }
-            } catch (error) {
-                console.error('Error al cargar patrones:', error);
-                mostrarError('patrones-temporales-content');
+                });
+            } else {
+                mostrarEstadoVacio('predicciones-categorias-content', 'No hay suficientes datos históricos');
             }
+        } catch (error) {
+            console.error('Error al cargar predicciones:', error);
+            mostrarError('predicciones-categorias-content');
         }
+    }
 
-        async function cargarAnomalias() {
-            try {
-                const response = await fetch('/api/predicciones/anomalias');
-                const data = await response.json();
+    async function cargarPatronesTemporales() {
+        try {
+            const meses = document.getElementById('meses-historico').value;
+            const response = await fetch(`/api/predicciones/patrones-temporales?meses=${meses}`);
+            const data = await response.json();
 
-                if (data.success && data.anomalias.length > 0) {
-                    const container = document.getElementById('anomalias-content');
-                    
-                    let html = '<div class="anomalias-list">';
-                    data.anomalias.forEach(anomalia => {
+            if (data.success && data.patrones) {
+                const container = document.getElementById('patrones-temporales-content');
+                const p = data.patrones;
+                
+                let html = '<div style="margin-bottom: 20px;">';
+                html += `<p style="text-align: center; color: #6b7280; font-size: 14px;">
+                    <i class="fas fa-database"></i> ${p.total_incidentes} incidentes analizados 
+                    (${p.periodo_analisis})
+                </p>`;
+                html += '</div>';
+                
+                html += '<div style="display: grid; gap: 15px;">';
+                
+                // Días críticos
+                if (p.dias_criticos && p.dias_criticos.length > 0) {
+                    html += '<div>';
+                    html += '<h4 style="color: #0067b8; margin-bottom: 10px; font-size: 15px; font-weight: 600;">';
+                    html += '<i class="fas fa-calendar-day"></i> Días con más incidentes:';
+                    html += '</h4>';
+                    html += '<div class="info-grid">';
+                    p.dias_criticos.forEach(dia => {
                         html += `
-                            <div class="anomalia-item">
-                                <div class="anomalia-fecha">
-                                    <i class="fas fa-calendar"></i> ${anomalia.fecha}
-                                    <span class="badge" style="background: ${anomalia.severidad === 'Alta' ? '#ffebee' : '#fff3e0'}; 
-                                                                  color: ${anomalia.severidad === 'Alta' ? '#c62828' : '#ef6c00'}; 
-                                                                  float: right;">
-                                        ${anomalia.tipo}
-                                    </span>
-                                </div>
-                                <div class="anomalia-detalles">
-                                    <strong>${anomalia.cantidad}</strong> incidentes 
-                                    (Promedio: ${anomalia.promedio})
-                                    <br>
-                                    <small><i class="fas fa-tags"></i> ${anomalia.categorias_afectadas}</small>
-                                </div>
+                            <div class="info-card">
+                                <div class="info-card-value">${dia.cantidad}</div>
+                                <div class="info-card-label">${dia.dia}</div>
+                                <small style="color: #9ca3af;">${dia.porcentaje}%</small>
                             </div>
                         `;
                     });
-                    html += '</div>';
-                    container.innerHTML = html;
-                } else {
-                    mostrarEstadoVacio('anomalias-content', 'No se detectaron anomalías significativas');
+                    html += '</div></div>';
                 }
-            } catch (error) {
-                console.error('Error al cargar anomalías:', error);
-                mostrarError('anomalias-content');
-            }
-        }
-
-        async function cargarCargaTecnicos() {
-            try {
-                const dias = document.getElementById('dias-prediccion').value;
-                const response = await fetch(`/api/predicciones/carga-tecnicos?dias=${dias}`);
-                const data = await response.json();
-
-                if (data.success && data.predicciones.length > 0) {
-                    const container = document.getElementById('carga-tecnicos-content');
-                    
-                    let html = '<div class="tecnicos-grid">';
-                    data.predicciones.forEach(tecnico => {
-                        const nivelClass = tecnico.nivel_carga.toLowerCase().replace(' ', '-');
+                
+                // Horas críticas
+                if (p.horas_criticas && p.horas_criticas.length > 0) {
+                    html += '<div>';
+                    html += '<h4 style="color: #0067b8; margin-bottom: 10px; font-size: 15px; font-weight: 600;">';
+                    html += '<i class="fas fa-clock"></i> Horarios pico:';
+                    html += '</h4>';
+                    html += '<div class="info-grid">';
+                    p.horas_criticas.forEach(hora => {
                         html += `
-                            <div class="tecnico-card ${nivelClass}">
-                                <div class="tecnico-nombre">
-                                    <i class="fas fa-user-circle"></i> ${tecnico.nombre}
-                                </div>
-                                <div class="tecnico-stat">
-                                    <span>Incidentes actuales:</span>
-                                    <strong>${tecnico.incidentes_actuales}</strong>
-                                </div>
-                                <div class="tecnico-stat">
-                                    <span>Promedio diario:</span>
-                                    <strong>${tecnico.promedio_diario.toFixed(1)}</strong>
-                                </div>
-                                <div class="tecnico-stat">
-                                    <span>Predicción ${dias} días:</span>
-                                    <strong>${tecnico.prediccion_proximos_dias}</strong>
-                                </div>
-                                <div class="tecnico-nivel" style="background: ${
-                                    tecnico.color === 'red' ? '#ffebee' : 
-                                    tecnico.color === 'orange' ? '#fff3e0' : 
-                                    tecnico.color === 'yellow' ? '#fffef5' : '#f5fff5'
-                                }; color: ${
-                                    tecnico.color === 'red' ? '#c62828' : 
-                                    tecnico.color === 'orange' ? '#e65100' : 
-                                    tecnico.color === 'yellow' ? '#f57f17' : '#2e7d32'
-                                };">
-                                    ${tecnico.nivel_carga}
-                                </div>
+                            <div class="info-card">
+                                <div class="info-card-value">${hora.cantidad}</div>
+                                <div class="info-card-label">${hora.hora}</div>
+                                <small style="color: #9ca3af;">${hora.porcentaje}%</small>
                             </div>
                         `;
                     });
-                    html += '</div>';
-                    container.innerHTML = html;
-                } else {
-                    mostrarEstadoVacio('carga-tecnicos-content', 'No hay técnicos con datos suficientes');
+                    html += '</div></div>';
                 }
-            } catch (error) {
-                console.error('Error al cargar carga de técnicos:', error);
-                mostrarError('carga-tecnicos-content');
+                
+                html += '</div>';
+                container.innerHTML = html;
+            } else {
+                mostrarEstadoVacio('patrones-temporales-content', 'No hay datos suficientes');
             }
+        } catch (error) {
+            console.error('Error al cargar patrones:', error);
+            mostrarError('patrones-temporales-content');
         }
+    }
 
-        async function cargarRecomendaciones() {
-            try {
-                const response = await fetch('/api/predicciones/recomendaciones');
-                const data = await response.json();
+    async function cargarAnomalias() {
+        try {
+            const response = await fetch('/api/predicciones/anomalias');
+            const data = await response.json();
 
-                if (data.success && data.recomendaciones.length > 0) {
-                    const container = document.getElementById('recomendaciones-content');
-                    
-                    let html = '<div class="recomendaciones-list">';
-                    data.recomendaciones.forEach(rec => {
-                        const severidadClass = rec.severidad.toLowerCase();
-                        const icon = rec.severidad === 'Alta' ? 'fa-exclamation-circle' : 
-                                   rec.severidad === 'Media' ? 'fa-exclamation-triangle' : 'fa-info-circle';
-                        html += `
-                            <div class="recomendacion-item ${severidadClass}">
-                                <div class="recomendacion-tipo">
-                                    <i class="fas ${icon}"></i>
-                                    ${rec.tipo}
-                                    <span class="badge badge-${severidadClass}" style="margin-left: auto;">
-                                        ${rec.severidad}
-                                    </span>
-                                </div>
-                                <div class="recomendacion-mensaje">${rec.mensaje}</div>
-                                <div class="recomendacion-accion">
-                                    <i class="fas fa-arrow-right"></i> ${rec.accion}
-                                </div>
+            if (data.success && data.anomalias.length > 0) {
+                const container = document.getElementById('anomalias-content');
+                
+                let html = '<div class="anomalias-list">';
+                data.anomalias.forEach(anomalia => {
+                    html += `
+                        <div class="anomalia-item">
+                            <div class="anomalia-fecha">
+                                <i class="fas fa-calendar"></i> ${anomalia.fecha}
+                                <span class="badge" style="background: ${anomalia.severidad === 'Alta' ? '#ffebee' : '#fff3e0'}; 
+                                                              color: ${anomalia.severidad === 'Alta' ? '#c62828' : '#ef6c00'}; 
+                                                              float: right;">
+                                    ${anomalia.tipo}
+                                </span>
                             </div>
-                        `;
-                    });
-                    html += '</div>';
-                    container.innerHTML = html;
-                } else {
-                    mostrarEstadoVacio('recomendaciones-content', 'No hay recomendaciones en este momento');
-                }
-            } catch (error) {
-                console.error('Error al cargar recomendaciones:', error);
-                mostrarError('recomendaciones-content');
+                            <div class="anomalia-detalles">
+                                <strong>${anomalia.cantidad}</strong> incidentes 
+                                (Promedio: ${anomalia.promedio})
+                                <br>
+                                <small><i class="fas fa-tags"></i> ${anomalia.categorias_afectadas}</small>
+                            </div>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+                container.innerHTML = html;
+            } else {
+                mostrarEstadoVacio('anomalias-content', 'No se detectaron anomalías significativas');
             }
+        } catch (error) {
+            console.error('Error al cargar anomalías:', error);
+            mostrarError('anomalias-content');
         }
+    }
 
-        function mostrarEstadoVacio(containerId, mensaje) {
-            const container = document.getElementById(containerId);
-            container.innerHTML = `
-                <div class="empty-state">
-                    <i class="fas fa-inbox"></i>
-                    <p>${mensaje}</p>
-                </div>
-            `;
+    async function cargarCargaTecnicos() {
+        try {
+            const dias = document.getElementById('dias-prediccion').value;
+            const response = await fetch(`/api/predicciones/carga-tecnicos?dias=${dias}`);
+            const data = await response.json();
+
+            if (data.success && data.predicciones.length > 0) {
+                const container = document.getElementById('carga-tecnicos-content');
+                
+                let html = '<div class="tecnicos-grid">';
+                data.predicciones.forEach(tecnico => {
+                    const nivelClass = tecnico.nivel_carga.toLowerCase().replace(' ', '-');
+                    html += `
+                        <div class="tecnico-card ${nivelClass}">
+                            <div class="tecnico-nombre">
+                                <i class="fas fa-user-circle"></i> ${tecnico.nombre}
+                            </div>
+                            <div class="tecnico-stat">
+                                <span>Incidentes actuales:</span>
+                                <strong>${tecnico.incidentes_actuales}</strong>
+                            </div>
+                            <div class="tecnico-stat">
+                                <span>Promedio diario:</span>
+                                <strong>${tecnico.promedio_diario.toFixed(1)}</strong>
+                            </div>
+                            <div class="tecnico-stat">
+                                <span>Predicción ${dias} días:</span>
+                                <strong>${tecnico.prediccion_proximos_dias}</strong>
+                            </div>
+                            <div class="tecnico-nivel" style="background: ${
+                                tecnico.color === 'red' ? '#ffebee' : 
+                                tecnico.color === 'orange' ? '#fff3e0' : 
+                                tecnico.color === 'yellow' ? '#fffef5' : '#f5fff5'
+                            }; color: ${
+                                tecnico.color === 'red' ? '#c62828' : 
+                                tecnico.color === 'orange' ? '#e65100' : 
+                                tecnico.color === 'yellow' ? '#f57f17' : '#2e7d32'
+                            };">
+                                ${tecnico.nivel_carga}
+                            </div>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+                container.innerHTML = html;
+            } else {
+                mostrarEstadoVacio('carga-tecnicos-content', 'No hay técnicos con datos suficientes');
+            }
+        } catch (error) {
+            console.error('Error al cargar carga de técnicos:', error);
+            mostrarError('carga-tecnicos-content');
         }
+    }
 
-        function mostrarError(containerId) {
-            const container = document.getElementById(containerId);
-            container.innerHTML = `
-                <div class="empty-state">
-                    <i class="fas fa-exclamation-triangle" style="color: #dc3545;"></i>
-                    <p style="color: #dc3545;">Error al cargar datos</p>
-                </div>
-            `;
+    async function cargarRecomendaciones() {
+        try {
+            const response = await fetch('/api/predicciones/recomendaciones');
+            const data = await response.json();
+
+            if (data.success && data.recomendaciones.length > 0) {
+                const container = document.getElementById('recomendaciones-content');
+                
+                let html = '<div class="recomendaciones-list">';
+                data.recomendaciones.forEach(rec => {
+                    const severidadClass = rec.severidad.toLowerCase();
+                    const icon = rec.severidad === 'Alta' ? 'fa-exclamation-circle' : 
+                               rec.severidad === 'Media' ? 'fa-exclamation-triangle' : 'fa-info-circle';
+                    html += `
+                        <div class="recomendacion-item ${severidadClass}">
+                            <div class="recomendacion-tipo">
+                                <i class="fas ${icon}"></i>
+                                ${rec.tipo}
+                                <span class="badge badge-${severidadClass}" style="margin-left: auto;">
+                                    ${rec.severidad}
+                                </span>
+                            </div>
+                            <div class="recomendacion-mensaje">${rec.mensaje}</div>
+                            <div class="recomendacion-accion">
+                                <i class="fas fa-arrow-right"></i> ${rec.accion}
+                            </div>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+                container.innerHTML = html;
+            } else {
+                mostrarEstadoVacio('recomendaciones-content', 'No hay recomendaciones en este momento');
+            }
+        } catch (error) {
+            console.error('Error al cargar recomendaciones:', error);
+            mostrarError('recomendaciones-content');
         }
-    </script>
-</body>
-</html>
+    }
 
+    function mostrarEstadoVacio(containerId, mensaje) {
+        const container = document.getElementById(containerId);
+        container.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-inbox"></i>
+                <p>${mensaje}</p>
+            </div>
+        `;
+    }
 
-
-
+    function mostrarError(containerId) {
+        const container = document.getElementById(containerId);
+        container.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-exclamation-triangle" style="color: #dc3545;"></i>
+                <p style="color: #dc3545;">Error al cargar datos</p>
+            </div>
+        `;
+    }
+</script>
+{% endblock scripts %}

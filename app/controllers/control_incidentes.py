@@ -1225,7 +1225,7 @@ class ControlIncidentes:
                     INCIDENTE
                 WHERE 
                     estado IN ('T', 'C')
-                    AND COALESCE(fecha_resolucion, fecha_reporte) >= CURRENT_DATE - INTERVAL '%s months'
+                    AND COALESCE(fecha_resolucion, fecha_reporte) >= CURRENT_DATE - make_interval(months => %s)
                 GROUP BY 
                     TO_CHAR(COALESCE(fecha_resolucion, fecha_reporte), 'YYYY-MM')
                 ORDER BY 
@@ -1300,7 +1300,11 @@ class ControlIncidentes:
 
             # Construir query dinámicamente
             # Solo considerar incidentes Terminados ('T') o Cancelados ('C')
-            where_conditions = ["i.estado IN ('T', 'C')"]
+            # Y que tengan fecha_resolucion o tiempo_reparacion para calcular MTTR
+            where_conditions = [
+                "i.estado IN ('T', 'C')",
+                "(i.tiempo_reparacion IS NOT NULL OR (i.fecha_resolucion IS NOT NULL AND i.fecha_reporte IS NOT NULL))"
+            ]
             params = []
 
             if categoria and categoria.strip() and categoria.lower() != 'todas':
@@ -1308,10 +1312,15 @@ class ControlIncidentes:
                 params.append(categoria)
 
             if periodo_meses:
-                where_conditions.append("COALESCE(i.fecha_resolucion, i.fecha_reporte) >= CURRENT_DATE - INTERVAL '%s months'")
+                # Construir el intervalo correctamente para PostgreSQL
+                where_conditions.append("COALESCE(i.fecha_resolucion, i.fecha_reporte) >= CURRENT_DATE - make_interval(months => %s)")
                 params.append(periodo_meses)
 
             where_clause = " AND ".join(where_conditions)
+            
+            print(f"🔍 Consulta MTTR filtrado - Categoría: {categoria}, Período: {periodo_meses} meses")
+            print(f"📋 WHERE clause: {where_clause}")
+            print(f"📋 Parámetros: {params}")
 
             sql = f"""
                 SELECT 
@@ -1339,6 +1348,10 @@ class ControlIncidentes:
             with conexion.cursor() as cursor:
                 cursor.execute(sql, params)
                 resultados = cursor.fetchall()
+                
+                print(f"✅ Consulta ejecutada. Resultados encontrados: {len(resultados)}")
+                if len(resultados) > 0:
+                    print(f"📊 Primer resultado: {resultados[0]}")
 
             conexion.close()
 
@@ -1348,6 +1361,7 @@ class ControlIncidentes:
                 'total_incidentes': int(fila[2]) if fila[2] else 0
             } for fila in resultados]
             
+            print(f"📦 Lista MTTR generada: {len(mttr_list)} elementos")
             return mttr_list
 
         except Exception as e:
